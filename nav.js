@@ -1,8 +1,7 @@
 // Header, navigation and footer for every page. Pages have <header id="kop"> and
 // <footer id="voet">; load after reunie.js and data.js.
 (() => {
-  // TODO: replace with a local copy (or SVG) of the logo once we have one.
-  const LOGO = 'https://scoutingbrandevoort.nl/wp-content/uploads/2016/11/sc_brandevoort_logotranskl1.png';
+  const LOGO = 'logo-wit.svg';  // white lettering for the blue header; logo.svg has black lettering
   const PAGINAS = [
     ['index.html', 'Home'],
     ['programma.html', 'Programma'],
@@ -26,6 +25,10 @@
       <a class="logo" href="index.html"><img src="${LOGO}" alt="Logo Scouting Brandevoort"> Scouting Brandevoort <b>25</b></a>
       <nav>${links}</nav>
     </div></header>`;
+
+  const icon = document.createElement('link');
+  icon.rel = 'icon'; icon.type = 'image/svg+xml'; icon.href = 'logo.svg';
+  document.head.appendChild(icon);
 
   $('voet').innerHTML = `Reünie 25 jaar Scouting Brandevoort · zondag 23 mei 2027 · blokhut de Brandnetel, Helmond<br>
     <a href="privacy.html">Privacy</a> · geen cookies, geen tracking · Scobra, sinds 2001`;

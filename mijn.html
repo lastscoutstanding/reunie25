@@ -1,0 +1,73 @@
+<!DOCTYPE html>
+<html lang="nl">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Mijn inschrijving · Reünie 25 jaar Scouting Brandevoort</title>
+<link rel="stylesheet" href="theme.css">
+</head>
+<body>
+<header id="kop"></header>
+<main>
+  <div class="row" style="justify-content:space-between">
+    <h1 id="hoi">Mijn inschrijving</h1>
+    <button class="linkbtn" id="uitloggen">Uitloggen</button>
+  </div>
+  <p class="note" id="welkom" hidden>Je bent ingeschreven. Tot 23 mei 2027 in de Brandnetel!</p>
+  <div class="split" id="inhoud" hidden>
+    <div class="card">
+      <p style="margin-top:0"><span class="pill">✓ Ingeschreven</span> <span id="sinds"></span></p>
+      <p>Op "Wie komen er?" sta je zo:</p>
+      <div id="kaart"></div>
+      <p class="muted" style="font-size:14px" id="samen"></p>
+      <div class="row" style="margin-top:16px">
+        <a class="btn" href="inschrijven.html">Gegevens aanpassen</a>
+        <button class="btn danger" id="uitschrijven">Uitschrijven</button>
+      </div>
+    </div>
+    <div class="card">
+      <h2>Je gegevens</h2>
+      <p style="margin:0" id="gegevens"></p>
+      <p class="muted" style="font-size:14px">Je e-mailadres is alleen voor het inloggen en voor berichten van het reüniecomité. Het staat nooit op de site.</p>
+    </div>
+  </div>
+</main>
+<footer id="voet"></footer>
+<script src="reunie.js"></script>
+<script src="data.js"></script>
+<script src="nav.js"></script>
+<script>
+  if (!Data.ingelogd()) location.replace('inloggen.html');
+
+  $('uitloggen').addEventListener('click', async () => { await Data.uitloggen(); location.href = 'index.html'; });
+  $('uitschrijven').addEventListener('click', async () => {
+    if (!confirm('Weet je zeker dat je je wilt uitschrijven? Je gegevens worden gewist. Dit kan niet ongedaan worden gemaakt.')) return;
+    await Data.uitschrijven();
+    alert('Je bent uitgeschreven en je gegevens zijn gewist.');
+    location.href = 'index.html';
+  });
+
+  (async () => {
+    await Reunie.laadSpeltakken();
+    const ik = await Data.ik();
+    if (!ik) { location.replace('inschrijven.html'); return; }
+    const E = Reunie.esc;
+    $('hoi').textContent = `Hoi ${ik.voornaam}`;
+    $('welkom').hidden = location.hash !== '#welkom';
+    $('sinds').textContent = 'sinds ' + new Date(ik.sinds + 'T12:00').toLocaleDateString('nl-NL', { day: 'numeric', month: 'long', year: 'numeric' });
+    $('kaart').innerHTML = Reunie.kaart(Data.publiek(ik));
+    $('gegevens').innerHTML = `${E(ik.voornaam)} ${E(ik.achternaam)}<br>${E(ik.email)}<br>geboren in ${ik.geboortejaar}`;
+
+    // Links to the participants page, filtered on the first year in each speltak
+    const links = (ik.takken || []).map(x => {
+      const label = Reunie.isRol(x.speltak) ? `bij ${x.speltak}`
+        : x.rol === 'leiding' ? `toen je leiding was bij de ${x.speltak}` : `bij de ${x.speltak}`;
+      const q = new URLSearchParams({ speltak: x.speltak, jaar: x.van });
+      return `<a href="deelnemers.html?${q}">${E(label)} (${x.van})</a>`;
+    });
+    $('samen').innerHTML = links.length ? 'Wie was er tegelijk met jou: ' + links.join(' · ') : '';
+    $('inhoud').hidden = false;
+  })();
+</script>
+</body>
+</html>

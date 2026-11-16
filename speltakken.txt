@@ -1,0 +1,26 @@
+# Speltakken van Scouting Brandevoort
+#
+# Formaat per regel:   Naam = leeftijd waarop je erbij komt
+# De volgorde telt: je zit in een speltak tot je de leeftijd van de volgende hebt.
+# De laatste speltak met een leeftijd loopt door tot nu ("heden").
+#
+# Iedere speltak verschijnt twee keer op het inschrijfformulier:
+# bij "Als jeugdlid" (jaren berekend uit het geboortejaar)
+# en bij "Als leiding" (jaren zelf invullen).
+#
+# Een regel zonder "= leeftijd" is een rol zonder speltak, zoals bestuur.
+# Die staat alleen bij "Als leiding", met zelf ingevulde jaren.
+#
+# Regels die met # beginnen worden overgeslagen.
+
+opgericht = 2001
+
+Bevers = 5
+Welpen = 7
+Scouts = 11
+Explorers = 15
+Roverscouts = 18
+Vuurvogels = 21
+Plusscouts = 23
+
+Bestuur / vrijwilliger

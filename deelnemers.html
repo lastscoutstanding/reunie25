@@ -1,0 +1,143 @@
+<!DOCTYPE html>
+<html lang="nl">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Wie komen er? · Reünie 25 jaar Scouting Brandevoort</title>
+<link rel="stylesheet" href="theme.css">
+</head>
+<body>
+<header id="kop"></header>
+<main>
+  <h1>Wie komen er?</h1>
+  <p class="muted" style="margin:0" id="totaal"></p>
+  <div class="filters">
+    <div class="seg"><button id="v-lijst" class="on">Lijst</button><button id="v-jaar">Per jaar</button></div>
+    <input id="q" type="search" placeholder="Zoek op naam" aria-label="Zoek op naam">
+    <select id="speltak" aria-label="Speltak"></select>
+    <select id="jaar" aria-label="Jaar"></select>
+  </div>
+  <p class="summary" id="summary"></p>
+
+  <div id="lijst">
+    <div id="people"></div>
+    <div id="zonder" hidden>
+      <h3 class="sub">Ook ingeschreven, speltak niet getoond</h3>
+      <p class="muted" style="margin:0;font-size:14px">Deze mensen laten hun speltakken niet zien. Ze staan hier altijd, bij elk filter.</p>
+      <div class="people" id="people2"></div>
+    </div>
+  </div>
+
+  <div id="perjaar" hidden>
+    <p class="muted" style="margin:12px 0 0;font-size:14px">Aantal zichtbare jeugdleden per speltak per jaar, <b>L</b> = leiding. Klik op een vakje voor de namen.</p>
+    <div class="scroll"><table class="ov" id="ov"></table></div>
+  </div>
+</main>
+<footer id="voet"></footer>
+<script src="reunie.js"></script>
+<script src="data.js"></script>
+<script src="nav.js"></script>
+<script>
+  const NU = Reunie.NU;
+  let PERSONEN = [];
+
+  const grid = (titel, lijst, hit) => lijst.length
+    ? `${titel ? `<h3 class="sub">${titel}</h3>` : ''}<div class="people">${lijst.map(p => Reunie.kaart(p, hit)).join('')}</div>` : '';
+  const naamVan = p => [p.voornaam, p.achternaam].filter(Boolean).join(' ').toLowerCase();
+
+  function render() {
+    const q = $('q').value.trim().toLowerCase(), t = $('speltak').value, j = +$('jaar').value;
+    const hit = t || j ? Reunie.matcher(t, j) : null;
+    const opNaam = p => !q || naamVan(p).includes(q);
+    const lijst = PERSONEN.filter(p => !hit || p.takken?.some(hit)).filter(opNaam);
+
+    if (hit) {
+      // Leiding first: "who was my leiding at the Welpen in 2009?"
+      const isLd = p => p.takken.some(r => r.rol === 'leiding' && hit(r));
+      const ld = lijst.filter(isLd), lid = lijst.filter(p => !isLd(p));
+      const kop = t && !Reunie.isRol(t) ? t : 'Jeugdleden';
+      $('people').innerHTML = grid(ld.length ? 'Leiding' : '', ld, hit) + grid(ld.length ? Reunie.esc(kop) : '', lid, hit);
+    } else {
+      $('people').innerHTML = grid('', lijst, null);
+    }
+    if (!lijst.length) $('people').innerHTML = '<p class="muted">Niemand gevonden.</p>';
+
+    // People who hide their speltakken can't match a speltak/year filter, but still want
+    // to be seen: list them separately, the same for every filter (so nothing leaks).
+    const zonder = hit ? PERSONEN.filter(p => !p.takken && (p.voornaam || p.achternaam || p.geboortejaar)).filter(opNaam) : [];
+    $('zonder').hidden = !zonder.length;
+    $('people2').innerHTML = zonder.map(p => Reunie.kaart(p)).join('');
+
+    const wat = t && j ? `${t} in ${j}` : t ? `Ooit bij ${t}` : j ? `Bij Brandevoort in ${j}` : '';
+    $('summary').innerHTML = wat
+      ? `<b>${Reunie.esc(wat)}:</b> ${lijst.length} ${lijst.length === 1 ? 'persoon' : 'mensen'} · <button class="linkbtn" id="reset">alles tonen</button>`
+      : '';
+
+    // Keep the filter in the URL so a filtered view can be shared
+    const u = new URLSearchParams();
+    if (t) u.set('speltak', t);
+    if (j) u.set('jaar', j);
+    history.replaceState(null, '', u.toString() ? '?' + u : location.pathname);
+  }
+
+  function renderPerJaar() {
+    const namen = Reunie.takken().map(t => t.naam);
+    const met = PERSONEN.filter(p => p.takken);
+    const tel = (naam, j, rol) => met.filter(p => p.takken.some(r => (rol === 'lid') === (r.rol === 'lid') && Reunie.matcher(naam, j)(r))).length;
+    const cel = {};
+    let max = 1;
+    for (let j = NU; j >= Reunie.opgericht(); j--) for (const n of namen) {
+      const c = [tel(n, j, 'lid'), tel(n, j, 'leiding')];
+      cel[j + n] = c; max = Math.max(max, c[0] + c[1]);
+    }
+    let rijen = '';
+    for (let j = NU; j >= Reunie.opgericht(); j--) {
+      rijen += `<tr><th class="y">${j}</th>` + namen.map(n => {
+        const [lid, ld] = cel[j + n];
+        if (!lid && !ld) return '<td><span class="muted">·</span></td>';
+        const bg = `background: color-mix(in srgb, var(--brand) ${12 + 55 * (lid + ld) / max}%, transparent)`;
+        const txt = [lid || '', ld ? `<small>${ld}L</small>` : ''].filter(Boolean).join(' · ');
+        return `<td><button style="${bg}" data-speltak="${Reunie.esc(n)}" data-jaar="${j}">${txt}</button></td>`;
+      }).join('') + '</tr>';
+    }
+    $('ov').innerHTML = `<thead><tr><th></th>${namen.map(n => `<th>${Reunie.esc(n)}</th>`).join('')}</tr></thead><tbody>${rijen}</tbody>`;
+  }
+
+  function view(v) {
+    $('lijst').hidden = v !== 'lijst'; $('perjaar').hidden = v !== 'jaar';
+    $('v-lijst').classList.toggle('on', v === 'lijst'); $('v-jaar').classList.toggle('on', v === 'jaar');
+  }
+  $('v-lijst').addEventListener('click', () => view('lijst'));
+  $('v-jaar').addEventListener('click', () => view('jaar'));
+  $('ov').addEventListener('click', e => {
+    const b = e.target.closest('button');
+    if (!b) return;
+    $('speltak').value = b.dataset.speltak; $('jaar').value = b.dataset.jaar;
+    view('lijst'); render(); scrollTo(0, 0);
+  });
+  $('summary').addEventListener('click', e => {
+    if (e.target.id === 'reset') { $('speltak').value = ''; $('jaar').value = ''; render(); }
+  });
+  ['q', 'speltak', 'jaar'].forEach(id => $(id).addEventListener('input', render));
+
+  (async () => {
+    await Reunie.laadSpeltakken();
+    $('speltak').innerHTML = '<option value="">Alle speltakken</option>' +
+      Reunie.takken().map(t => `<option>${Reunie.esc(t.naam)}</option>`).join('');
+    let jaren = '<option value="">Alle jaren</option>';
+    for (let j = NU; j >= Reunie.opgericht(); j--) jaren += `<option>${j}</option>`;
+    $('jaar').innerHTML = jaren;
+
+    const u = new URLSearchParams(location.search);
+    $('speltak').value = u.get('speltak') || '';
+    $('jaar').value = u.get('jaar') || '';
+
+    const d = await Data.deelnemers();
+    PERSONEN = d.personen;
+    $('totaal').innerHTML = `<b>${d.totaal}</b> ingeschreven · <b>${PERSONEN.length}</b> zichtbaar` +
+      (d.totaal > PERSONEN.length ? ' · de anderen hebben gekozen om niet getoond te worden' : '');
+    render(); renderPerJaar();
+  })();
+</script>
+</body>
+</html>

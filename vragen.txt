@@ -1,0 +1,20 @@
+# Veelgestelde vragen
+#
+# V: begint een nieuwe vraag, A: het antwoord.
+# Een antwoord mag over meerdere regels lopen; een lege regel begint een nieuwe alinea.
+# Regels die met # beginnen worden overgeslagen.
+
+V: Wie mogen er komen?
+A: Iedereen die ooit jeugdlid, leiding, bestuurslid of vrijwilliger was bij Scouting Brandevoort.
+
+V: Wat kost het?
+A: Dat maken we later bekend.
+
+V: Mag ik iemand meenemen?
+A: Dat maken we later bekend.
+
+V: Ik ken iemand van vroeger die dit niet weet.
+A: Stuur deze site door! Hoe meer oud-leden, hoe leuker.
+
+V: Hoe pas ik mijn gegevens aan of schrijf ik me uit?
+A: Log in met je e-mailadres. Je krijgt een code per mail, daarna kun je alles aanpassen of je uitschrijven.

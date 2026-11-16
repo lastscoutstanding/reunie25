@@ -1,0 +1,82 @@
+<!DOCTYPE html>
+<html lang="nl">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Inloggen · Reünie 25 jaar Scouting Brandevoort</title>
+<link rel="stylesheet" href="theme.css">
+</head>
+<body>
+<header id="kop"></header>
+<main>
+  <section id="stap-email">
+    <h1>Inloggen</h1>
+    <form class="card narrow" id="form-email" novalidate>
+      <label>E-mailadres<input type="email" id="email" autocomplete="email" required></label>
+      <p class="err" id="fout-email" hidden></p>
+      <div><button class="btn">Stuur mij een code</button></div>
+      <small class="muted">Nog niet ingeschreven? <a href="inschrijven.html">Schrijf je in</a>.</small>
+    </form>
+  </section>
+
+  <section id="stap-code" hidden>
+    <h1>Check je mail</h1>
+    <form class="card narrow" id="form-code" novalidate>
+      <p style="margin:0">We hebben een code van 6 cijfers gestuurd naar <b id="naar"></b>.</p>
+      <label>Code<input id="code" class="code" inputmode="numeric" autocomplete="one-time-code" maxlength="6" required></label>
+      <p class="err" id="fout-code" hidden></p>
+      <div><button class="btn">Bevestigen</button></div>
+      <small class="muted">Niets ontvangen? Kijk in je spam, of <a href="inloggen.html" id="opnieuw">probeer een ander adres</a>.</small>
+    </form>
+  </section>
+</main>
+<footer id="voet"></footer>
+<script src="reunie.js"></script>
+<script src="data.js"></script>
+<script src="nav.js"></script>
+<script>
+  // The address travels between pages in sessionStorage (this tab only), never in the URL.
+  const ss = {
+    get: k => { try { return sessionStorage.getItem(k); } catch { return null; } },
+    set: (k, v) => { try { v == null ? sessionStorage.removeItem(k) : sessionStorage.setItem(k, v); } catch {} },
+  };
+
+  function toon() {
+    const email = ss.get('reunie25.email');
+    const code = location.hash === '#code' && email;
+    $('stap-email').hidden = !!code; $('stap-code').hidden = !code;
+    if (code) { $('naar').textContent = email; $('code').focus(); }
+    else if (email) $('email').value = email;
+  }
+  addEventListener('hashchange', toon);
+
+  if (Data.ingelogd()) location.replace('mijn.html');
+  toon();
+
+  $('opnieuw').addEventListener('click', () => { ss.set('reunie25.nieuw', null); });
+
+  $('form-email').addEventListener('submit', async e => {
+    e.preventDefault();
+    const email = $('email').value.trim();
+    try {
+      await Data.vraagCode(email);
+      ss.set('reunie25.email', email); ss.set('reunie25.nieuw', null);
+      location.hash = 'code';
+    } catch (err) { $('fout-email').hidden = false; $('fout-email').textContent = err.message; }
+  });
+
+  $('form-code').addEventListener('submit', async e => {
+    e.preventDefault();
+    const email = ss.get('reunie25.email');
+    try {
+      await Data.bevestig(email, $('code').value);
+      // Coming from the registration form: store the record now the address is confirmed
+      const nieuw = ss.get('reunie25.nieuw');
+      if (nieuw) await Data.bewaar(JSON.parse(nieuw));
+      ss.set('reunie25.nieuw', null); ss.set('reunie25.email', null);
+      location.href = nieuw ? 'mijn.html#welkom' : 'mijn.html';
+    } catch (err) { $('fout-code').hidden = false; $('fout-code').textContent = err.message; }
+  });
+</script>
+</body>
+</html>

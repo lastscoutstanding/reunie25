@@ -1,0 +1,8 @@
+# Programma van de reünie
+#
+# Een regel met een tijd ervoor wordt een programmapunt:
+#   14:00 | Ontvangst in de Brandnetel
+# Een regel zonder | wordt een gewone alinea.
+# Lege regels en regels die met # beginnen worden overgeslagen.
+
+Het programma volgt. Zet de datum alvast in je agenda: zondag 23 mei 2027 in blokhut de Brandnetel.

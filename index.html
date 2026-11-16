@@ -1,0 +1,65 @@
+<!DOCTYPE html>
+<html lang="nl">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Reünie 25 jaar Scouting Brandevoort</title>
+<meta name="description" content="Reünie 25 jaar Scouting Brandevoort, zondag 23 mei 2027 in blokhut de Brandnetel, Helmond. Schrijf je in en zie wie er komen.">
+<link rel="stylesheet" href="theme.css">
+</head>
+<body>
+<header id="kop"></header>
+<main>
+  <div class="hero">
+    <div class="card">
+      <span class="pill">2001 – 2026</span>
+      <h1>25 jaar Scouting Brandevoort</h1>
+      <p class="date">Reünie · zondag 23 mei 2027 · blokhut de Brandnetel, Helmond</p>
+      <div class="count" id="count"></div>
+      <p class="muted">Ben jij ooit bever, welp, scout, explorer, roverscout, vuurvogel, plusscout of leiding geweest? Kom terug naar de Brandnetel, schrijf je in en zie wie er nog meer komen.</p>
+      <div class="row">
+        <a class="btn" href="inschrijven.html" id="cta">Schrijf je in</a>
+        <a class="btn ghost" href="deelnemers.html">Wie komen er?</a>
+      </div>
+    </div>
+    <div class="card">
+      <div class="stat" id="stat">–</div>
+      <p class="muted" style="margin:4px 0 0" id="stat-sub">ingeschreven</p>
+      <div class="faces" id="faces"></div>
+      <p style="margin-top:16px"><small class="muted">Ken je iemand van vroeger? Stuur deze pagina door.</small></p>
+    </div>
+  </div>
+  <div class="grid3">
+    <a class="card" href="programma.html"><h2>Programma</h2><p class="muted" style="margin:0">Tijden en wat je mee moet nemen.</p></a>
+    <a class="card" href="deelnemers.html"><h2>Wie komen er?</h2><p class="muted" style="margin:0">Zoek oud-leden en leiding per speltak en jaar.</p></a>
+    <a class="card" href="vragen.html"><h2>Vragen</h2><p class="muted" style="margin:0">Kosten, parkeren, introducés en contact.</p></a>
+  </div>
+</main>
+<footer id="voet"></footer>
+<script src="reunie.js"></script>
+<script src="data.js"></script>
+<script src="nav.js"></script>
+<script>
+  const dagen = Math.ceil((Reunie.DATUM - new Date()) / 864e5);
+  $('count').innerHTML = dagen > 0
+    ? `<div><strong>${dagen}</strong><span>dagen</span></div><div><strong>${Math.floor(dagen / 7)}</strong><span>weken</span></div>`
+    : dagen === 0 ? '<div><strong>Vandaag!</strong><span>tot straks</span></div>' : '';
+  if (Data.ingelogd()) { $('cta').textContent = 'Mijn inschrijving'; $('cta').href = 'mijn.html'; }
+
+  (async () => {
+    await Reunie.laadSpeltakken();
+    const { totaal, personen } = await Data.deelnemers();
+    $('stat').textContent = totaal;
+    if (!totaal) { $('stat-sub').textContent = 'Nog niemand ingeschreven. Wees de eerste!'; return; }
+    $('stat-sub').textContent = `ingeschreven, waarvan ${personen.length} zichtbaar`;
+    const namen = personen.filter(p => p.voornaam || p.achternaam);
+    const toon = namen.slice(-6).reverse().map(p => {
+      const naam = p.voornaam || p.achternaam;
+      return `<span>${Reunie.esc(naam)}${p.geboortejaar ? ', ' + Reunie.leeftijd(p.geboortejaar) : ''}</span>`;
+    });
+    if (totaal > toon.length) toon.push(`<span>+ ${totaal - toon.length}</span>`);
+    $('faces').innerHTML = toon.join('');
+  })();
+</script>
+</body>
+</html>

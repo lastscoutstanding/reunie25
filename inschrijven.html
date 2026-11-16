@@ -1,0 +1,194 @@
+<!DOCTYPE html>
+<html lang="nl">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Inschrijven · Reünie 25 jaar Scouting Brandevoort</title>
+<link rel="stylesheet" href="theme.css">
+</head>
+<body>
+<header id="kop"></header>
+<main>
+  <h1 id="titel">Inschrijven</h1>
+  <div class="split">
+    <form class="card" id="form" novalidate>
+      <div class="two">
+        <label>Voornaam<input id="f-voor" autocomplete="given-name" required></label>
+        <label>Achternaam<input id="f-achter" autocomplete="family-name"></label>
+      </div>
+      <label>E-mailadres<input type="email" id="f-email" autocomplete="email" required>
+        <small class="muted" id="email-hint">Hiermee log je later in. Nooit zichtbaar op de site.</small></label>
+      <label style="max-width:180px">Geboortejaar<input id="f-jaar" type="number" inputmode="numeric" min="1930" required></label>
+
+      <fieldset>
+        <legend>Als jeugdlid</legend>
+        <small class="muted">Bij welke speltakken zat je? Meerdere mag. De jaren zijn berekend uit je geboortejaar; pas ze aan als het bij jou anders liep. Zit je er nog steeds? Laat het tweede jaar leeg: dan staat er "heden".</small>
+        <div class="takken" id="takken-lid"></div>
+      </fieldset>
+
+      <label class="check"><input type="checkbox" id="f-leiding"> Ik ben ook leiding, bestuur of vrijwilliger geweest</label>
+      <fieldset id="blok-leiding" hidden>
+        <legend>Als leiding</legend>
+        <small class="muted">Van welke speltakken was je leiding? Vul de jaren zelf in. Ben je het nog steeds? Laat het tweede jaar leeg.</small>
+        <div class="takken" id="takken-leiding"></div>
+      </fieldset>
+
+      <fieldset>
+        <legend>Wat mag op "Wie komen er?"</legend>
+        <label class="check"><input type="checkbox" id="s-voor" checked> Voornaam</label>
+        <label class="check"><input type="checkbox" id="s-achter"> Achternaam</label>
+        <label class="check"><input type="checkbox" id="s-leeftijd" checked> Leeftijd</label>
+        <label class="check"><input type="checkbox" id="s-tak" checked> Speltakken en jaren</label>
+        <small class="muted">Niets aangevinkt? Dan tel je alleen mee in het totaal. Speltakken uit: dan verschijn je niet bij zoeken op speltak of jaar, maar wel apart onder de resultaten als je naam of leeftijd zichtbaar is. Let op: speltakken met jaren verraden ongeveer je leeftijd.</small>
+      </fieldset>
+
+      <label class="check" id="akkoord-rij"><input type="checkbox" id="f-akkoord"> Ik ga akkoord met de <a href="privacy.html" target="_blank">privacyverklaring</a></label>
+      <p class="err" id="fout" hidden></p>
+      <div class="row">
+        <button class="btn" id="knop">Inschrijven</button>
+        <a href="mijn.html" class="muted" id="annuleer" hidden>Annuleren</a>
+      </div>
+    </form>
+
+    <div class="sticky">
+      <p class="muted" style="margin-top:0">Zo zien anderen jou:</p>
+      <div id="pv"></div>
+      <p class="note" style="margin-top:16px" id="uitleg">Na inschrijven krijg je een mail met een code van 6 cijfers. Daarmee bevestig je je adres. Een wachtwoord is niet nodig.</p>
+    </div>
+  </div>
+</main>
+<footer id="voet"></footer>
+<script src="reunie.js"></script>
+<script src="data.js"></script>
+<script src="nav.js"></script>
+<script>
+  const NU = Reunie.NU;
+  $('f-jaar').max = NU - 4;
+
+  // keuze['lid:Welpen'] / keuze['leiding:Welpen'] = { on, van, tot, eigen }
+  // eigen = years set by hand (or loaded), so a birth-year change leaves them alone
+  const keuze = {};
+  const K = (rol, naam) => keuze[rol + ':' + naam] ||= { on: false, van: '', tot: '', eigen: false };
+  let bewerken = false;
+
+  function takRij(rol, t) {
+    const jaar = +$('f-jaar').value;
+    const k = K(rol, t.naam);
+    let extra = '';
+    if (rol === 'lid') {
+      const r = Reunie.berekenJaren(jaar, t.naam);
+      if (!k.eigen) [k.van, k.tot] = r ? [r[0], r[1] ?? ''] : ['', ''];
+      const later = jaar && jaar + t.vanaf > NU;
+      extra = `<span class="age">vanaf ${t.vanaf} jaar</span>` + (r || !jaar ? '' :
+        ` <span class="age">${later ? 'nog niet aan de beurt' : `vóór ${Reunie.opgericht()}, mag toch`}</span>`);
+    }
+    const naam = Reunie.esc(t.naam);
+    const data = `data-rol="${rol}" data-naam="${naam}"`;
+    const yr = `type="number" inputmode="numeric" class="yr" min="${Reunie.opgericht()}" max="${NU}" ${k.on ? '' : 'disabled'} ${data}`;
+    return `<div class="tak ${k.on ? '' : 'off'}">
+      <label class="check"><input type="checkbox" ${k.on ? 'checked' : ''} ${data}> ${naam} ${extra}</label>
+      <span class="yrs"><input ${yr} data-veld="van" value="${k.van}" aria-label="${naam} van">
+        – <input ${yr} data-veld="tot" value="${k.tot}" placeholder="heden" aria-label="${naam} tot"></span>
+    </div>`;
+  }
+  function renderTakken() {
+    const t = Reunie.takken();
+    $('takken-lid').innerHTML = t.filter(x => x.vanaf != null).map(x => takRij('lid', x)).join('');
+    $('takken-leiding').innerHTML = t.map(x => takRij('leiding', x)).join('');
+  }
+
+  // Event delegation for the speltak rows
+  document.addEventListener('change', e => {
+    const d = e.target.dataset;
+    if (e.target.type === 'checkbox' && d.rol) { K(d.rol, d.naam).on = e.target.checked; renderTakken(); preview(); }
+  });
+  document.addEventListener('input', e => {
+    const d = e.target.dataset;
+    if (d.veld) { const k = K(d.rol, d.naam); k[d.veld] = +e.target.value || ''; k.eigen = true; preview(); }
+  });
+  $('f-jaar').addEventListener('input', () => { renderTakken(); preview(); });
+  $('f-leiding').addEventListener('change', () => { $('blok-leiding').hidden = !$('f-leiding').checked; preview(); });
+  ['f-voor', 'f-achter', 's-voor', 's-achter', 's-leeftijd', 's-tak'].forEach(id => $(id).addEventListener('input', preview));
+
+  function leesForm() {
+    const rows = rol => Reunie.takken().filter(t => keuze[rol + ':' + t.naam]?.on).map(t => {
+      const k = keuze[rol + ':' + t.naam];
+      return { speltak: t.naam, rol, van: k.van || null, tot: k.tot || null };
+    });
+    return {
+      voornaam: $('f-voor').value.trim(), achternaam: $('f-achter').value.trim(),
+      email: $('f-email').value.trim(), geboortejaar: +$('f-jaar').value || null,
+      takken: [...rows('lid'), ...($('f-leiding').checked ? rows('leiding') : [])],
+      toon: { voornaam: $('s-voor').checked, achternaam: $('s-achter').checked, leeftijd: $('s-leeftijd').checked, takken: $('s-tak').checked },
+    };
+  }
+  function preview() {
+    const r = leesForm();
+    r.takken = r.takken.filter(x => x.van);
+    $('pv').innerHTML = Reunie.kaart(Data.publiek(r));
+  }
+
+  function controleer(r) {
+    if (!r.voornaam) return 'Vul je voornaam in.';
+    if (!/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(r.email)) return 'Vul een geldig e-mailadres in.';
+    if (!r.geboortejaar || r.geboortejaar < 1930 || r.geboortejaar > NU - 4) return 'Vul een geldig geboortejaar in.';
+    for (const x of r.takken) {
+      const wat = (x.rol === 'leiding' && !Reunie.isRol(x.speltak) ? 'Leiding ' : '') + x.speltak;
+      if (!x.van) return `Vul bij ${wat} het eerste jaar in, of haal het vinkje weg.`;
+      if (x.tot && x.tot < x.van) return `Bij ${wat} ligt het tweede jaar vóór het eerste.`;
+    }
+    if (!bewerken && !$('f-akkoord').checked) return 'Ga akkoord met de privacyverklaring om je in te schrijven.';
+    return '';
+  }
+
+  $('form').addEventListener('submit', async e => {
+    e.preventDefault();
+    const r = leesForm();
+    const f = controleer(r);
+    $('fout').hidden = !f; $('fout').textContent = f;
+    if (f) return;
+    $('knop').disabled = true;
+    try {
+      if (bewerken) {
+        await Data.bewaar(r);
+        location.href = 'mijn.html';
+      } else {
+        await Data.vraagCode(r.email, { nieuw: true });
+        // Keep the form until the address is confirmed (sessionStorage: this tab only)
+        try { sessionStorage.setItem('reunie25.nieuw', JSON.stringify(r)); sessionStorage.setItem('reunie25.email', r.email); } catch {}
+        location.href = 'inloggen.html#code';
+      }
+    } catch (err) {
+      $('fout').hidden = false; $('fout').textContent = err.message;
+      $('knop').disabled = false;
+    }
+  });
+
+  function vul(r) {
+    $('f-voor').value = r.voornaam || ''; $('f-achter').value = r.achternaam || '';
+    $('f-email').value = r.email || ''; $('f-jaar').value = r.geboortejaar || '';
+    for (const x of r.takken || []) Object.assign(K(x.rol, x.speltak), { on: true, van: x.van, tot: x.tot ?? '', eigen: true });
+    $('f-leiding').checked = (r.takken || []).some(x => x.rol === 'leiding');
+    $('blok-leiding').hidden = !$('f-leiding').checked;
+    $('s-voor').checked = r.toon.voornaam; $('s-achter').checked = r.toon.achternaam;
+    $('s-leeftijd').checked = r.toon.leeftijd; $('s-tak').checked = r.toon.takken;
+  }
+
+  (async () => {
+    await Reunie.laadSpeltakken();
+    const ik = Data.ingelogd() ? await Data.ik() : null;
+    if (ik) {
+      bewerken = true;
+      document.title = 'Gegevens aanpassen · Reünie 25 jaar Scouting Brandevoort';
+      $('titel').textContent = 'Gegevens aanpassen';
+      $('knop').textContent = 'Opslaan';
+      $('f-email').readOnly = true;
+      $('email-hint').textContent = 'Je inlogadres. Een ander adres? Schrijf je dan uit en opnieuw in.';
+      $('akkoord-rij').hidden = true; $('annuleer').hidden = false; $('uitleg').hidden = true;
+      vul(ik);
+    }
+    renderTakken(); preview();
+  })();
+</script>
+</body>
+</html>

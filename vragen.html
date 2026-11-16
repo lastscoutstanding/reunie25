@@ -1,0 +1,41 @@
+<!DOCTYPE html>
+<html lang="nl">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Vragen · Reünie 25 jaar Scouting Brandevoort</title>
+<link rel="stylesheet" href="theme.css">
+</head>
+<body>
+<header id="kop"></header>
+<main>
+  <h1>Vragen</h1>
+  <div class="card text" id="inhoud"><p class="muted" style="margin:0">Laden…</p></div>
+</main>
+<footer id="voet"></footer>
+<script src="reunie.js"></script>
+<script src="data.js"></script>
+<script src="nav.js"></script>
+<script>
+  // vragen.txt: "V:" starts a question, "A:" its answer (may span lines, blank line = new paragraph)
+  fetch('vragen.txt', { cache: 'no-cache' }).then(r => r.text()).then(txt => {
+    const E = Reunie.esc;
+    const qa = [];
+    let cur = null, deel = null;
+    for (const raw of txt.split('\n')) {
+      const line = raw.trim();
+      if (line.startsWith('#')) continue;
+      if (/^V:/i.test(line)) { cur = { v: line.slice(2).trim(), a: [] }; qa.push(cur); deel = 'v'; }
+      else if (/^A:/i.test(line) && cur) { cur.a.push(line.slice(2).trim()); deel = 'a'; }
+      else if (cur && deel === 'a') {
+        if (!line) cur.a.push('');
+        else cur.a[cur.a.length - 1] = (cur.a[cur.a.length - 1] + ' ' + line).trim();
+      } else if (cur && deel === 'v' && line) cur.v += ' ' + line;
+    }
+    $('inhoud').innerHTML = qa.map(({ v, a }) =>
+      `<details><summary>${E(v)}</summary>${a.filter(Boolean).map(p => `<p>${E(p)}</p>`).join('')}</details>`).join('')
+      || '<p class="muted" style="margin:0">Nog geen vragen.</p>';
+  });
+</script>
+</body>
+</html>

@@ -53,10 +53,16 @@ const Reunie = (() => {
   const matcher = (speltak, jaar) => r =>
     (!speltak || r.speltak === speltak) && (!jaar || (r.van <= jaar && jaar <= (r.tot ?? NU)));
 
-  // Person card from a public row {voornaam, achternaam, geboortejaar, takken}:
+  // Display name: Sanne “Snoes” Jansen; just the nickname when nothing else is shown.
+  function naam(p) {
+    const bij = p.bijnaam && (p.voornaam || p.achternaam) ? `“${p.bijnaam}”` : p.bijnaam;
+    return [p.voornaam, bij, p.achternaam].filter(Boolean).join(' ');
+  }
+
+  // Person card from a public row {voornaam, achternaam, bijnaam, geboortejaar, takken}:
   // fields the person chose to hide are null.
   function kaart(p, hit) {
-    const naam = [p.voornaam, p.achternaam].filter(Boolean).map(esc).join(' ');
+    const naamTekst = esc(naam(p));
     const age = p.geboortejaar ? leeftijd(p.geboortejaar) + ' jaar' : '';
     const rows = p.takken ? [...p.takken.filter(r => r.rol === 'lid'), ...p.takken.filter(r => r.rol !== 'lid')] : [];
     const chips = rows.map(r => {
@@ -64,10 +70,10 @@ const Reunie = (() => {
       const label = r.rol === 'leiding' && !isRol(r.speltak) ? `<b>Leiding</b> ${esc(r.speltak)}` : esc(r.speltak);
       return `<span class="${cls}">${label} ${periode(r.van, r.tot)}</span>`;
     }).join('');
-    if (!naam && !age && !chips) {
+    if (!naamTekst && !age && !chips) {
       return '<div class="person anon"><div class="name">Niet zichtbaar</div><div class="meta">telt alleen mee in het totaal</div></div>';
     }
-    return `<div class="person"><div class="name">${naam || '<span class="muted">Anoniem</span>'}</div>
+    return `<div class="person"><div class="name">${naamTekst || '<span class="muted">Anoniem</span>'}</div>
       <div class="meta">${age || '&nbsp;'}</div>${chips ? `<div class="tk">${chips}</div>` : ''}</div>`;
   }
 
@@ -93,7 +99,7 @@ const Reunie = (() => {
     stapJaar(el, e.clientY < r.top + r.height / 2 ? 1 : -1);
   });
 
-  return { DATUM, NU, laadSpeltakken, takken, opgericht, isRol, berekenJaren, leeftijd, periode, esc, matcher, kaart };
+  return { DATUM, NU, laadSpeltakken, takken, opgericht, isRol, berekenJaren, leeftijd, periode, esc, matcher, naam, kaart };
 })();
 
 const $ = id => document.getElementById(id);

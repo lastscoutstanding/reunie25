@@ -16,6 +16,8 @@
         <label>Voornaam<input id="f-voor" autocomplete="given-name" required></label>
         <label>Achternaam<input id="f-achter" autocomplete="family-name"></label>
       </div>
+      <label><span>Bijnaam <span class="muted" style="font-weight:400">(optioneel)</span></span><input id="f-bijnaam" maxlength="40" autocomplete="nickname">
+        <small class="muted">Zoals ze je bij de scouting noemden.</small></label>
       <label>E-mailadres<input type="email" id="f-email" autocomplete="email" required>
         <small class="muted" id="email-hint">Hiermee log je later in. Nooit zichtbaar op de site.</small></label>
       <label style="max-width:180px">Geboortejaar<input id="f-jaar" type="number" inputmode="numeric" min="1930" required></label>
@@ -37,6 +39,7 @@
         <legend>Wat mag op "Wie komen er?"</legend>
         <label class="check"><input type="checkbox" id="s-voor" checked> Voornaam</label>
         <label class="check"><input type="checkbox" id="s-achter"> Achternaam</label>
+        <label class="check"><input type="checkbox" id="s-bijnaam" checked> Bijnaam</label>
         <label class="check"><input type="checkbox" id="s-leeftijd" checked> Leeftijd</label>
         <label class="check"><input type="checkbox" id="s-tak" checked> Speltakken en jaren</label>
         <small class="muted">Niets aangevinkt? Dan tel je alleen mee in het totaal. Speltakken uit: dan verschijn je niet bij zoeken op speltak of jaar, maar wel apart onder de resultaten als je naam of leeftijd zichtbaar is. Let op: speltakken met jaren verraden ongeveer je leeftijd.</small>
@@ -108,7 +111,7 @@
   });
   $('f-jaar').addEventListener('input', () => { renderTakken(); preview(); });
   $('f-leiding').addEventListener('change', () => { $('blok-leiding').hidden = !$('f-leiding').checked; preview(); });
-  ['f-voor', 'f-achter', 's-voor', 's-achter', 's-leeftijd', 's-tak'].forEach(id => $(id).addEventListener('input', preview));
+  ['f-voor', 'f-achter', 'f-bijnaam', 's-voor', 's-achter', 's-bijnaam', 's-leeftijd', 's-tak'].forEach(id => $(id).addEventListener('input', preview));
 
   function leesForm() {
     const rows = rol => Reunie.takken().filter(t => keuze[rol + ':' + t.naam]?.on).map(t => {
@@ -116,10 +119,10 @@
       return { speltak: t.naam, rol, van: k.van || null, tot: k.tot || null };
     });
     return {
-      voornaam: $('f-voor').value.trim(), achternaam: $('f-achter').value.trim(),
+      voornaam: $('f-voor').value.trim(), achternaam: $('f-achter').value.trim(), bijnaam: $('f-bijnaam').value.trim(),
       email: $('f-email').value.trim(), geboortejaar: +$('f-jaar').value || null,
       takken: [...rows('lid'), ...($('f-leiding').checked ? rows('leiding') : [])],
-      toon: { voornaam: $('s-voor').checked, achternaam: $('s-achter').checked, leeftijd: $('s-leeftijd').checked, takken: $('s-tak').checked },
+      toon: { voornaam: $('s-voor').checked, achternaam: $('s-achter').checked, bijnaam: $('s-bijnaam').checked, leeftijd: $('s-leeftijd').checked, takken: $('s-tak').checked },
     };
   }
   function preview() {
@@ -130,6 +133,7 @@
 
   function controleer(r) {
     if (!r.voornaam) return 'Vul je voornaam in.';
+    if (r.bijnaam.length > 40) return 'Je bijnaam is te lang (maximaal 40 tekens).';
     if (!/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(r.email)) return 'Vul een geldig e-mailadres in.';
     if (!r.geboortejaar || r.geboortejaar < 1930 || r.geboortejaar > NU - 4) return 'Vul een geldig geboortejaar in.';
     for (const x of r.takken) {
@@ -165,12 +169,12 @@
   });
 
   function vul(r) {
-    $('f-voor').value = r.voornaam || ''; $('f-achter').value = r.achternaam || '';
+    $('f-voor').value = r.voornaam || ''; $('f-achter').value = r.achternaam || ''; $('f-bijnaam').value = r.bijnaam || '';
     $('f-email').value = r.email || ''; $('f-jaar').value = r.geboortejaar || '';
     for (const x of r.takken || []) Object.assign(K(x.rol, x.speltak), { on: true, van: x.van, tot: x.tot ?? '', eigen: true });
     $('f-leiding').checked = (r.takken || []).some(x => x.rol === 'leiding');
     $('blok-leiding').hidden = !$('f-leiding').checked;
-    $('s-voor').checked = r.toon.voornaam; $('s-achter').checked = r.toon.achternaam;
+    $('s-voor').checked = r.toon.voornaam; $('s-achter').checked = r.toon.achternaam; $('s-bijnaam').checked = r.toon.bijnaam !== false;
     $('s-leeftijd').checked = r.toon.leeftijd; $('s-tak').checked = r.toon.takken;
   }
 

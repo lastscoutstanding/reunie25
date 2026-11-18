@@ -13,7 +13,7 @@
   <p class="muted" style="margin:0" id="totaal"></p>
   <div class="filters">
     <div class="seg"><button id="v-lijst" class="on">Lijst</button><button id="v-jaar">Per jaar</button></div>
-    <input id="q" type="search" placeholder="Zoek op naam" aria-label="Zoek op naam">
+    <input id="q" type="search" placeholder="Zoek op (bij)naam" aria-label="Zoek op naam of bijnaam">
     <select id="speltak" aria-label="Speltak"></select>
     <select id="jaar" aria-label="Jaar"></select>
   </div>
@@ -43,7 +43,7 @@
 
   const grid = (titel, lijst, hit) => lijst.length
     ? `${titel ? `<h3 class="sub">${titel}</h3>` : ''}<div class="people">${lijst.map(p => Reunie.kaart(p, hit)).join('')}</div>` : '';
-  const naamVan = p => [p.voornaam, p.achternaam].filter(Boolean).join(' ').toLowerCase();
+  const naamVan = p => [p.voornaam, p.bijnaam, p.achternaam].filter(Boolean).join(' ').toLowerCase();
 
   function render() {
     const q = $('q').value.trim().toLowerCase(), t = $('speltak').value, j = +$('jaar').value;
@@ -66,7 +66,7 @@
 
     // People who hide their speltakken can't match a speltak/year filter, but still want
     // to be seen: list them separately, the same for every filter (so nothing leaks).
-    const zonder = hit ? PERSONEN.filter(p => !p.takken && (p.voornaam || p.achternaam || p.geboortejaar)).filter(opNaam) : [];
+    const zonder = hit ? PERSONEN.filter(p => !p.takken && (p.voornaam || p.achternaam || p.bijnaam || p.geboortejaar)).filter(opNaam) : [];
     $('zonder').hidden = !zonder.length;
     $('people2').innerHTML = zonder.map(p => Reunie.kaart(p)).join('');
 

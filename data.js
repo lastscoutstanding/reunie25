@@ -9,9 +9,9 @@
 //     login code is always 123456, and fictional sample participants are mixed in.
 //
 // Record (one per person):
-//   { email, voornaam, achternaam, geboortejaar,
+//   { email, voornaam, achternaam, bijnaam, geboortejaar,
 //     takken: [{ speltak, rol: 'lid' | 'leiding', van, tot }],   tot null = heden
-//     toon: { voornaam, achternaam, leeftijd, takken },          what others may see
+//     toon: { voornaam, achternaam, bijnaam, leeftijd, takken }, what others may see
 //     sinds }                                                     registration date
 const Data = (() => {
   const SUPABASE_URL = 'https://glvrsppggmfksimpfckp.supabase.co';
@@ -47,11 +47,12 @@ const Data = (() => {
     return {
       voornaam: r.toon.voornaam ? r.voornaam : null,
       achternaam: r.toon.achternaam && r.achternaam ? r.achternaam : null,
+      bijnaam: r.toon.bijnaam !== false && r.bijnaam ? r.bijnaam : null,
       geboortejaar: r.toon.leeftijd ? r.geboortejaar : null,
       takken: r.toon.takken && r.takken?.length ? r.takken : null,
     };
   }
-  const zichtbaar = p => !!(p.voornaam || p.achternaam || p.geboortejaar || p.takken?.length);
+  const zichtbaar = p => !!(p.voornaam || p.achternaam || p.bijnaam || p.geboortejaar || p.takken?.length);
 
   // ---- DEMO ----------------------------------------------------------------
 
@@ -173,14 +174,14 @@ const Data = (() => {
   }
 
   const naarRecord = r => r && ({
-    email: r.email, voornaam: r.voornaam, achternaam: r.achternaam, geboortejaar: r.geboortejaar,
+    email: r.email, voornaam: r.voornaam, achternaam: r.achternaam, bijnaam: r.bijnaam || '', geboortejaar: r.geboortejaar,
     takken: r.takken || [], sinds: r.sinds,
-    toon: { voornaam: r.toon_voornaam, achternaam: r.toon_achternaam, leeftijd: r.toon_leeftijd, takken: r.toon_takken },
+    toon: { voornaam: r.toon_voornaam, achternaam: r.toon_achternaam, bijnaam: r.toon_bijnaam ?? true, leeftijd: r.toon_leeftijd, takken: r.toon_takken },
   });
   const naarRij = (rec, id) => ({
-    id, voornaam: rec.voornaam, achternaam: rec.achternaam || '', geboortejaar: rec.geboortejaar,
+    id, voornaam: rec.voornaam, achternaam: rec.achternaam || '', bijnaam: rec.bijnaam || '', geboortejaar: rec.geboortejaar,
     takken: rec.takken || [],
-    toon_voornaam: !!rec.toon.voornaam, toon_achternaam: !!rec.toon.achternaam,
+    toon_voornaam: !!rec.toon.voornaam, toon_achternaam: !!rec.toon.achternaam, toon_bijnaam: rec.toon.bijnaam !== false,
     toon_leeftijd: !!rec.toon.leeftijd, toon_takken: !!rec.toon.takken,
   });
 

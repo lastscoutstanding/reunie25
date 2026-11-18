@@ -60,7 +60,9 @@
     } else {
       $('people').innerHTML = grid('', lijst, null);
     }
-    if (!lijst.length) $('people').innerHTML = '<p class="muted">Niemand gevonden.</p>';
+    if (!lijst.length) $('people').innerHTML = PERSONEN.length
+      ? '<p class="muted">Niemand gevonden.</p>'
+      : '<p class="muted">Nog niemand zichtbaar ingeschreven. <a href="inschrijven.html">Wees de eerste!</a></p>';
 
     // People who hide their speltakken can't match a speltak/year filter, but still want
     // to be seen: list them separately, the same for every filter (so nothing leaks).

@@ -16,7 +16,7 @@
 const Data = (() => {
   const SUPABASE_URL = 'https://glvrsppggmfksimpfckp.supabase.co';
   // Publishable ("anon") key: public by design, safe in this file. Never put the secret key here.
-  const SUPABASE_KEY = '';
+  const SUPABASE_KEY = 'sb_publishable_drDndhRXZy_Hql9f9G5ROA_I5FW7pML';
   const DEMO = !SUPABASE_KEY;
 
   const DEMO_KEY = 'reunie25.demo';

@@ -14,6 +14,7 @@
     <button class="linkbtn" id="uitloggen">Uitloggen</button>
   </div>
   <p class="note" id="welkom" hidden>Je bent ingeschreven. Tot 23 mei 2027 in de Brandnetel!</p>
+  <p class="note" id="bestond" hidden>Je was al ingeschreven met dit adres. Je eerdere gegevens zijn bewaard; pas ze hieronder aan als dat nodig is.</p>
   <div class="split" id="inhoud" hidden>
     <div class="card">
       <p style="margin-top:0"><span class="pill">✓ Ingeschreven</span> <span id="sinds"></span></p>
@@ -49,11 +50,13 @@
 
   (async () => {
     await Reunie.laadSpeltakken();
-    const ik = await Data.ik();
-    if (!ik) { location.replace('inschrijven.html'); return; }
+    let ik;
+    try { ik = await Data.ik(); } catch { location.replace('inloggen.html'); return; }
+    if (!ik) { location.replace(Data.ingelogd() ? 'inschrijven.html' : 'inloggen.html'); return; }
     const E = Reunie.esc;
     $('hoi').textContent = `Hoi ${ik.voornaam}`;
     $('welkom').hidden = location.hash !== '#welkom';
+    $('bestond').hidden = location.hash !== '#bestond';
     $('sinds').textContent = 'sinds ' + new Date(ik.sinds + 'T12:00').toLocaleDateString('nl-NL', { day: 'numeric', month: 'long', year: 'numeric' });
     $('kaart').innerHTML = Reunie.kaart(Data.publiek(ik));
     $('gegevens').innerHTML = `${E(ik.voornaam)} ${E(ik.achternaam)}<br>${E(ik.email)}<br>geboren in ${ik.geboortejaar}`;

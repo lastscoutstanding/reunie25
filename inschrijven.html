@@ -137,7 +137,7 @@
       if (!x.van) return `Vul bij ${wat} het eerste jaar in, of haal het vinkje weg.`;
       if (x.tot && x.tot < x.van) return `Bij ${wat} ligt het tweede jaar vóór het eerste.`;
     }
-    if (!bewerken && !$('f-akkoord').checked) return 'Ga akkoord met de privacyverklaring om je in te schrijven.';
+    if (!$('akkoord-rij').hidden && !$('f-akkoord').checked) return 'Ga akkoord met de privacyverklaring om je in te schrijven.';
     return '';
   }
 
@@ -176,8 +176,15 @@
 
   (async () => {
     await Reunie.laadSpeltakken();
-    const ik = Data.ingelogd() ? await Data.ik() : null;
-    if (ik) {
+    let ik = null;
+    try { ik = Data.ingelogd() ? await Data.ik() : null; } catch {}
+    if (!ik && Data.ingelogd()) {
+      // Logged in, but no registration saved yet: finish it here, no new code needed.
+      bewerken = true;
+      $('f-email').value = Data.email() || ''; $('f-email').readOnly = true;
+      $('email-hint').textContent = 'Je inlogadres.';
+      $('uitleg').hidden = true;
+    } else if (ik) {
       bewerken = true;
       document.title = 'Gegevens aanpassen · Reünie 25 jaar Scouting Brandevoort';
       $('titel').textContent = 'Gegevens aanpassen';

@@ -16,17 +16,20 @@
 body { margin: 0; font-family: system-ui, -apple-system, "Segoe UI", sans-serif; background: var(--bg); color: var(--ink); line-height: 1.5; }
 a { color: var(--brand); }
 
-/* header + nav (rendered by nav.js) */
+/* header + nav (rendered by nav.js): blue band with logo and title, light menu strip below */
 .demo { background: var(--accent); color: #1d2433; text-align: center; font-size: 13px; padding: 6px 16px; }
-header { position: sticky; top: 0; z-index: 5; background: var(--head); color: #fff; }
-.bar { max-width: 960px; margin: 0 auto; padding: 10px 16px; display: flex; align-items: center; gap: 16px; flex-wrap: wrap; }
-.logo { font-weight: 700; color: #fff; text-decoration: none; display: flex; align-items: center; gap: 10px; text-transform: uppercase; letter-spacing: .02em; }
-.logo img { height: 44px; width: auto; }
-.logo b { background: var(--accent); color: #1d2433; border-radius: 8px; padding: 1px 7px; font-size: 13px; }
-nav { display: flex; gap: 4px; flex-wrap: wrap; margin-left: auto; }
-nav a { color: #fff; text-decoration: none; padding: 6px 10px; border-radius: 999px; font-size: 15px; }
-nav a.on { background: rgba(255,255,255,.16); font-weight: 600; }
-nav a.login { background: var(--accent); color: #1d2433; font-weight: 600; }
+.band { background: var(--head); color: #fff; }
+.band .in { max-width: 960px; margin: 0 auto; padding: 14px 16px; }
+.brand { display: inline-flex; align-items: center; gap: 14px; color: #fff; text-decoration: none; }
+.brand img { height: 58px; width: auto; }
+.brand .t { font-weight: 800; font-size: 22px; line-height: 1.15; }
+.brand .t small { display: block; font-weight: 500; font-size: 14px; color: rgba(255,255,255,.8); }
+.strip { position: sticky; top: 0; z-index: 5; background: var(--card); border-bottom: 1px solid var(--line); }
+.strip nav { max-width: 960px; margin: 0 auto; padding: 0 16px; display: flex; flex-wrap: wrap; }
+.strip nav a { color: var(--ink); text-decoration: none; font-size: 15px; padding: 12px 12px; border-bottom: 3px solid transparent; white-space: nowrap; }
+.strip nav a:hover { color: var(--brand); }
+.strip nav a.on { color: var(--brand); font-weight: 700; border-bottom-color: var(--accent); }
+.strip nav a.cta { margin-left: auto; color: var(--brand); font-weight: 700; }
 
 main { max-width: 960px; margin: 0 auto; padding: 24px 16px 64px; }
 h1 { font-size: clamp(30px, 6vw, 48px); line-height: 1.1; margin: 0 0 12px; color: var(--brand); }
@@ -41,7 +44,7 @@ small.muted { font-size: 13px; }
 .note { border-left: 3px solid var(--accent); padding: 8px 12px; background: var(--card); border-radius: 0 10px 10px 0; font-size: 14px; }
 .err { border-left: 3px solid var(--red); padding: 8px 12px; background: var(--card); border-radius: 0 10px 10px 0; font-size: 14px; color: var(--red); }
 .split { display: grid; grid-template-columns: 1.4fr 1fr; gap: 20px; align-items: start; }
-.sticky { position: sticky; top: 90px; }
+.sticky { position: sticky; top: 64px; }
 .grid3 { display: grid; grid-template-columns: repeat(3, 1fr); gap: 16px; margin-top: 20px; }
 .grid3 a.card { text-decoration: none; color: inherit; }
 .grid3 a.card:hover { border-color: var(--brand); }
@@ -130,7 +133,10 @@ footer a { color: inherit; }
 
 @media (max-width: 720px) {
   .hero, .split, .grid3, .two { grid-template-columns: 1fr; }
-  nav { margin-left: 0; width: 100%; }
+  .brand img { height: 46px; }
+  .brand .t { font-size: 19px; }
+  .strip nav a { padding: 10px 9px; }
+  .strip nav a.cta { margin-left: 0; }
   .sticky { position: static; }
   .tak { grid-template-columns: 1fr; gap: 4px; }
 }

@@ -13,7 +13,7 @@
   <div class="hero">
     <div class="card">
       <span class="pill">2001 – 2026</span>
-      <h1>25 jaar Scouting Brandevoort</h1>
+      <h1>Welkom terug!</h1>
       <p class="date">Reünie · zondag 23 mei 2027 · blokhut de Brandnetel, Helmond</p>
       <div class="count" id="count"></div>
       <p class="muted">Ben jij ooit bever, welp, scout, explorer, roverscout, vuurvogel, plusscout of leiding geweest? Kom terug naar de Brandnetel, schrijf je in en zie wie er nog meer komen.</p>
@@ -52,9 +52,9 @@
     $('stat').textContent = totaal;
     if (!totaal) { $('stat-sub').textContent = 'Nog niemand ingeschreven. Wees de eerste!'; return; }
     $('stat-sub').textContent = `ingeschreven, waarvan ${personen.length} zichtbaar`;
-    const namen = personen.filter(p => p.voornaam || p.achternaam);
+    const namen = personen.filter(p => p.voornaam || p.bijnaam || p.achternaam);
     const toon = namen.slice(-6).reverse().map(p => {
-      const naam = p.voornaam || p.achternaam;
+      const naam = p.voornaam || p.bijnaam || p.achternaam;
       return `<span>${Reunie.esc(naam)}${p.geboortejaar ? ', ' + Reunie.leeftijd(p.geboortejaar) : ''}</span>`;
     });
     if (totaal > toon.length) toon.push(`<span>+ ${totaal - toon.length}</span>`);

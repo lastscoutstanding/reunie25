@@ -1,7 +1,6 @@
 // Header, navigation and footer for every page. Pages have <header id="kop"> and
 // <footer id="voet">; load after reunie.js and data.js.
 (() => {
-  const LOGO = 'logo-wit.svg';  // white lettering for the blue header; logo.svg has black lettering
   const PAGINAS = [
     ['index.html', 'Home'],
     ['programma.html', 'Programma'],
@@ -10,21 +9,22 @@
   ];
   const hier = location.pathname.split('/').pop() || 'index.html';
   const ingelogd = Data.ingelogd();
-  const extra = ingelogd
-    ? ['mijn.html', 'Mijn inschrijving', 'login']
-    : ['inschrijven.html', 'Inschrijven', ''];
-  const links = [...PAGINAS, extra, ...(ingelogd ? [] : [['inloggen.html', 'Inloggen', 'login']])]
-    .map(([href, tekst, cls = '']) =>
-      `<a href="${href}" class="${[cls, href === hier ? 'on' : ''].join(' ').trim()}">${tekst}</a>`).join('');
+  // The last link sits on the right as call to action
+  const links = ingelogd
+    ? [...PAGINAS, ['mijn.html', 'Mijn inschrijving →', 'cta']]
+    : [...PAGINAS, ['inschrijven.html', 'Inschrijven'], ['inloggen.html', 'Inloggen →', 'cta']];
+  const menu = links.map(([href, tekst, cls = '']) =>
+    `<a href="${href}" class="${[cls, href === hier ? 'on' : ''].join(' ').trim()}"${href === hier ? ' aria-current="page"' : ''}>${tekst}</a>`).join('');
 
   const demo = Data.DEMO
     ? `<div class="demo">Testversie: inschrijvingen blijven alleen in deze browser, de inlogcode is ${Data.DEMO_CODE}. Namen van anderen zijn verzonnen.</div>`
     : '';
 
-  $('kop').outerHTML = `${demo}<header><div class="bar">
-      <a class="logo" href="index.html"><img src="${LOGO}" alt="Logo Scouting Brandevoort"> Scouting Brandevoort <b>25</b></a>
-      <nav>${links}</nav>
-    </div></header>`;
+  $('kop').outerHTML = `${demo}<header class="band"><div class="in">
+      <a class="brand" href="index.html"><img src="logo-wit.svg" alt="Logo Scouting Brandevoort">
+        <span class="t">25 jaar Scouting Brandevoort<small>Reünie · zondag 23 mei 2027 · de Brandnetel</small></span></a>
+    </div></header>
+    <div class="strip"><nav aria-label="Menu">${menu}</nav></div>`;
 
   const icon = document.createElement('link');
   icon.rel = 'icon'; icon.type = 'image/svg+xml'; icon.href = 'logo.svg';

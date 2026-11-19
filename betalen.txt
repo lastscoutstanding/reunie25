@@ -11,8 +11,8 @@
 # Verloopt de link? Zet hier de nieuwe neer; de site gebruikt hem meteen.
 # Regels die met # beginnen worden overgeslagen.
 
-bedrag =
-link =
-iban =
+bedrag = 5
+link = https://betaalverzoek.rabobank.nl/betaalverzoek/?id=HvUKcNvSQS-W7T5R90a7CDA
+iban = 
 naam = Scouting Brandevoort
-tekst =
+tekst = wat is het IBAN nummer Marc?

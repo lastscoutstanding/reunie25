@@ -15,6 +15,11 @@
 //     sinds,                                                      registration date
 //     id, betaald }                 betaald: date the comité saw the payment, or null
 //
+// Story (Herinneringen), as pages get it:
+//   { id, titel, tekst, speltak, jaar, toon_naam, eigen, status, toelichting,
+//     voornaam, bijnaam, achternaam, aangemaakt }   name fields null when not shown
+//   status: 'nieuw' | 'geplaatst' | 'afgewezen' | 'gemeld'; toelichting only on your own.
+//
 // Comité members (beheerders) can also list all registrations and mark payments.
 // Hoofdbeheerders can also add and remove beheerders. Comité member record:
 //   { email, rol: 'beheerder' | 'hoofdbeheerder', toegevoegd_door, toegevoegd_op, naam }
@@ -30,6 +35,7 @@ const Data = (() => {
   const DEMO_COMITE = 'reunie25.demo.comite';
   const DEMO_WEG = 'reunie25.demo.weg';                // removed sample participants
   const DEMO_GEBLOKKEERD = 'reunie25.demo.geblokkeerd';
+  const DEMO_VERHALEN = 'reunie25.demo.verhalen';
   const AUTH = 'reunie25.auth';
   const DEMO_CODE = '123456';
 
@@ -122,6 +128,19 @@ const Data = (() => {
     { email: 'femke.vandijk@voorbeeld.nl', rol: 'beheerder', toegevoegd_door: 'Mark', toegevoegd_op: '2026-11-21' },
     { email: 'ruud@voorbeeld.nl', rol: 'beheerder', toegevoegd_door: 'Mark', toegevoegd_op: '2026-11-22' },
   ];
+  // Stories in DEMO, by sample participants (auteur = e-mail).
+  const verhalenStore = () => lees(DEMO_VERHALEN, null) ?? [
+    { id: 'demo-v1', auteur: 'lotte.smits@voorbeeld.nl', titel: 'Hike in de regen', speltak: 'Scouts', jaar: 2013, toon_naam: true,
+      status: 'geplaatst', aangemaakt: '2026-11-12T19:00:00Z',
+      tekst: 'We liepen met z\'n zessen vanaf Asten terug naar Brandevoort. Na een uur was de kaart doorweekt en niet meer te lezen, en de route die we hadden uitgestippeld bleek dwars door een maïsveld te gaan.\n\nBram zei dat hij de weg "op gevoel" wel wist. Niemand geloofde hem, maar een beter plan had ook niemand. Drie uur later stonden we, tot op het bot nat, als eerste groep bij de blokhut. De leiding dacht dat we een lift hadden geregeld.\n\nDe chocolademelk die avond was de lekkerste ooit.' },
+    { id: 'demo-v2', auteur: 'bram.peters@voorbeeld.nl', titel: 'Mijn eerste overvliegen', speltak: 'Welpen', jaar: 2004, toon_naam: false,
+      status: 'geplaatst', aangemaakt: '2026-11-15T10:30:00Z',
+      tekst: 'Ik weet nog precies hoe hoog die balk leek. Achteraf was het misschien een meter.' },
+    { id: 'demo-v3', auteur: 'tim.hendriks@voorbeeld.nl', titel: 'De verdwenen kampvuurpan', speltak: 'Scouts', jaar: 2010, toon_naam: true,
+      status: 'nieuw', aangemaakt: '2026-11-19T08:00:00Z',
+      tekst: 'Op zomerkamp was op de laatste avond ineens de grote pan weg. Twee dagen later stond hij, gepoetst en wel, op de stoep van de blokhut.' },
+  ];
+  const demoPersoon = email => [...voorbeeldVol(), ...alle()].find(x => x.email === email);
   const demoNaam = email => {
     const r = [...voorbeeldVol(), ...alle()].find(x => x.email === email);
     return r ? `${r.voornaam} ${r.achternaam}`.trim() : null;
@@ -201,6 +220,58 @@ const Data = (() => {
     },
     async geblokkeerde() { return lees(DEMO_GEBLOKKEERD, []); },
     async deblokkeer(email) { schrijf(DEMO_GEBLOKKEERD, lees(DEMO_GEBLOKKEERD, []).filter(g => g.email !== norm(email))); },
+    async aantalVerhalen() { return verhalenStore().filter(v => v.status === 'geplaatst').length; },
+    async magVerhalen() { return !!lees(DEMO_SESSIE, null); },
+    async verhalen() {
+      const ik = lees(DEMO_SESSIE, null);
+      if (!ik) throw fout('sessie', MELD.sessie);
+      return verhalenStore().filter(v => v.status === 'geplaatst' || v.auteur === ik)
+        .sort((a, b) => b.aangemaakt.localeCompare(a.aangemaakt))
+        .map(v => {
+          const p = v.toon_naam && demoPersoon(v.auteur);
+          const n = p ? publiek(p) : {};
+          return { id: v.id, titel: v.titel, tekst: v.tekst, speltak: v.speltak || null, jaar: v.jaar || null, toon_naam: v.toon_naam,
+            eigen: v.auteur === ik, status: v.status, toelichting: v.auteur === ik ? v.toelichting || null : null,
+            voornaam: n.voornaam || null, bijnaam: n.bijnaam || null, achternaam: n.achternaam || null, aangemaakt: v.aangemaakt };
+        });
+    },
+    async bewaarVerhaal(v) {
+      const ik = lees(DEMO_SESSIE, null);
+      if (!ik) throw fout('sessie', MELD.sessie);
+      const lijst = verhalenStore();
+      const velden = { titel: v.titel, tekst: v.tekst, speltak: v.speltak || null, jaar: v.jaar || null, toon_naam: !!v.toon_naam,
+        status: 'nieuw', toelichting: null, melding: null, gemeld_door: null, gemeld_op: null };
+      const i = lijst.findIndex(x => x.id === v.id && x.auteur === ik);
+      if (i >= 0) Object.assign(lijst[i], velden);
+      else lijst.push({ id: 'demo-' + Date.now(), auteur: ik, aangemaakt: new Date().toISOString(), ...velden });
+      schrijf(DEMO_VERHALEN, lijst);
+    },
+    async verwijderVerhaal(id) {
+      schrijf(DEMO_VERHALEN, verhalenStore().filter(v => !(v.id === id && v.auteur === lees(DEMO_SESSIE, null))));
+    },
+    async meldVerhaal(id, reden = '') {
+      const lijst = verhalenStore(), v = lijst.find(x => x.id === id && x.status === 'geplaatst');
+      if (!v) return;
+      const mij = await this.ik();
+      Object.assign(v, { status: 'gemeld', melding: reden.trim() || null, gemeld_door: mij?.voornaam || lees(DEMO_SESSIE, null),
+        gemeld_op: new Date().toLocaleDateString('sv') });
+      schrijf(DEMO_VERHALEN, lijst);
+    },
+    async teBeoordelen() {
+      return verhalenStore().filter(v => v.status === 'nieuw' || v.status === 'gemeld')
+        .sort((a, b) => a.aangemaakt.localeCompare(b.aangemaakt))
+        .map(v => ({ ...v, auteur_naam: demoNaam(v.auteur) || v.auteur }));
+    },
+    async beoordeel(id, actie, { notitie = '', titel, tekst } = {}) {
+      let lijst = verhalenStore();
+      const v = lijst.find(x => x.id === id);
+      if (!v) return;
+      if (actie === 'plaatsen') Object.assign(v, { status: 'geplaatst', toelichting: null, melding: null, gemeld_door: null, gemeld_op: null });
+      else if (actie === 'afwijzen') Object.assign(v, { status: 'afgewezen', toelichting: notitie.trim() || null });
+      else if (actie === 'aanpassen') Object.assign(v, { titel, tekst });
+      else if (actie === 'verwijderen') lijst = lijst.filter(x => x !== v);
+      schrijf(DEMO_VERHALEN, lijst);
+    },
     async comiteWeghalen(email) {
       schrijf(DEMO_COMITE, comiteLijst().filter(c => !(c.email === norm(email) && c.rol === 'beheerder')));
     },
@@ -365,6 +436,44 @@ const Data = (() => {
       await verzoek('/rest/v1/rpc/comite_toevoegen', { method: 'POST', token: t, body: { adres: norm(email) } })
         .catch(e => { throw e.code === '22023' ? fout('adres', MELD.adres) : e.code === '42501' ? fout('recht', MELD.recht) : e; });
     },
+    // ---- stories ----
+    async aantalVerhalen() {
+      return await verzoek('/rest/v1/rpc/aantal_verhalen', { method: 'POST', body: {} });
+    },
+    async magVerhalen() {
+      const t = await token();
+      if (!t) return false;
+      return !!(await verzoek('/rest/v1/rpc/mag_verhalen', { method: 'POST', token: t, body: {} }).catch(() => false));
+    },
+    async verhalen() {
+      const t = await moetToken();
+      return await verzoek('/rest/v1/rpc/verhalen_lijst', { method: 'POST', token: t, body: {} });
+    },
+    // New story (no id) or a change to your own; the database sets status and author.
+    async bewaarVerhaal(v) {
+      const t = await moetToken();
+      const body = { titel: v.titel, tekst: v.tekst, speltak: v.speltak || null, jaar: v.jaar || null, toon_naam: !!v.toon_naam };
+      if (v.id) await verzoek(`/rest/v1/verhalen?id=eq.${encodeURIComponent(v.id)}`, { method: 'PATCH', token: t, body, headers: { Prefer: 'return=minimal' } });
+      else await verzoek('/rest/v1/verhalen', { method: 'POST', token: t, body: { ...body, auteur: sessie().user.id }, headers: { Prefer: 'return=minimal' } });
+    },
+    async verwijderVerhaal(id) {
+      const t = await moetToken();
+      await verzoek(`/rest/v1/verhalen?id=eq.${encodeURIComponent(id)}`, { method: 'DELETE', token: t });
+    },
+    async meldVerhaal(id, reden = '') {
+      const t = await moetToken();
+      await verzoek('/rest/v1/rpc/meld_verhaal', { method: 'POST', token: t, body: { verhaal: id, reden: reden || null } });
+    },
+    async teBeoordelen() {
+      const t = await moetToken();
+      return await verzoek('/rest/v1/rpc/te_beoordelen', { method: 'POST', token: t, body: {} });
+    },
+    async beoordeel(id, actie, { notitie = '', titel = null, tekst = null } = {}) {
+      const t = await moetToken();
+      await verzoek('/rest/v1/rpc/beoordeel_verhaal', { method: 'POST', token: t,
+        body: { verhaal: id, actie, notitie: notitie || null, nieuwe_titel: titel, nieuwe_tekst: tekst } });
+    },
+
     // Removes the registration and its login; optionally blocks the address.
     async verwijder(id, { blokkeer = false, reden = '' } = {}) {
       const t = await moetToken();

@@ -1,0 +1,260 @@
+<!DOCTYPE html>
+<html lang="nl">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<meta name="robots" content="noindex">
+<title>Herinneringen · Reünie 25 jaar Scouting Brandevoort</title>
+<link rel="stylesheet" href="theme.css">
+</head>
+<body>
+<header id="kop"></header>
+<main>
+  <h1>Herinneringen</h1>
+  <p class="muted" id="laden">Laden…</p>
+
+  <!-- Not logged in, or logged in without a registration -->
+  <div class="card lege" id="buiten" hidden>
+    <p style="font-size:18px;margin:0 0 6px"><b id="buiten-kop"></b></p>
+    <p class="muted" style="margin:0 0 16px" id="buiten-tekst"></p>
+    <div id="buiten-knoppen"></div>
+  </div>
+
+  <div id="binnen" hidden>
+    <div class="seg tabs" id="tabs">
+      <button type="button" data-tab="verhalen" class="on">Verhalen</button><button type="button" data-tab="fotos">Foto's</button>
+    </div>
+
+    <div id="tab-fotos" hidden>
+      <div class="card lege">
+        <p style="font-size:18px;margin:0 0 6px"><b>Foto's komen binnenkort!</b></p>
+        <p class="muted" style="margin:0">Zoek alvast je oude kampfoto's op. Straks kun je ze hier delen met de andere oud-leden.</p>
+      </div>
+    </div>
+
+    <div id="tab-verhalen">
+      <p style="margin-top:0">Weet je nog, dat kamp waar het tentdoek wegwaaide? Deel je mooiste, gekste of ontroerendste scoutingherinnering met de andere oud-leden.</p>
+      <p class="note ok" id="bedankt" hidden></p>
+
+      <div class="kop2">
+        <div class="filters" style="margin:0">
+          <input type="search" id="zoek" placeholder="Zoek in verhalen" aria-label="Zoek in verhalen">
+          <select id="f-speltak" aria-label="Speltak"></select>
+          <select id="f-jaar" aria-label="Jaar"></select>
+        </div>
+        <button class="btn" type="button" id="nieuw">+ Deel een verhaal</button>
+      </div>
+
+      <form class="card" id="form" hidden novalidate style="margin-top:14px">
+        <h2 id="form-kop" style="margin:0 0 10px">Deel een verhaal</h2>
+        <label>Titel<input id="v-titel" maxlength="80" autocomplete="off" required></label>
+        <label style="margin-top:10px">Je verhaal<textarea id="v-tekst" maxlength="3000" required></textarea></label>
+        <div class="teller" id="teller">0 / 3000 tekens</div>
+        <div class="rij" style="margin-top:6px">
+          <label>Speltak <span class="muted" style="font-weight:400">(optioneel)</span><select id="v-speltak"></select></label>
+          <label>Jaar <span class="muted" style="font-weight:400">(optioneel)</span><select id="v-jaar"></select></label>
+        </div>
+        <label class="check" style="margin-top:10px"><input type="checkbox" id="v-naam" checked> Toon mijn naam bij dit verhaal
+          <small class="muted">(uit: "gedeeld door een oud-lid"; het comité weet wel van wie het is)</small></label>
+        <p class="note" style="margin-top:12px">Noem je anderen bij naam? Houd het vriendelijk: zij lezen het ook.</p>
+        <p class="err" id="form-fout" hidden></p>
+        <div class="acties">
+          <button class="btn ghost" type="button" id="annuleer">Annuleren</button>
+          <button class="btn" type="submit" id="insturen">Verhaal insturen</button>
+        </div>
+      </form>
+
+      <p class="summary" id="telling"></p>
+      <div class="verhalen" id="lijst"></div>
+    </div>
+  </div>
+</main>
+
+<dialog id="meld" class="card dialoog">
+  <form method="dialog" id="meld-form">
+    <h3 style="margin:0 0 8px">Verhaal melden</h3>
+    <p style="margin:0 0 10px">Sta je in dit verhaal en wil je dat liever niet, of klopt er iets niet? Na het melden is het verhaal meteen niet meer te zien. Het reüniecomité kijkt ernaar en neemt zo nodig contact met je op.</p>
+    <label>Wat is er aan de hand? <span class="muted" style="font-weight:400">(optioneel)</span><textarea id="meld-reden" maxlength="500" style="min-height:90px"></textarea></label>
+    <p class="err" id="meld-fout" hidden></p>
+    <div class="acties">
+      <button class="btn ghost" value="nee" type="submit" formnovalidate>Annuleren</button>
+      <button class="btn danger" value="ja" type="submit" id="meld-ok">Melden</button>
+    </div>
+  </form>
+</dialog>
+
+<footer id="voet"></footer>
+<script src="reunie.js"></script>
+<script src="data.js"></script>
+<script src="nav.js"></script>
+<script>
+  const E = Reunie.esc;
+  let verhalen = [], bewerkId = null, teMelden = null;
+  const open = new Set();             // ids of long stories that are unfolded
+  const KORT = 450;                   // longer stories get "Lees verder"
+
+  // ---- list ------------------------------------------------------------------
+
+  // Blank line = new paragraph, single line break kept.
+  const alineas = t => t.split(/\n\s*\n/).map(p => `<p>${E(p.trim()).replace(/\n/g, '<br>')}</p>`).join('');
+  const door = v => v.eigen ? 'jou' : (Reunie.naam(v) || 'een oud-lid');
+  const LABEL = {
+    nieuw: '<span class="pill wacht">wordt binnenkort geplaatst</span>',
+    afgewezen: '<span class="pill">niet geplaatst</span>',
+    gemeld: '<span class="pill">tijdelijk verborgen</span>',
+  };
+
+  function kaart(v) {
+    const lang = v.tekst.length > KORT && !open.has(v.id);
+    const tekst = lang ? v.tekst.slice(0, KORT - 100).replace(/\s+\S*$/, '') + '…' : v.tekst;
+    const chips = [v.speltak, v.jaar].filter(Boolean).map(c => `<span class="chip">${E(c)}</span>`).join('');
+    const acties = v.eigen
+      ? `<button class="linkbtn" type="button" data-bewerk="${E(v.id)}">Aanpassen</button><button class="linkbtn" type="button" data-weg="${E(v.id)}">Verwijderen</button>`
+      : `<button class="linkbtn zacht" type="button" data-meld="${E(v.id)}">Sta jij hierin en wil je dat niet? Meld het</button>`;
+    return `<article class="verhaal${v.eigen ? ' eigen' : ''}">
+      <h3>${E(v.titel)}</h3>
+      <div class="meta">${chips} gedeeld door ${E(door(v))}${v.eigen && LABEL[v.status] ? ' · ' + LABEL[v.status] : ''}</div>
+      ${v.eigen && v.status === 'afgewezen' ? `<p class="note">${v.toelichting ? `Opmerking: ${E(v.toelichting)}<br>` : ''}Pas je verhaal aan om het opnieuw in te sturen.</p>` : ''}
+      ${alineas(tekst)}
+      <div class="voet">${v.tekst.length > KORT ? `<button class="linkbtn" type="button" data-open="${E(v.id)}">${lang ? 'Lees verder' : 'Minder'}</button>` : ''}${acties}</div>
+    </article>`;
+  }
+
+  function toon() {
+    const q = $('zoek').value.trim().toLowerCase(), t = $('f-speltak').value, j = +$('f-jaar').value;
+    const rijen = verhalen.filter(v => (!q || `${v.titel} ${v.tekst} ${door(v)}`.toLowerCase().includes(q))
+      && (!t || v.speltak === t) && (!j || v.jaar === j));
+    const geplaatst = verhalen.filter(v => v.status === 'geplaatst').length;
+    $('telling').innerHTML = q || t || j ? `<b>${rijen.length}</b> van de ${verhalen.length} verhalen`
+      : geplaatst ? `Al <b>${geplaatst}</b> ${geplaatst === 1 ? 'verhaal' : 'verhalen'} gedeeld!` : '';
+    $('lijst').innerHTML = rijen.map(kaart).join('')
+      || (verhalen.length ? '<p class="muted">Geen verhalen gevonden.</p>'
+                          : '<div class="card lege"><p style="margin:0"><b>Nog geen verhalen.</b> Deel jij de eerste?</p></div>');
+  }
+
+  async function laad() {
+    verhalen = await Data.verhalen();
+    toon();
+  }
+
+  ['zoek', 'f-speltak', 'f-jaar'].forEach(id => $(id).addEventListener('input', toon));
+
+  $('lijst').addEventListener('click', async e => {
+    const b = e.target.closest('button');
+    if (!b) return;
+    if (b.dataset.open) { open.has(b.dataset.open) ? open.delete(b.dataset.open) : open.add(b.dataset.open); toon(); }
+    else if (b.dataset.bewerk) formulier(verhalen.find(v => v.id === b.dataset.bewerk));
+    else if (b.dataset.weg) {
+      if (!confirm('Dit verhaal verwijderen? Dat kan niet ongedaan worden gemaakt.')) return;
+      b.disabled = true;
+      try { await Data.verwijderVerhaal(b.dataset.weg); $('bedankt').hidden = true; await laad(); }
+      catch (err) { alert('Verwijderen lukte niet: ' + err.message); b.disabled = false; }
+    } else if (b.dataset.meld) {
+      teMelden = b.dataset.meld;
+      $('meld-reden').value = ''; $('meld-fout').hidden = true;
+      $('meld').showModal();
+    }
+  });
+
+  $('meld-form').addEventListener('submit', async e => {
+    if (e.submitter?.value !== 'ja') return;
+    e.preventDefault();
+    $('meld-ok').disabled = true;
+    try {
+      await Data.meldVerhaal(teMelden, $('meld-reden').value);
+      $('meld').close();
+      await laad();
+      $('bedankt').textContent = 'Dank je wel voor je melding. Het verhaal is niet meer te zien.';
+      $('bedankt').hidden = false;
+    } catch (err) { $('meld-fout').textContent = err.message; $('meld-fout').hidden = false; }
+    $('meld-ok').disabled = false;
+  });
+
+  // ---- form --------------------------------------------------------------------
+
+  function formulier(v) {
+    bewerkId = v?.id || null;
+    $('form-kop').textContent = v ? 'Verhaal aanpassen' : 'Deel een verhaal';
+    $('insturen').textContent = v ? 'Opslaan' : 'Verhaal insturen';
+    $('v-titel').value = v?.titel || ''; $('v-tekst').value = v?.tekst || '';
+    $('v-speltak').value = v?.speltak || ''; $('v-jaar').value = v?.jaar || '';
+    $('v-naam').checked = v ? v.toon_naam !== false : true;
+    $('form-fout').hidden = true; $('bedankt').hidden = true;
+    teller();
+    $('form').hidden = false; $('nieuw').hidden = true;
+    $('form').scrollIntoView({ behavior: 'smooth', block: 'start' });
+    $('v-titel').focus({ preventScroll: true });
+  }
+  const sluit = () => { $('form').hidden = true; $('nieuw').hidden = false; bewerkId = null; };
+  const teller = () => { $('teller').textContent = `${$('v-tekst').value.length} / 3000 tekens`; };
+
+  $('nieuw').addEventListener('click', () => formulier(null));
+  $('annuleer').addEventListener('click', sluit);
+  $('v-tekst').addEventListener('input', teller);
+
+  $('form').addEventListener('submit', async e => {
+    e.preventDefault();
+    const v = { id: bewerkId, titel: $('v-titel').value.trim(), tekst: $('v-tekst').value.trim(),
+      speltak: $('v-speltak').value || null, jaar: +$('v-jaar').value || null, toon_naam: $('v-naam').checked };
+    const f = !v.titel ? 'Geef je verhaal een titel.' : !v.tekst ? 'Je verhaal is nog leeg.' : '';
+    $('form-fout').textContent = f; $('form-fout').hidden = !f;
+    if (f) return;
+    $('insturen').disabled = true;
+    try {
+      await Data.bewaarVerhaal(v);
+      const was = bewerkId;
+      sluit();
+      await laad();
+      $('bedankt').textContent = was ? 'Je aanpassing is opgeslagen. Je verhaal verschijnt zo snel mogelijk weer bij Herinneringen.'
+                                     : 'Bedankt voor je verhaal! Het verschijnt zo snel mogelijk bij Herinneringen. Jij ziet het hier nu al staan.';
+      $('bedankt').hidden = false;
+      $('bedankt').scrollIntoView({ behavior: 'smooth', block: 'center' });
+    } catch (err) { $('form-fout').textContent = err.message; $('form-fout').hidden = false; }
+    $('insturen').disabled = false;
+  });
+
+  // ---- tabs (remembered in the address: herinneringen.html#fotos) -------------
+
+  function tab(naam) {
+    $('tab-verhalen').hidden = naam !== 'verhalen'; $('tab-fotos').hidden = naam !== 'fotos';
+    document.querySelectorAll('#tabs button').forEach(b => b.classList.toggle('on', b.dataset.tab === naam));
+    history.replaceState(null, '', naam === 'fotos' ? '#fotos' : location.pathname);
+  }
+  $('tabs').addEventListener('click', e => { const b = e.target.closest('button[data-tab]'); if (b) tab(b.dataset.tab); });
+
+  // ---- start -------------------------------------------------------------------
+
+  function buiten(aantal, ingelogd) {
+    $('buiten-kop').textContent = aantal ? `Al ${aantal} ${aantal === 1 ? 'verhaal' : 'verhalen'} gedeeld!` : 'Verhalen van vroeger';
+    $('buiten-tekst').textContent = ingelogd
+      ? 'Verhalen en foto\'s van vroeger zijn voor deelnemers van de reünie. Maak je inschrijving af om ze te lezen en zelf iets te delen.'
+      : 'Verhalen en foto\'s van vroeger zijn alleen voor deelnemers van de reünie. Schrijf je in of log in om ze te lezen en zelf iets te delen.';
+    $('buiten-knoppen').innerHTML = ingelogd ? '<a class="btn" href="inschrijven.html">Inschrijving afmaken</a>'
+      : '<a class="btn" href="inschrijven.html">Inschrijven</a> <a class="btn ghost" href="inloggen.html">Inloggen</a>';
+    $('buiten').hidden = false;
+  }
+
+  (async () => {
+    await Reunie.laadSpeltakken();
+    const takken = Reunie.takken().map(t => `<option>${E(t.naam)}</option>`).join('');
+    let jaren = '';
+    for (let j = Reunie.NU; j >= Reunie.opgericht(); j--) jaren += `<option>${j}</option>`;
+    $('f-speltak').innerHTML = '<option value="">Alle speltakken</option>' + takken;
+    $('f-jaar').innerHTML = '<option value="">Alle jaren</option>' + jaren;
+    $('v-speltak').innerHTML = '<option value="">–</option>' + takken;
+    $('v-jaar').innerHTML = '<option value="">–</option>' + jaren;
+
+    try {
+      if (!Data.ingelogd() || !await Data.magVerhalen()) {
+        buiten(await Data.aantalVerhalen().catch(() => 0), Data.ingelogd());
+      } else {
+        await laad();
+        $('binnen').hidden = false;
+        if (location.hash === '#fotos') tab('fotos');
+      }
+    } catch (err) { $('laden').textContent = err.message; return; }
+    $('laden').hidden = true;
+  })();
+</script>
+</body>
+</html>

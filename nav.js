@@ -5,6 +5,7 @@
     ['index.html', 'Home'],
     ['programma.html', 'Programma'],
     ['deelnemers.html', 'Wie komen er?'],
+    ['herinneringen.html', 'Herinneringen'],
     ['vragen.html', 'Vragen'],
   ];
   const hier = location.pathname.split('/').pop() || 'index.html';

@@ -180,3 +180,24 @@ footer a { color: inherit; }
 .acties .btn { padding: 7px 14px; font-size: 14px; }
 dialog.dialoog { max-width: min(520px, calc(100vw - 32px)); color: var(--ink); }
 dialog.dialoog::backdrop { background: rgba(0, 0, 0, .45); }
+
+/* Herinneringen: stories */
+.kop2 { display: flex; justify-content: space-between; align-items: center; gap: 10px; flex-wrap: wrap; margin-top: 12px; }
+.verhalen { display: grid; gap: 12px; margin-top: 12px; }
+.verhaal { background: var(--card); border: 1px solid var(--line); border-radius: 12px; padding: 16px; }
+.verhaal.eigen { border-style: dashed; }
+.verhaal h3 { margin: 0 0 2px; font-size: 18px; }
+.verhaal .meta { color: var(--muted); font-size: 13.5px; margin-bottom: 8px; }
+.verhaal .chip { background: var(--chip); border-radius: 6px; padding: 1px 7px; font-size: 12.5px; color: var(--ink); margin-right: 4px; }
+.verhaal p { margin: 0 0 8px; line-height: 1.55; overflow-wrap: anywhere; }
+.verhaal .voet { display: flex; gap: 14px; flex-wrap: wrap; align-items: center; font-size: 13.5px; }
+.linkbtn.zacht { color: var(--muted); }
+.lege { text-align: center; padding: 28px 16px; }
+.note.ok { border-left-color: #1e8a3a; }
+textarea { font: inherit; padding: 10px 12px; border-radius: 10px; border: 1px solid var(--line); background: var(--bg); color: var(--ink); width: 100%; min-height: 160px; resize: vertical; }
+.teller { text-align: right; font-size: 12.5px; color: var(--muted); }
+.rij { display: flex; gap: 10px; flex-wrap: wrap; }
+.rij label { flex: 1 1 180px; }
+.verhaal .acties { justify-content: flex-start; }
+.verhaal .paneel { margin-top: 10px; }
+

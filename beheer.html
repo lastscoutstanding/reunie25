@@ -12,7 +12,7 @@
 <main>
   <h1>Beheer</h1>
   <div class="seg tabs" id="tabs" hidden>
-    <button type="button" data-tab="inschrijvingen" class="on">Inschrijvingen</button><button type="button" data-tab="comite">Comité</button>
+    <button type="button" data-tab="inschrijvingen" class="on">Inschrijvingen</button><button type="button" data-tab="beoordelen">Te beoordelen<span id="aantal-beoordelen"></span></button><button type="button" data-tab="comite">Comité</button>
   </div>
   <p class="muted" id="laden">Laden…</p>
   <div class="card narrow" id="geen" hidden>
@@ -37,6 +37,12 @@
     </div>
     <p class="muted" style="font-size:14px">Klik op een naam voor alle gegevens, ook wat iemand niet op "Wie komen er?" laat zien, en om iemand te verwijderen. E-mailadressen zijn alleen voor berichten van het comité. "Nieuw" = ingeschreven in de afgelopen 7 dagen.<br>
       Een vinkje bij "Betaald" wordt meteen opgeslagen, met de datum van vandaag. De deelnemer ziet het op Mijn inschrijving.</p>
+  </div>
+
+  <div id="tab-beoordelen" hidden>
+    <p style="margin-top:0">Nieuwe en aangepaste verhalen van Herinneringen, en verhalen die iemand heeft gemeld. Pas na "Plaatsen" zien de deelnemers een verhaal. De schrijver ziet bij een nieuw verhaal alleen "wordt binnenkort geplaatst".</p>
+    <p class="muted" id="beoordelen-laden">Laden…</p>
+    <div class="verhalen" id="beoordelen"></div>
   </div>
 
   <div id="tab-comite" hidden>
@@ -76,6 +82,8 @@
           <tr><td>Eigen inschrijving aanpassen of uitschrijven</td><td class="nee">–</td><td class="ja">✓</td><td class="ja">✓</td><td class="ja">✓</td></tr>
           <tr><td>Alle inschrijvingen met e-mail, CSV, adressen kopiëren</td><td class="nee">–</td><td class="nee">–</td><td class="ja">✓</td><td class="ja">✓</td></tr>
           <tr><td>Inschrijving verwijderen, adres blokkeren of deblokkeren</td><td class="nee">–</td><td class="nee">–</td><td class="ja">✓</td><td class="ja">✓</td></tr>
+          <tr><td>Verhalen bij Herinneringen lezen en delen</td><td class="nee">–</td><td class="ja">✓</td><td class="ja">✓</td><td class="ja">✓</td></tr>
+          <tr><td>Verhalen plaatsen, afwijzen, aanpassen of verwijderen</td><td class="nee">–</td><td class="nee">–</td><td class="ja">✓</td><td class="ja">✓</td></tr>
           <tr><td>Betalingen afvinken</td><td class="nee">–</td><td class="nee">–</td><td class="ja">✓</td><td class="ja">✓</td></tr>
           <tr><td>Beheerders toevoegen en weghalen</td><td class="nee">–</td><td class="nee">–</td><td class="nee">–</td><td class="ja">✓</td></tr>
         </tbody>
@@ -303,15 +311,84 @@
     catch (err) { alert('Weghalen lukte niet: ' + err.message); e.target.disabled = false; }
   });
 
-  // ---- tabs (remembered in the address: beheer.html#comite) --------------
+  // ---- tab Te beoordelen (stories) ----------------------------------------
 
+  let beoordeling = null;
+  const alineas = t => t.split(/\n\s*\n/).map(p => `<p>${E(p.trim()).replace(/\n/g, '<br>')}</p>`).join('');
+
+  function verhaalKaart(v) {
+    const chips = [v.speltak, v.jaar].filter(Boolean).map(c => `<span class="chip">${E(c)}</span>`).join('');
+    const gemeld = v.status === 'gemeld';
+    return `<article class="verhaal" data-id="${E(v.id)}">
+      <h3>${E(v.titel)}${gemeld ? ' <span class="pill wacht">gemeld</span>' : ''}</h3>
+      <div class="meta">${chips} van ${E(v.auteur_naam || 'onbekend')} · ingestuurd ${datum(String(v.aangemaakt).slice(0, 10))} · naam tonen: ${v.toon_naam ? 'ja' : 'nee'}</div>
+      ${gemeld ? `<p class="note">Gemeld door ${E(v.gemeld_door || 'iemand')} op ${datum(v.gemeld_op)}${v.melding ? `: “${E(v.melding)}”` : ''}. Nu niet zichtbaar.</p>` : ''}
+      ${alineas(v.tekst)}
+      <div class="acties knoppen">
+        <button class="btn" type="button" data-actie="plaatsen">${gemeld ? 'Weer tonen' : 'Plaatsen'}</button>
+        <button class="btn ghost" type="button" data-actie="bewerk">Aanpassen</button>
+        ${gemeld ? '<button class="btn danger" type="button" data-actie="verwijderen">Verwijderen</button>'
+                 : '<button class="btn danger" type="button" data-actie="afwijs">Afwijzen…</button>'}
+      </div>
+      <div class="paneel bewerk" hidden>
+        <label>Titel<input class="b-titel" maxlength="80" value="${E(v.titel)}"></label>
+        <label style="margin-top:8px">Verhaal<textarea class="b-tekst" maxlength="3000">${E(v.tekst)}</textarea></label>
+        <div class="acties"><button class="btn ghost" type="button" data-actie="terug">Annuleren</button><button class="btn" type="button" data-actie="aanpassen">Opslaan</button></div>
+      </div>
+      <div class="paneel afwijs" hidden>
+        <label>Korte toelichting voor de schrijver <span class="muted" style="font-weight:400">(optioneel, alleen de schrijver ziet dit)</span>
+          <textarea class="b-notitie" maxlength="500" style="min-height:80px"></textarea></label>
+        <div class="acties"><button class="btn ghost" type="button" data-actie="terug">Annuleren</button><button class="btn danger" type="button" data-actie="afwijzen">Afwijzen</button></div>
+      </div>
+    </article>`;
+  }
+
+  function toonBeoordelen() {
+    $('aantal-beoordelen').textContent = beoordeling.length ? ` (${beoordeling.length})` : '';
+    $('beoordelen').innerHTML = beoordeling.map(verhaalKaart).join('')
+      || '<div class="card lege"><p style="margin:0">Alles is beoordeeld. 🎉</p></div>';
+  }
+
+  async function laadBeoordelen() {
+    try { beoordeling = await Data.teBeoordelen(); }
+    catch (e) { $('beoordelen-laden').textContent = e.message; return; }
+    $('beoordelen-laden').hidden = true;
+    toonBeoordelen();
+  }
+
+  $('beoordelen').addEventListener('click', async e => {
+    const b = e.target.closest('button[data-actie]');
+    if (!b) return;
+    const kaart = b.closest('article'), id = kaart.dataset.id, actie = b.dataset.actie;
+    const paneel = naam => {
+      kaart.querySelector('.knoppen').hidden = !!naam;
+      kaart.querySelector('.bewerk').hidden = naam !== 'bewerk';
+      kaart.querySelector('.afwijs').hidden = naam !== 'afwijs';
+    };
+    if (actie === 'bewerk' || actie === 'afwijs') return paneel(actie);
+    if (actie === 'terug') return paneel(null);
+    if (actie === 'verwijderen' && !confirm('Dit verhaal definitief verwijderen?')) return;
+    const extra = actie === 'afwijzen' ? { notitie: kaart.querySelector('.b-notitie').value }
+      : actie === 'aanpassen' ? { titel: kaart.querySelector('.b-titel').value.trim(), tekst: kaart.querySelector('.b-tekst').value.trim() } : {};
+    if (actie === 'aanpassen' && (!extra.titel || !extra.tekst)) { alert('Titel en verhaal mogen niet leeg zijn.'); return; }
+    b.disabled = true;
+    try { await Data.beoordeel(id, actie, extra); await laadBeoordelen(); }
+    catch (err) { alert('Dat lukte niet: ' + err.message); b.disabled = false; }
+  });
+
+  // ---- tabs (remembered in the address: beheer.html#beoordelen, #comite) ----
+
+  let huidig = 'inschrijvingen';
   function tab(naam) {
-    const c = naam === 'comite';
-    $('inhoud').hidden = c || !lijst; $('tab-comite').hidden = !c;
-    $('laden').hidden = c || !!lijst;
+    huidig = naam;
+    $('inhoud').hidden = naam !== 'inschrijvingen' || !lijst;
+    $('laden').hidden = naam !== 'inschrijvingen' || !!lijst;
+    $('tab-beoordelen').hidden = naam !== 'beoordelen';
+    $('tab-comite').hidden = naam !== 'comite';
     document.querySelectorAll('#tabs button').forEach(b => b.classList.toggle('on', b.dataset.tab === naam));
-    history.replaceState(null, '', c ? '#comite' : location.pathname);
-    if (c && (!comite || !blokkades)) laadComite();
+    history.replaceState(null, '', naam === 'inschrijvingen' ? location.pathname : '#' + naam);
+    if (naam === 'comite' && (!comite || !blokkades)) laadComite();
+    if (naam === 'beoordelen') laadBeoordelen();
   }
   $('tabs').addEventListener('click', e => { const b = e.target.closest('button[data-tab]'); if (b) tab(b.dataset.tab); });
 
@@ -320,13 +397,14 @@
     rol = await Data.rol();
     if (!rol) { $('laden').hidden = true; $('geen').hidden = false; return; }
     $('tabs').hidden = false;
-    if (location.hash === '#comite') tab('comite');
+    if (['#beoordelen', '#comite'].includes(location.hash)) tab(location.hash.slice(1));
+    else laadBeoordelen();          // for the count on the tab
     betalen = await Reunie.laadBetalen();
     try { lijst = await Data.inschrijvingen(); }
     catch (e) { $('laden').textContent = e.message; return; }
     tegels();
     toon();
-    tab($('tab-comite').hidden ? 'inschrijvingen' : 'comite');
+    if (huidig === 'inschrijvingen') tab('inschrijvingen');
   })();
 </script>
 </body>

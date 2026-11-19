@@ -119,6 +119,18 @@ table.ov { border-collapse: collapse; font-size: 14px; min-width: 100%; }
 .ov td button small { font-weight: 600; color: var(--brand); }
 .ov td button:hover { outline: 2px solid var(--brand); }
 
+/* comité page (beheer) */
+.tegels { display: grid; grid-template-columns: repeat(auto-fit, minmax(140px, 1fr)); gap: 10px; margin: 8px 0 4px; }
+.tegels div { background: var(--chip); border-radius: 12px; padding: 10px 14px; }
+.tegels span { display: block; font-size: 13px; color: var(--muted); }
+.tegels strong { font-size: 26px; color: var(--brand); }
+table.lijst { border-collapse: collapse; font-size: 14px; width: 100%; }
+.lijst th, .lijst td { padding: 8px 10px; text-align: left; border-bottom: 1px solid var(--line); vertical-align: top; }
+.lijst th { font-size: 12.5px; color: var(--muted); font-weight: 600; }
+.lijst td .linkbtn { text-align: left; font-weight: 600; }
+.lijst tr.meer td { background: var(--bg); font-size: 13.5px; }
+.lijst .check { font-size: 14px; white-space: nowrap; }
+
 /* text pages (programma, vragen, privacy) */
 .prog { display: grid; grid-template-columns: auto 1fr; gap: 6px 18px; margin: 0; }
 .prog dt { font-weight: 700; color: var(--brand); font-variant-numeric: tabular-nums; }

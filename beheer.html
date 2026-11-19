@@ -1,0 +1,107 @@
+<!DOCTYPE html>
+<html lang="nl">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<meta name="robots" content="noindex">
+<title>Beheer · Reünie 25 jaar Scouting Brandevoort</title>
+<link rel="stylesheet" href="theme.css">
+</head>
+<body>
+<header id="kop"></header>
+<main>
+  <h1>Beheer</h1>
+  <p class="muted" id="laden">Laden…</p>
+  <div class="card narrow" id="geen" hidden>
+    <p style="margin:0">Deze pagina is voor het reüniecomité. Hoor je daarbij en zie je dit toch? Vraag dan of je e-mailadres als beheerder is toegevoegd.</p>
+  </div>
+  <div id="inhoud" hidden>
+    <div class="tegels" id="tegels"></div>
+    <div class="filters">
+      <input type="search" id="zoek" placeholder="Zoek op naam of e-mail" aria-label="Zoek op naam of e-mail">
+      <button class="btn ghost" id="csv" type="button">Download CSV</button>
+    </div>
+    <p class="summary" id="telling"></p>
+    <div class="scroll">
+      <table class="lijst">
+        <thead><tr><th>Naam</th><th>E-mail</th><th>Ingeschreven</th></tr></thead>
+        <tbody id="rijen"></tbody>
+      </table>
+    </div>
+    <p class="muted" style="font-size:14px">Klik op een naam voor alle gegevens, ook wat iemand niet op "Wie komen er?" laat zien. E-mailadressen zijn alleen voor berichten van het comité.</p>
+  </div>
+</main>
+<footer id="voet"></footer>
+<script src="reunie.js"></script>
+<script src="data.js"></script>
+<script src="nav.js"></script>
+<script>
+  if (!Data.ingelogd()) location.replace('inloggen.html');
+  const E = Reunie.esc;
+  let lijst = [];
+  const open = new Set();
+
+  const volNaam = r => Reunie.naam({ voornaam: r.voornaam, bijnaam: r.bijnaam, achternaam: r.achternaam });
+  const datum = d => d ? new Date(d + 'T12:00').toLocaleDateString('nl-NL', { day: 'numeric', month: 'short', year: 'numeric' }) : '';
+  const takTekst = t => `${t.rol === 'leiding' && !Reunie.isRol(t.speltak) ? 'leiding ' : ''}${t.speltak} ${Reunie.periode(t.van, t.tot)}`;
+  const TOON = { voornaam: 'voornaam', achternaam: 'achternaam', bijnaam: 'bijnaam', leeftijd: 'leeftijd', takken: 'speltakken' };
+
+  function details(r) {
+    const toont = Object.keys(TOON).filter(k => r.toon[k] && (k !== 'bijnaam' || r.bijnaam) && (k !== 'achternaam' || r.achternaam)).map(k => TOON[k]);
+    return `<tr class="meer"><td colspan="3">
+      Geboren in ${r.geboortejaar} (${Reunie.leeftijd(r.geboortejaar)} jaar op de reünie)<br>
+      ${r.takken.length ? r.takken.map(t => E(takTekst(t))).join(' · ') : '<span class="muted">geen speltakken ingevuld</span>'}<br>
+      <span class="muted">Op "Wie komen er?": ${toont.length ? toont.join(', ') : 'niets'}</span>
+    </td></tr>`;
+  }
+
+  function toon() {
+    const q = $('zoek').value.trim().toLowerCase();
+    const rijen = lijst.filter(r => !q || `${volNaam(r)} ${r.email}`.toLowerCase().includes(q));
+    $('telling').innerHTML = q ? `<b>${rijen.length}</b> van de ${lijst.length} gevonden` : '';
+    $('rijen').innerHTML = rijen.map(r => `<tr>
+        <td><button class="linkbtn" data-id="${E(r.id)}" aria-expanded="${open.has(r.id)}">${E(volNaam(r))}</button></td>
+        <td>${E(r.email)}</td><td>${datum(r.sinds)}</td>
+      </tr>${open.has(r.id) ? details(r) : ''}`).join('')
+      || '<tr><td colspan="3" class="muted">Niemand gevonden.</td></tr>';
+  }
+
+  function tegels() {
+    $('tegels').innerHTML = `<div><span>Ingeschreven</span><strong>${lijst.length}</strong></div>`;
+  }
+
+  $('zoek').addEventListener('input', toon);
+  $('rijen').addEventListener('click', e => {
+    const id = e.target.closest('button[data-id]')?.dataset.id;
+    if (!id) return;
+    open.has(id) ? open.delete(id) : open.add(id);
+    toon();
+  });
+
+  // Semicolons and a BOM, so Excel with Dutch settings opens it in columns with the right accents.
+  $('csv').addEventListener('click', () => {
+    const cel = v => `"${String(v ?? '').replace(/"/g, '""')}"`;
+    const kop = ['Voornaam', 'Achternaam', 'Bijnaam', 'E-mail', 'Geboortejaar', 'Speltakken', 'Ingeschreven'];
+    const regels = lijst.map(r => [r.voornaam, r.achternaam, r.bijnaam, r.email, r.geboortejaar,
+      r.takken.map(takTekst).join(', '), r.sinds]);
+    const csv = '﻿' + [kop, ...regels].map(rij => rij.map(cel).join(';')).join('\r\n');
+    const a = document.createElement('a');
+    a.href = URL.createObjectURL(new Blob([csv], { type: 'text/csv;charset=utf-8' }));
+    a.download = `reunie-inschrijvingen-${new Date().toLocaleDateString('sv')}.csv`;
+    a.click();
+    setTimeout(() => URL.revokeObjectURL(a.href), 1000);
+  });
+
+  (async () => {
+    await Reunie.laadSpeltakken();
+    if (!await Data.beheerder()) { $('laden').hidden = true; $('geen').hidden = false; return; }
+    try { lijst = await Data.inschrijvingen(); }
+    catch (e) { $('laden').textContent = e.message; return; }
+    $('laden').hidden = true;
+    tegels();
+    toon();
+    $('inhoud').hidden = false;
+  })();
+</script>
+</body>
+</html>

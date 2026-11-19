@@ -12,7 +12,10 @@
 //   { email, voornaam, achternaam, bijnaam, geboortejaar,
 //     takken: [{ speltak, rol: 'lid' | 'leiding', van, tot }],   tot null = heden
 //     toon: { voornaam, achternaam, bijnaam, leeftijd, takken }, what others may see
-//     sinds }                                                     registration date
+//     sinds,                                                      registration date
+//     id, betaald }                 betaald: date the comité saw the payment, or null
+//
+// Comité members (beheerders) can also list all registrations and mark payments.
 const Data = (() => {
   const SUPABASE_URL = 'https://glvrsppggmfksimpfckp.supabase.co';
   // Publishable ("anon") key: public by design, safe in this file. Never put the secret key here.
@@ -21,6 +24,7 @@ const Data = (() => {
 
   const DEMO_KEY = 'reunie25.demo';
   const DEMO_SESSIE = 'reunie25.sessie';
+  const DEMO_BETAALD = 'reunie25.demo.betaald';
   const AUTH = 'reunie25.auth';
   const DEMO_CODE = '123456';
 
@@ -90,6 +94,16 @@ const Data = (() => {
     toon: { voornaam: !!v, achternaam: !!a, leeftijd: !!l, takken: !!t },
   }));
   const alle = () => lees(DEMO_KEY, []);
+  // Full sample records as the comité sees them, with made-up e-mail and dates.
+  const voorbeeldVol = () => voorbeeld().map((r, i) => ({
+    ...r, bijnaam: '', id: 'voorbeeld-' + i, sinds: `2026-12-${String(i + 1).padStart(2, '0')}`,
+    email: `${r.voornaam}.${r.achternaam}`.toLowerCase().replace(/\s+/g, '') + '@voorbeeld.nl',
+    toon: { bijnaam: true, ...r.toon },
+  }));
+  // Payments in DEMO: { id: date }. Starts with two out of three sample people paid.
+  const betaaldLijst = () => lees(DEMO_BETAALD, null)
+    ?? Object.fromEntries(VOORBEELD.map((_, i) => ['voorbeeld-' + i, `2027-01-${String(i + 5).padStart(2, '0')}`]).filter((_, i) => i % 3 !== 2));
+  const metBetaald = r => r && { ...r, id: r.id || r.email, betaald: betaaldLijst()[r.id || r.email] || null };
 
   const demo = {
     async deelnemers() {
@@ -109,7 +123,7 @@ const Data = (() => {
     email: () => lees(DEMO_SESSIE, null),
     async ik() {
       const email = lees(DEMO_SESSIE, null);
-      return email ? alle().find(r => r.email === email) || null : null;
+      return email ? metBetaald(alle().find(r => r.email === email)) || null : null;
     },
     async bewaar(rec) {
       const email = lees(DEMO_SESSIE, null);
@@ -117,9 +131,10 @@ const Data = (() => {
       const list = alle();
       const i = list.findIndex(r => r.email === email);
       const nieuw = { ...rec, email, sinds: i >= 0 ? list[i].sinds : new Date().toLocaleDateString('sv') };  // local YYYY-MM-DD
+      delete nieuw.id; delete nieuw.betaald;
       if (i >= 0) list[i] = nieuw; else list.push(nieuw);
       schrijf(DEMO_KEY, list);
-      return nieuw;
+      return metBetaald(nieuw);
     },
     async uitschrijven() {
       const email = lees(DEMO_SESSIE, null);
@@ -127,6 +142,18 @@ const Data = (() => {
       schrijf(DEMO_SESSIE, null);
     },
     async uitloggen() { schrijf(DEMO_SESSIE, null); },
+    // In DEMO everyone who is logged in is a comité member, so the page can be tried out.
+    async beheerder() { return !!lees(DEMO_SESSIE, null); },
+    async inschrijvingen() {
+      if (!lees(DEMO_SESSIE, null)) throw fout('sessie', MELD.sessie);
+      return [...voorbeeldVol(), ...alle()].map(metBetaald);
+    },
+    async zetBetaald(id, aan) {
+      const lijst = betaaldLijst();
+      if (aan) lijst[id] ||= new Date().toLocaleDateString('sv'); else delete lijst[id];
+      schrijf(DEMO_BETAALD, lijst);
+      return lijst[id] || null;
+    },
   };
 
   // ---- Supabase ------------------------------------------------------------
@@ -175,7 +202,7 @@ const Data = (() => {
 
   const naarRecord = r => r && ({
     email: r.email, voornaam: r.voornaam, achternaam: r.achternaam, bijnaam: r.bijnaam || '', geboortejaar: r.geboortejaar,
-    takken: r.takken || [], sinds: r.sinds,
+    takken: r.takken || [], sinds: r.sinds, id: r.id, betaald: r.betaald_op || null,
     toon: { voornaam: r.toon_voornaam, achternaam: r.toon_achternaam, bijnaam: r.toon_bijnaam ?? true, leeftijd: r.toon_leeftijd, takken: r.toon_takken },
   });
   const naarRij = (rec, id) => ({
@@ -239,6 +266,22 @@ const Data = (() => {
       const t = await token();
       bewaarSessie(null);
       if (t) await verzoek('/auth/v1/logout', { method: 'POST', token: t }).catch(() => {});
+    },
+    // Comité member? The database decides (table beheerders); this only picks what to show.
+    async beheerder() {
+      const t = await token();
+      if (!t) return false;
+      return !!(await verzoek('/rest/v1/rpc/is_beheerder', { method: 'POST', token: t, body: {} }).catch(() => false));
+    },
+    // All registrations, oldest first. Row level security returns only your own row to non-members.
+    async inschrijvingen() {
+      const t = await moetToken();
+      const rows = await verzoek('/rest/v1/deelnemers?select=*&order=aangemaakt', { token: t });
+      return rows.map(naarRecord);
+    },
+    async zetBetaald(id, aan) {
+      const t = await moetToken();
+      return await verzoek('/rest/v1/rpc/zet_betaald', { method: 'POST', token: t, body: { deelnemer: id, betaald: !!aan } });
     },
   };
 

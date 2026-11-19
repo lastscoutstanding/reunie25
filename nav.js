@@ -26,6 +26,14 @@
     </div></header>
     <div class="strip"><nav aria-label="Menu">${menu}</nav></div>`;
 
+  // Comité members get a "Beheer" link before the button on the right.
+  if (ingelogd) Data.beheerder().then(ja => {
+    const cta = document.querySelector('.strip nav a.cta');
+    if (!ja || !cta) return;
+    const on = hier === 'beheer.html';
+    cta.insertAdjacentHTML('beforebegin', `<a href="beheer.html"${on ? ' class="on" aria-current="page"' : ''}>Beheer</a>`);
+  });
+
   const icon = document.createElement('link');
   icon.rel = 'icon'; icon.type = 'image/svg+xml'; icon.href = 'logo.svg';
   document.head.appendChild(icon);

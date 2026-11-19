@@ -19,16 +19,20 @@
     <div class="tegels" id="tegels"></div>
     <div class="filters">
       <input type="search" id="zoek" placeholder="Zoek op naam of e-mail" aria-label="Zoek op naam of e-mail">
+      <select id="filter" aria-label="Betaald">
+        <option value="">Iedereen</option><option value="nee">Nog niet betaald</option><option value="ja">Betaald</option>
+      </select>
       <button class="btn ghost" id="csv" type="button">Download CSV</button>
     </div>
     <p class="summary" id="telling"></p>
     <div class="scroll">
       <table class="lijst">
-        <thead><tr><th>Naam</th><th>E-mail</th><th>Ingeschreven</th></tr></thead>
+        <thead><tr><th>Naam</th><th>E-mail</th><th>Ingeschreven</th><th>Betaald</th></tr></thead>
         <tbody id="rijen"></tbody>
       </table>
     </div>
-    <p class="muted" style="font-size:14px">Klik op een naam voor alle gegevens, ook wat iemand niet op "Wie komen er?" laat zien. E-mailadressen zijn alleen voor berichten van het comité.</p>
+    <p class="muted" style="font-size:14px">Klik op een naam voor alle gegevens, ook wat iemand niet op "Wie komen er?" laat zien. E-mailadressen zijn alleen voor berichten van het comité.<br>
+      Een vinkje bij "Betaald" wordt meteen opgeslagen, met de datum van vandaag. De deelnemer ziet het op Mijn inschrijving.</p>
   </div>
 </main>
 <footer id="voet"></footer>
@@ -38,7 +42,7 @@
 <script>
   if (!Data.ingelogd()) location.replace('inloggen.html');
   const E = Reunie.esc;
-  let lijst = [];
+  let lijst = [], betalen = null;
   const open = new Set();
 
   const volNaam = r => Reunie.naam({ voornaam: r.voornaam, bijnaam: r.bijnaam, achternaam: r.achternaam });
@@ -48,7 +52,7 @@
 
   function details(r) {
     const toont = Object.keys(TOON).filter(k => r.toon[k] && (k !== 'bijnaam' || r.bijnaam) && (k !== 'achternaam' || r.achternaam)).map(k => TOON[k]);
-    return `<tr class="meer"><td colspan="3">
+    return `<tr class="meer"><td colspan="4">
       Geboren in ${r.geboortejaar} (${Reunie.leeftijd(r.geboortejaar)} jaar op de reünie)<br>
       ${r.takken.length ? r.takken.map(t => E(takTekst(t))).join(' · ') : '<span class="muted">geen speltakken ingevuld</span>'}<br>
       <span class="muted">Op "Wie komen er?": ${toont.length ? toont.join(', ') : 'niets'}</span>
@@ -57,20 +61,37 @@
 
   function toon() {
     const q = $('zoek').value.trim().toLowerCase();
-    const rijen = lijst.filter(r => !q || `${volNaam(r)} ${r.email}`.toLowerCase().includes(q));
-    $('telling').innerHTML = q ? `<b>${rijen.length}</b> van de ${lijst.length} gevonden` : '';
+    const f = $('filter').value;
+    const rijen = lijst.filter(r => (!q || `${volNaam(r)} ${r.email}`.toLowerCase().includes(q))
+      && (!f || (f === 'ja') === !!r.betaald));
+    $('telling').innerHTML = q || f ? `<b>${rijen.length}</b> van de ${lijst.length} gevonden` : '';
     $('rijen').innerHTML = rijen.map(r => `<tr>
         <td><button class="linkbtn" data-id="${E(r.id)}" aria-expanded="${open.has(r.id)}">${E(volNaam(r))}</button></td>
         <td>${E(r.email)}</td><td>${datum(r.sinds)}</td>
+        <td><label class="check"><input type="checkbox" data-betaald="${E(r.id)}"${r.betaald ? ' checked' : ''}> ${r.betaald ? datum(r.betaald) : 'nee'}</label></td>
       </tr>${open.has(r.id) ? details(r) : ''}`).join('')
-      || '<tr><td colspan="3" class="muted">Niemand gevonden.</td></tr>';
+      || '<tr><td colspan="4" class="muted">Niemand gevonden.</td></tr>';
   }
 
   function tegels() {
-    $('tegels').innerHTML = `<div><span>Ingeschreven</span><strong>${lijst.length}</strong></div>`;
+    const betaald = lijst.filter(r => r.betaald).length;
+    $('tegels').innerHTML = `<div><span>Ingeschreven</span><strong>${lijst.length}</strong></div>
+      <div><span>Betaald</span><strong>${betaald}</strong></div>
+      <div><span>Nog niet betaald</span><strong>${lijst.length - betaald}</strong></div>
+      ${betalen ? `<div><span>Ontvangen (± ${Reunie.euro(betalen.bedrag)} p.p.)</span><strong>${Reunie.euro(betaald * betalen.bedrag)}</strong></div>` : ''}`;
   }
 
   $('zoek').addEventListener('input', toon);
+  $('filter').addEventListener('change', toon);
+  $('rijen').addEventListener('change', async e => {
+    const id = e.target.dataset.betaald;
+    if (!id) return;
+    const r = lijst.find(x => x.id === id);
+    e.target.disabled = true;
+    try { r.betaald = await Data.zetBetaald(id, e.target.checked); }
+    catch (err) { alert('Opslaan lukte niet: ' + err.message); }
+    tegels(); toon();
+  });
   $('rijen').addEventListener('click', e => {
     const id = e.target.closest('button[data-id]')?.dataset.id;
     if (!id) return;
@@ -81,9 +102,9 @@
   // Semicolons and a BOM, so Excel with Dutch settings opens it in columns with the right accents.
   $('csv').addEventListener('click', () => {
     const cel = v => `"${String(v ?? '').replace(/"/g, '""')}"`;
-    const kop = ['Voornaam', 'Achternaam', 'Bijnaam', 'E-mail', 'Geboortejaar', 'Speltakken', 'Ingeschreven'];
+    const kop = ['Voornaam', 'Achternaam', 'Bijnaam', 'E-mail', 'Geboortejaar', 'Speltakken', 'Ingeschreven', 'Betaald op'];
     const regels = lijst.map(r => [r.voornaam, r.achternaam, r.bijnaam, r.email, r.geboortejaar,
-      r.takken.map(takTekst).join(', '), r.sinds]);
+      r.takken.map(takTekst).join(', '), r.sinds, r.betaald || '']);
     const csv = '﻿' + [kop, ...regels].map(rij => rij.map(cel).join(';')).join('\r\n');
     const a = document.createElement('a');
     a.href = URL.createObjectURL(new Blob([csv], { type: 'text/csv;charset=utf-8' }));
@@ -95,6 +116,7 @@
   (async () => {
     await Reunie.laadSpeltakken();
     if (!await Data.beheerder()) { $('laden').hidden = true; $('geen').hidden = false; return; }
+    betalen = await Reunie.laadBetalen();
     try { lijst = await Data.inschrijvingen(); }
     catch (e) { $('laden').textContent = e.message; return; }
     $('laden').hidden = true;

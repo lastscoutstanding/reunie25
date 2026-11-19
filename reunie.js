@@ -25,6 +25,25 @@ const Reunie = (() => {
     return cfg;
   }
 
+  // betalen.txt: "sleutel = waarde" per line. Returns null until there is an amount and
+  // a link or IBAN, so the payment block stays hidden until the comité has filled it in.
+  async function laadBetalen() {
+    try {
+      const r = await fetch('betalen.txt', { cache: 'no-cache' });
+      if (!r.ok) return null;
+      const b = {};
+      for (const line of (await r.text()).split('\n')) {
+        const m = line.trim().match(/^(\w+)\s*=\s*(.*)$/);
+        if (m && !line.trim().startsWith('#')) b[m[1].toLowerCase()] = m[2].trim();
+      }
+      const bedrag = parseFloat((b.bedrag || '').replace(',', '.'));
+      const link = /^https:\/\//i.test(b.link || '') ? b.link : '';
+      if (!(bedrag > 0) || !(link || b.iban)) return null;
+      return { bedrag, link, iban: b.iban || '', naam: b.naam || '', tekst: b.tekst || '' };
+    } catch { return null; }
+  }
+  const euro = n => n.toLocaleString('nl-NL', { style: 'currency', currency: 'EUR', minimumFractionDigits: n % 1 ? 2 : 0 });
+
   const takken = () => cfg.takken;
   const opgericht = () => cfg.opgericht;
   const isRol = naam => { const t = cfg.takken.find(t => t.naam === naam); return !t || t.vanaf == null; };
@@ -99,7 +118,7 @@ const Reunie = (() => {
     stapJaar(el, e.clientY < r.top + r.height / 2 ? 1 : -1);
   });
 
-  return { DATUM, NU, laadSpeltakken, takken, opgericht, isRol, berekenJaren, leeftijd, periode, esc, matcher, naam, kaart };
+  return { DATUM, NU, laadSpeltakken, laadBetalen, euro, takken, opgericht, isRol, berekenJaren, leeftijd, periode, esc, matcher, naam, kaart };
 })();
 
 const $ = id => document.getElementById(id);

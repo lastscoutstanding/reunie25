@@ -26,10 +26,13 @@
         <button class="btn danger" id="uitschrijven">Uitschrijven</button>
       </div>
     </div>
-    <div class="card">
-      <h2>Je gegevens</h2>
-      <p style="margin:0" id="gegevens"></p>
-      <p class="muted" style="font-size:14px">Je e-mailadres is alleen voor het inloggen en voor berichten van het reüniecomité. Het staat nooit op de site.</p>
+    <div class="stack">
+      <div class="card betaal" id="betaal" hidden></div>
+      <div class="card">
+        <h2>Je gegevens</h2>
+        <p style="margin:0" id="gegevens"></p>
+        <p class="muted" style="font-size:14px">Je e-mailadres is alleen voor het inloggen en voor berichten van het reüniecomité. Het staat nooit op de site.</p>
+      </div>
     </div>
   </div>
 </main>
@@ -48,7 +51,33 @@
     location.href = 'index.html';
   });
 
+  // Payment block from betalen.txt; the status is set by the comité on the beheer page.
+  function betaalblok(b, ik) {
+    const E = Reunie.esc;
+    const omschrijving = `Reünie ${ik.voornaam} ${ik.achternaam}`.trim();
+    const kop = `<p class="bedrag">Bijdrage: ${Reunie.euro(b.bedrag)}</p>`;
+    if (ik.betaald) {
+      const d = new Date(ik.betaald + 'T12:00').toLocaleDateString('nl-NL', { day: 'numeric', month: 'long' });
+      return `${kop}<p style="margin:0"><span class="pill ok">✓ Betaald, dank je wel!</span> <small class="muted">ontvangen op ${d}</small></p>`;
+    }
+    const kopieer = (tekst, label) => `<code>${E(tekst)}</code> <button class="linkbtn" type="button" data-kopieer="${E(tekst)}">${label}</button>`;
+    return `${kop}
+      ${b.tekst ? `<p style="margin:0 0 12px">${E(b.tekst)}</p>` : ''}
+      ${b.link ? `<p style="margin:0"><a class="btn" href="${E(b.link)}" target="_blank" rel="noopener">Betaal via de bank ↗</a></p>` : ''}
+      ${b.iban ? `<p class="zelf">${b.link ? 'Liever zelf overmaken? ' : 'Maak het over naar '}${kopieer(b.iban, 'kopieer')}${b.naam ? ` t.n.v. ${E(b.naam)}` : ''},
+        met als omschrijving ${kopieer(omschrijving, 'kopieer')}</p>` : ''}
+      <p style="margin:14px 0 0"><span class="pill wacht">Nog niet betaald</span>
+        <small class="muted">Het comité vinkt je af zodra je betaling binnen is. Dat kan een paar dagen duren.</small></p>`;
+  }
+  $('betaal').addEventListener('click', async e => {
+    const knop = e.target.closest('[data-kopieer]');
+    if (!knop) return;
+    try { await navigator.clipboard.writeText(knop.dataset.kopieer); knop.textContent = 'gekopieerd ✓'; }
+    catch { knop.textContent = 'kopiëren lukte niet'; }
+  });
+
   (async () => {
+    const betalen = Reunie.laadBetalen();
     await Reunie.laadSpeltakken();
     let ik;
     try { ik = await Data.ik(); } catch { location.replace('inloggen.html'); return; }
@@ -69,6 +98,8 @@
       return `<a href="deelnemers.html?${q}">${E(label)} (${x.van})</a>`;
     });
     $('samen').innerHTML = links.length ? 'Wie was er tegelijk met jou: ' + links.join(' · ') : '';
+    const b = await betalen;
+    if (b) { $('betaal').innerHTML = betaalblok(b, ik); $('betaal').hidden = false; }
     $('inhoud').hidden = false;
   })();
 </script>

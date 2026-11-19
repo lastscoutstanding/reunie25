@@ -1,0 +1,18 @@
+# Betalen: het blok "Bijdrage" op Mijn inschrijving.
+#
+# Formaat per regel:   sleutel = waarde
+#   bedrag  het bedrag per persoon in euro, bijv. 25 of 22,50
+#   link    de betaallink van de bank (moet met https:// beginnen)
+#   iban    rekeningnummer voor wie liever zelf overmaakt
+#   naam    tenaamstelling van de rekening
+#   tekst   korte uitleg boven de knop (één regel)
+#
+# Het blok verschijnt pas als er een bedrag staat én een link of IBAN.
+# Verloopt de link? Zet hier de nieuwe neer; de site gebruikt hem meteen.
+# Regels die met # beginnen worden overgeslagen.
+
+bedrag =
+link =
+iban =
+naam = Scouting Brandevoort
+tekst =

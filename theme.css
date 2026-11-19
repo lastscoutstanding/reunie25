@@ -119,6 +119,18 @@ table.ov { border-collapse: collapse; font-size: 14px; min-width: 100%; }
 .ov td button small { font-weight: 600; color: var(--brand); }
 .ov td button:hover { outline: 2px solid var(--brand); }
 
+/* payment block (mijn) */
+.stack { display: grid; gap: 20px; }
+.betaal .bedrag { font-size: 22px; font-weight: 700; color: var(--brand); margin: 0 0 6px; }
+.betaal .zelf { font-size: 14px; color: var(--muted); margin: 14px 0 0; }
+.betaal code { background: var(--chip); border-radius: 6px; padding: 1px 6px; font-size: 13.5px; color: var(--ink); }
+.pill.wacht { background: #fdf0c2; color: #6b4e00; }
+.pill.ok { background: #dcf1df; color: #1e6b2c; }
+@media (prefers-color-scheme: dark) {
+  .pill.wacht { background: #4a3a08; color: #f6d77a; }
+  .pill.ok { background: #183d22; color: #9fdcaa; }
+}
+
 /* comité page (beheer) */
 .tegels { display: grid; grid-template-columns: repeat(auto-fit, minmax(140px, 1fr)); gap: 10px; margin: 8px 0 4px; }
 .tegels div { background: var(--chip); border-radius: 12px; padding: 10px 14px; }

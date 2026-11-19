@@ -17,9 +17,12 @@
 <script src="data.js"></script>
 <script src="nav.js"></script>
 <script>
-  // vragen.txt: "V:" starts a question, "A:" its answer (may span lines, blank line = new paragraph)
-  fetch('vragen.txt', { cache: 'no-cache' }).then(r => r.text()).then(txt => {
-    const E = Reunie.esc;
+  // vragen.txt: "V:" starts a question, "A:" its answer (may span lines, blank line = new paragraph).
+  // {bedrag} becomes the amount from betalen.txt; e-mail addresses become links.
+  Promise.all([fetch('vragen.txt', { cache: 'no-cache' }).then(r => r.text()), Reunie.laadBetalen()]).then(([txt, betalen]) => {
+    const bedrag = betalen ? Reunie.euro(betalen.bedrag) : 'het bedrag dat we nog bekendmaken';
+    const E = s => Reunie.esc(s.replaceAll('{bedrag}', bedrag))
+      .replace(/[\w.+-]+@[\w-]+(\.[\w-]+)+/g, m => `<a href="mailto:${m}">${m}</a>`);
     const qa = [];
     let cur = null, deel = null;
     for (const raw of txt.split('\n')) {

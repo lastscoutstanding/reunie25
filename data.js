@@ -360,7 +360,7 @@ const Data = (() => {
     async verwijder(id, { blokkeer = false, reden = '' } = {}) {
       const t = await moetToken();
       await verzoek('/rest/v1/rpc/verwijder_deelnemer', { method: 'POST', token: t, body: { deelnemer: id, blokkeer: !!blokkeer, waarom: reden || null } })
-        .catch(e => { throw MELD[e.message] ? fout(e.message, MELD[e.message]) : e.message === 'comitélid' ? fout('comitelid', MELD.comitelid) : e; });
+        .catch(e => { throw MELD[e.message] ? fout(e.message, MELD[e.message]) : e; });  // server codes: zelf, comitelid
     },
     async geblokkeerde() {
       const t = await moetToken();

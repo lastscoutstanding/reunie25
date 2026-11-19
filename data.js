@@ -314,14 +314,23 @@ const Data = (() => {
       const t = await token();
       if (!t) return null;
       const rows = await verzoek(`/rest/v1/deelnemers?select=*&id=eq.${sessie().user.id}`, { token: t });
-      return naarRecord(rows[0]) || null;
+      if (rows[0]) return naarRecord(rows[0]);
+      // No registration: check the login still exists. The comité may have removed it while
+      // this browser still holds a valid token; then forget the session (logged out).
+      await verzoek('/auth/v1/user', { token: t }).catch(e => { if (e.status >= 400 && e.status < 500) bewaarSessie(null); });
+      return null;
     },
     async bewaar(rec) {
       const t = await moetToken();
       const rows = await verzoek('/rest/v1/deelnemers?on_conflict=id', {
         method: 'POST', token: t, body: naarRij(rec, sessie().user.id),
         headers: { Prefer: 'resolution=merge-duplicates,return=representation' },
-      }).catch(e => { throw e.message === 'geblokkeerd' ? fout('geblokkeerd', MELD.geblokkeerd) : e; });
+      }).catch(e => {
+        if (e.message === 'geblokkeerd') throw fout('geblokkeerd', MELD.geblokkeerd);
+        // Login removed by the comité while this browser was still logged in.
+        if (e.code === '23503') { bewaarSessie(null); throw fout('sessie', MELD.sessie); }
+        throw e;
+      });
       return naarRecord(rows[0]);
     },
     // Removes the login itself; the registration goes with it (on delete cascade).

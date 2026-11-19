@@ -73,7 +73,7 @@
   // eigen = years set by hand (or loaded), so a birth-year change leaves them alone
   const keuze = {};
   const K = (rol, naam) => keuze[rol + ':' + naam] ||= { on: false, van: '', tot: '', eigen: false };
-  let bewerken = false;
+  let bewerken = false, afmaken = false;   // afmaken: logged in without a registration yet
 
   function takRij(rol, t) {
     const jaar = +$('f-jaar').value;
@@ -164,6 +164,13 @@
         location.href = 'inloggen.html#code';
       }
     } catch (err) {
+      // Finishing a registration, but the login was removed meanwhile: keep the form
+      // and continue as a new registration (a new code is mailed on the next click).
+      if (err.code === 'sessie' && afmaken) {
+        afmaken = bewerken = false;
+        $('f-email').readOnly = false; $('comite-noot').hidden = true; $('uitleg').hidden = false;
+        err = { message: 'Je inlog was verlopen. Klik nog een keer op Inschrijven, dan krijg je een nieuwe code per mail.' };
+      }
       $('fout').hidden = false; $('fout').textContent = err.message;
       $('knop').disabled = false;
     }
@@ -185,7 +192,7 @@
     try { ik = Data.ingelogd() ? await Data.ik() : null; } catch {}
     if (!ik && Data.ingelogd()) {
       // Logged in, but no registration saved yet: finish it here, no new code needed.
-      bewerken = true;
+      bewerken = afmaken = true;
       $('f-email').value = Data.email() || ''; $('f-email').readOnly = true;
       $('email-hint').textContent = 'Je inlogadres. Alleen het reüniecomité ziet het, andere deelnemers nooit.';
       $('uitleg').hidden = true;

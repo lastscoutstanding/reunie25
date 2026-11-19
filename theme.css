@@ -165,3 +165,12 @@ footer a { color: inherit; }
   .sticky { position: static; }
   .tak { grid-template-columns: 1fr; gap: 4px; }
 }
+
+/* Beheer: tabs, comité list and the rights table */
+.tabs { margin: 0 0 16px; }
+.pill.hoofd { background: var(--brand); color: #fff; }
+.toevoegen { display: flex; gap: 10px; flex-wrap: wrap; align-items: end; margin-top: 12px; }
+.toevoegen label { flex: 1 1 220px; }
+.rechten th:not(:first-child), .rechten td:not(:first-child) { text-align: center; }
+.rechten .ja { color: #1e8a3a; font-weight: 700; }
+.rechten .nee { color: var(--muted); }

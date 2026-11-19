@@ -10,6 +10,7 @@
 <header id="kop"></header>
 <main>
   <h1 id="titel">Inschrijven</h1>
+  <p class="note" id="comite-noot" hidden style="margin-bottom:16px">Je bent ingelogd als lid van het reüniecomité, maar nog niet ingeschreven voor de reünie zelf. Kom je ook? Vul dan dit formulier in. Anders kun je gewoon naar <a href="beheer.html">Beheer</a> of <button class="linkbtn" id="comite-uit" type="button">uitloggen</button>.</p>
   <div class="split">
     <form class="card" id="form" novalidate>
       <div class="two">
@@ -188,6 +189,7 @@
       $('f-email').value = Data.email() || ''; $('f-email').readOnly = true;
       $('email-hint').textContent = 'Je inlogadres. Alleen het reüniecomité ziet het, andere deelnemers nooit.';
       $('uitleg').hidden = true;
+      if (await Data.beheerder()) $('comite-noot').hidden = false;
     } else if (ik) {
       bewerken = true;
       document.title = 'Gegevens aanpassen · Reünie 25 jaar Scouting Brandevoort';
@@ -200,6 +202,7 @@
     }
     renderTakken(); preview();
   })();
+  $('comite-uit').addEventListener('click', async () => { await Data.uitloggen(); location.href = 'index.html'; });
 </script>
 </body>
 </html>

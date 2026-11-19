@@ -11,6 +11,9 @@
 <header id="kop"></header>
 <main>
   <h1>Beheer</h1>
+  <div class="seg tabs" id="tabs" hidden>
+    <button type="button" data-tab="inschrijvingen" class="on">Inschrijvingen</button><button type="button" data-tab="comite">Comité</button>
+  </div>
   <p class="muted" id="laden">Laden…</p>
   <div class="card narrow" id="geen" hidden>
     <p style="margin:0">Deze pagina is voor het reüniecomité. Hoor je daarbij en zie je dit toch? Vraag dan of je e-mailadres als beheerder is toegevoegd.</p>
@@ -35,6 +38,41 @@
     <p class="muted" style="font-size:14px">Klik op een naam voor alle gegevens, ook wat iemand niet op "Wie komen er?" laat zien. E-mailadressen zijn alleen voor berichten van het comité.<br>
       Een vinkje bij "Betaald" wordt meteen opgeslagen, met de datum van vandaag. De deelnemer ziet het op Mijn inschrijving.</p>
   </div>
+
+  <div id="tab-comite" hidden>
+    <p id="comite-uitleg"></p>
+    <p class="muted" id="comite-laden">Laden…</p>
+    <div class="scroll">
+      <table class="lijst">
+        <thead><tr><th>E-mail</th><th>Rol</th><th>Toegevoegd</th><th class="alleen-hoofd"></th></tr></thead>
+        <tbody id="comite-rijen"></tbody>
+      </table>
+    </div>
+    <form class="card alleen-hoofd" id="comite-form" style="margin-top:14px" novalidate>
+      <b>Iemand toevoegen aan het comité</b>
+      <div class="toevoegen">
+        <label>E-mailadres<input type="email" id="comite-email" placeholder="naam@voorbeeld.nl" autocomplete="off" required></label>
+        <button class="btn" type="submit">Toevoegen als beheerder</button>
+      </div>
+      <p class="err" id="comite-fout" hidden></p>
+      <small class="muted">Diegene logt in met dit adres en ziet daarna "Beheer" in het menu. Zelf inschrijven voor de reünie hoeft niet.</small>
+    </form>
+
+    <h2 style="margin-top:28px">Wie mag wat?</h2>
+    <div class="scroll">
+      <table class="lijst rechten">
+        <thead><tr><th></th><th>Bezoeker</th><th>Deelnemer</th><th>Beheerder</th><th>Hoofd&shy;beheerder</th></tr></thead>
+        <tbody>
+          <tr><td>Programma, vragen en "Wie komen er?" bekijken</td><td class="ja">✓</td><td class="ja">✓</td><td class="ja">✓</td><td class="ja">✓</td></tr>
+          <tr><td>Eigen inschrijving aanpassen of uitschrijven</td><td class="nee">–</td><td class="ja">✓</td><td class="ja">✓</td><td class="ja">✓</td></tr>
+          <tr><td>Alle inschrijvingen met e-mail, CSV, adressen kopiëren</td><td class="nee">–</td><td class="nee">–</td><td class="ja">✓</td><td class="ja">✓</td></tr>
+          <tr><td>Betalingen afvinken</td><td class="nee">–</td><td class="nee">–</td><td class="ja">✓</td><td class="ja">✓</td></tr>
+          <tr><td>Beheerders toevoegen en weghalen</td><td class="nee">–</td><td class="nee">–</td><td class="nee">–</td><td class="ja">✓</td></tr>
+        </tbody>
+      </table>
+    </div>
+    <p class="muted" style="font-size:14px">Hoofdbeheerders wijst de beheerder van het Supabase-account aan (nu Bas). Die kan daar ook alles direct in de database zien en wijzigen.</p>
+  </div>
 </main>
 <footer id="voet"></footer>
 <script src="reunie.js"></script>
@@ -43,7 +81,7 @@
 <script>
   if (!Data.ingelogd()) location.replace('inloggen.html');
   const E = Reunie.esc;
-  let lijst = [], betalen = null;
+  let lijst = null, betalen = null, rol = null, comite = null;
   const open = new Set();
 
   const volNaam = r => Reunie.naam({ voornaam: r.voornaam, bijnaam: r.bijnaam, achternaam: r.achternaam });
@@ -134,16 +172,79 @@
     setTimeout(() => URL.revokeObjectURL(a.href), 1000);
   });
 
+  // ---- tab Comité --------------------------------------------------------
+
+  const hoofd = () => rol === 'hoofdbeheerder';
+
+  function toonComite() {
+    const ik = (Data.email() || '').toLowerCase();
+    $('comite-uitleg').textContent = 'Het reüniecomité ziet alle inschrijvingen met e-mailadres en houdt de betalingen bij. '
+      + (hoofd() ? 'Als hoofdbeheerder kun je hier mensen aan het comité toevoegen of eraf halen.'
+                 : 'Iemand toevoegen of weghalen? Vraag het een hoofdbeheerder.');
+    document.querySelectorAll('#tab-comite .alleen-hoofd').forEach(el => { el.hidden = !hoofd(); });
+    $('comite-rijen').innerHTML = comite.map(c => {
+      const jij = c.email.toLowerCase() === ik;
+      const actie = jij ? '<small class="muted">jij</small>'
+        : c.rol === 'beheerder' ? `<button class="linkbtn" type="button" data-weg="${E(c.email)}">Weghalen</button>`
+        : '<small class="muted">alleen via Supabase</small>';
+      return `<tr>
+        <td>${E(c.email)}<br><small class="muted">${c.naam ? E(c.naam) : 'nog niet ingeschreven'}</small></td>
+        <td><span class="pill${c.rol === 'hoofdbeheerder' ? ' hoofd' : ''}">${E(c.rol)}</span></td>
+        <td>${datum(c.toegevoegd_op)}<br><small class="muted">${c.toegevoegd_door ? 'door ' + E(c.toegevoegd_door) : 'via Supabase'}</small></td>
+        ${hoofd() ? `<td>${actie}</td>` : ''}
+      </tr>`;
+    }).join('');
+  }
+
+  async function laadComite() {
+    try { comite = await Data.comite(); }
+    catch (e) { $('comite-laden').textContent = e.message; return; }
+    $('comite-laden').hidden = true;
+    toonComite();
+  }
+
+  $('comite-form').addEventListener('submit', async e => {
+    e.preventDefault();
+    const knop = e.target.querySelector('button'), adres = $('comite-email').value.trim();
+    $('comite-fout').hidden = true;
+    if (!adres) return;
+    knop.disabled = true;
+    try { await Data.comiteToevoegen(adres); $('comite-email').value = ''; await laadComite(); }
+    catch (err) { $('comite-fout').textContent = err.message; $('comite-fout').hidden = false; }
+    knop.disabled = false;
+  });
+  $('comite-rijen').addEventListener('click', async e => {
+    const adres = e.target.closest('button[data-weg]')?.dataset.weg;
+    if (!adres || !confirm(`${adres} uit het comité halen? Diegene ziet dan geen Beheer meer.`)) return;
+    e.target.disabled = true;
+    try { await Data.comiteWeghalen(adres); await laadComite(); }
+    catch (err) { alert('Weghalen lukte niet: ' + err.message); e.target.disabled = false; }
+  });
+
+  // ---- tabs (remembered in the address: beheer.html#comite) --------------
+
+  function tab(naam) {
+    const c = naam === 'comite';
+    $('inhoud').hidden = c || !lijst; $('tab-comite').hidden = !c;
+    $('laden').hidden = c || !!lijst;
+    document.querySelectorAll('#tabs button').forEach(b => b.classList.toggle('on', b.dataset.tab === naam));
+    history.replaceState(null, '', c ? '#comite' : location.pathname);
+    if (c && !comite) laadComite();
+  }
+  $('tabs').addEventListener('click', e => { const b = e.target.closest('button[data-tab]'); if (b) tab(b.dataset.tab); });
+
   (async () => {
     await Reunie.laadSpeltakken();
-    if (!await Data.beheerder()) { $('laden').hidden = true; $('geen').hidden = false; return; }
+    rol = await Data.rol();
+    if (!rol) { $('laden').hidden = true; $('geen').hidden = false; return; }
+    $('tabs').hidden = false;
+    if (location.hash === '#comite') tab('comite');
     betalen = await Reunie.laadBetalen();
     try { lijst = await Data.inschrijvingen(); }
     catch (e) { $('laden').textContent = e.message; return; }
-    $('laden').hidden = true;
     tegels();
     toon();
-    $('inhoud').hidden = false;
+    tab($('tab-comite').hidden ? 'inschrijvingen' : 'comite');
   })();
 </script>
 </body>

@@ -76,6 +76,8 @@
       let bestond = false;
       if (nieuw) { bestond = !!(await Data.ik()); if (!bestond) await Data.bewaar(JSON.parse(nieuw)); }
       ss.set('reunie25.nieuw', null); ss.set('reunie25.email', null);
+      // Comité member without a registration: straight to Beheer.
+      if (!nieuw && !(await Data.ik()) && await Data.beheerder()) { location.href = 'beheer.html'; return; }
       location.href = bestond ? 'mijn.html#bestond' : nieuw ? 'mijn.html#welkom' : 'mijn.html';
     } catch (err) { $('fout-code').hidden = false; $('fout-code').textContent = err.message; }
   });

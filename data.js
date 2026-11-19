@@ -16,6 +16,8 @@
 //     id, betaald }                 betaald: date the comité saw the payment, or null
 //
 // Comité members (beheerders) can also list all registrations and mark payments.
+// Hoofdbeheerders can also add and remove beheerders. Comité member record:
+//   { email, rol: 'beheerder' | 'hoofdbeheerder', toegevoegd_door, toegevoegd_op, naam }
 const Data = (() => {
   const SUPABASE_URL = 'https://glvrsppggmfksimpfckp.supabase.co';
   // Publishable ("anon") key: public by design, safe in this file. Never put the secret key here.
@@ -25,6 +27,7 @@ const Data = (() => {
   const DEMO_KEY = 'reunie25.demo';
   const DEMO_SESSIE = 'reunie25.sessie';
   const DEMO_BETAALD = 'reunie25.demo.betaald';
+  const DEMO_COMITE = 'reunie25.demo.comite';
   const AUTH = 'reunie25.auth';
   const DEMO_CODE = '123456';
 
@@ -43,6 +46,8 @@ const Data = (() => {
     wacht: 'Je hebt net al een code gevraagd. Wacht een minuut en probeer het opnieuw.',
     mail: 'De mail kon niet worden verstuurd. Probeer het later opnieuw.',
     net: 'Geen verbinding met de server. Probeer het later opnieuw.',
+    adres: 'Dit is geen geldig e-mailadres.',
+    recht: 'Dat mag alleen een hoofdbeheerder.',
   };
 
   // What others may see of a record: hidden fields become null.
@@ -104,6 +109,16 @@ const Data = (() => {
   const betaaldLijst = () => lees(DEMO_BETAALD, null)
     ?? Object.fromEntries(VOORBEELD.map((_, i) => ['voorbeeld-' + i, `2027-01-${String(i + 5).padStart(2, '0')}`]).filter((_, i) => i % 3 !== 2));
   const metBetaald = r => r && { ...r, id: r.id || r.email, betaald: betaaldLijst()[r.id || r.email] || null };
+  // Comité in DEMO: whoever is logged in is hoofdbeheerder, plus a few sample members.
+  const comiteLijst = () => lees(DEMO_COMITE, null) ?? [
+    { email: 'mark.devries@voorbeeld.nl', rol: 'hoofdbeheerder', toegevoegd_door: null, toegevoegd_op: '2026-11-20' },
+    { email: 'femke.vandijk@voorbeeld.nl', rol: 'beheerder', toegevoegd_door: 'Mark', toegevoegd_op: '2026-11-21' },
+    { email: 'ruud@voorbeeld.nl', rol: 'beheerder', toegevoegd_door: 'Mark', toegevoegd_op: '2026-11-22' },
+  ];
+  const demoNaam = email => {
+    const r = [...voorbeeldVol(), ...alle()].find(x => x.email === email);
+    return r ? `${r.voornaam} ${r.achternaam}`.trim() : null;
+  };
 
   const demo = {
     async deelnemers() {
@@ -113,7 +128,7 @@ const Data = (() => {
     async vraagCode(email, { nieuw = false } = {}) {
       const bekend = alle().some(r => r.email === norm(email));
       if (nieuw && bekend) throw fout('bestaat', MELD.bestaat);
-      if (!nieuw && !bekend) throw fout('onbekend', MELD.onbekend);
+      if (!nieuw && !bekend && !comiteLijst().some(c => c.email === norm(email))) throw fout('onbekend', MELD.onbekend);
     },
     async bevestig(email, code) {
       if (String(code).trim() !== DEMO_CODE) throw fout('code', MELD.code);
@@ -144,6 +159,26 @@ const Data = (() => {
     async uitloggen() { schrijf(DEMO_SESSIE, null); },
     // In DEMO everyone who is logged in is a comité member, so the page can be tried out.
     async beheerder() { return !!lees(DEMO_SESSIE, null); },
+    async rol() { return lees(DEMO_SESSIE, null) ? 'hoofdbeheerder' : null; },
+    async comite() {
+      const ik = lees(DEMO_SESSIE, null);
+      if (!ik) throw fout('sessie', MELD.sessie);
+      const lijst = comiteLijst().filter(c => c.email !== ik);
+      return [{ email: ik, rol: 'hoofdbeheerder', toegevoegd_door: null, toegevoegd_op: '2026-11-19' }, ...lijst]
+        .map(c => ({ ...c, naam: demoNaam(c.email) }));
+    },
+    async comiteToevoegen(email) {
+      const a = norm(email);
+      if (!/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(a)) throw fout('adres', MELD.adres);
+      const lijst = comiteLijst();
+      if (a === lees(DEMO_SESSIE, null) || lijst.some(c => c.email === a)) return;
+      const ik = await this.ik();
+      lijst.push({ email: a, rol: 'beheerder', toegevoegd_door: ik?.voornaam || lees(DEMO_SESSIE, null), toegevoegd_op: new Date().toLocaleDateString('sv') });
+      schrijf(DEMO_COMITE, lijst);
+    },
+    async comiteWeghalen(email) {
+      schrijf(DEMO_COMITE, comiteLijst().filter(c => !(c.email === norm(email) && c.rol === 'beheerder')));
+    },
     async inschrijvingen() {
       if (!lees(DEMO_SESSIE, null)) throw fout('sessie', MELD.sessie);
       return [...voorbeeldVol(), ...alle()].map(metBetaald);
@@ -226,7 +261,12 @@ const Data = (() => {
         await verzoek('/auth/v1/otp', { method: 'POST', body: { email: norm(email), create_user: nieuw } });
       } catch (e) {
         if (e.status === 429) throw fout('wacht', MELD.wacht);
-        if (!nieuw && (e.status === 422 || e.status === 400)) throw fout('onbekend', MELD.onbekend);
+        if (!nieuw && (e.status === 422 || e.status === 400)) {
+          // Comité members may log in without a registration: create their login on first use.
+          const comite = await verzoek('/rest/v1/rpc/is_comite_adres', { method: 'POST', body: { adres: norm(email) } }).catch(() => false);
+          if (comite) return this.vraagCode(email, { nieuw: true });
+          throw fout('onbekend', MELD.onbekend);
+        }
         if (e.status >= 500) throw fout('mail', MELD.mail);
         throw e;
       }
@@ -272,6 +312,26 @@ const Data = (() => {
       const t = await token();
       if (!t) return false;
       return !!(await verzoek('/rest/v1/rpc/is_beheerder', { method: 'POST', token: t, body: {} }).catch(() => false));
+    },
+    // 'beheerder', 'hoofdbeheerder' or null; again only decides what to show.
+    async rol() {
+      const t = await token();
+      if (!t) return null;
+      return await verzoek('/rest/v1/rpc/mijn_rol', { method: 'POST', token: t, body: {} }).catch(() => null);
+    },
+    async comite() {
+      const t = await moetToken();
+      return await verzoek('/rest/v1/rpc/comite', { method: 'POST', token: t, body: {} });
+    },
+    async comiteToevoegen(email) {
+      const t = await moetToken();
+      await verzoek('/rest/v1/rpc/comite_toevoegen', { method: 'POST', token: t, body: { adres: norm(email) } })
+        .catch(e => { throw e.code === '22023' ? fout('adres', MELD.adres) : e.code === '42501' ? fout('recht', MELD.recht) : e; });
+    },
+    async comiteWeghalen(email) {
+      const t = await moetToken();
+      await verzoek('/rest/v1/rpc/comite_weghalen', { method: 'POST', token: t, body: { adres: norm(email) } })
+        .catch(e => { throw e.code === '42501' ? fout('recht', MELD.recht) : e; });
     },
     // All registrations, oldest first. Row level security returns only your own row to non-members.
     async inschrijvingen() {

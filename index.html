@@ -23,8 +23,8 @@
       </div>
     </div>
     <div class="card">
-      <div class="stat" id="stat">–</div>
-      <p class="muted" style="margin:4px 0 0" id="stat-sub">ingeschreven</p>
+      <div class="stat" id="stat">&nbsp;</div>
+      <p class="muted" style="margin:6px 0 0" id="stat-sub"></p>
       <div class="faces" id="faces"></div>
       <p style="margin-top:16px"><small class="muted">Ken je iemand van vroeger? Stuur deze pagina door.</small></p>
     </div>
@@ -49,9 +49,9 @@
   (async () => {
     await Reunie.laadSpeltakken();
     const { totaal, personen } = await Data.deelnemers();
-    $('stat').textContent = totaal;
-    if (!totaal) { $('stat-sub').textContent = 'Nog niemand ingeschreven. Wees de eerste!'; return; }
-    $('stat-sub').textContent = `ingeschreven, waarvan ${personen.length} zichtbaar`;
+    if (!totaal) { $('stat').textContent = 'Nog niemand!'; $('stat-sub').textContent = 'Schrijf je in en wees de eerste.'; return; }
+    $('stat').innerHTML = `Al <b>${totaal}</b> ${totaal === 1 ? 'inschrijving' : 'inschrijvingen'}!`;
+    $('stat-sub').textContent = Data.ingelogd() ? 'En jij bent er ook bij.' : 'Ben jij er ook bij?';
     const namen = personen.filter(p => p.voornaam || p.bijnaam || p.achternaam);
     const toon = namen.slice(-6).reverse().map(p => {
       const naam = p.voornaam || p.bijnaam || p.achternaam;

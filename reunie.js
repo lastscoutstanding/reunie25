@@ -71,7 +71,7 @@ const Reunie = (() => {
       return `<span class="${cls}">${label} ${periode(r.van, r.tot)}</span>`;
     }).join('');
     if (!naamTekst && !age && !chips) {
-      return '<div class="person anon"><div class="name">Niet zichtbaar</div><div class="meta">telt alleen mee in het totaal</div></div>';
+      return '<div class="person anon"><div class="name">Je bent niet zichtbaar in “Wie komen er?”</div><div class="meta">Je telt wel mee bij het aantal inschrijvingen.</div></div>';
     }
     return `<div class="person"><div class="name">${naamTekst || '<span class="muted">Anoniem</span>'}</div>
       <div class="meta">${age || '&nbsp;'}</div>${chips ? `<div class="tk">${chips}</div>` : ''}</div>`;

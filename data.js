@@ -50,7 +50,7 @@ const Data = (() => {
     net: 'Geen verbinding met de server. Probeer het later opnieuw.',
     adres: 'Dit is geen geldig e-mailadres.',
     recht: 'Dat mag alleen een hoofdbeheerder.',
-    geblokkeerd: 'Inschrijven met dit e-mailadres lukt helaas niet. Denk je dat dit niet klopt? Mail dan het reüniecomité via info@scoutingbrandevoort.nl.',
+    geblokkeerd: 'Inschrijven met dit e-mailadres lukt helaas niet. Denk je dat dit niet klopt? Mail dan het reüniecomité via reunie@scoutingbrandevoort.nl.',
     zelf: 'Jezelf verwijderen gaat via Mijn inschrijving → Uitschrijven.',
     comitelid: 'Dit adres hoort bij het comité en kan niet geblokkeerd worden. Haal het eerst weg uit het comité.',
   };

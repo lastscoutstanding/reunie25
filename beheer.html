@@ -22,6 +22,7 @@
       <select id="filter" aria-label="Betaald">
         <option value="">Iedereen</option><option value="nee">Nog niet betaald</option><option value="ja">Betaald</option>
       </select>
+      <button class="btn ghost" id="kopieer" type="button">Kopieer e-mailadressen</button>
       <button class="btn ghost" id="csv" type="button">Download CSV</button>
     </div>
     <p class="summary" id="telling"></p>
@@ -59,11 +60,17 @@
     </td></tr>`;
   }
 
-  function toon() {
+  // Rows matching the search box and the paid filter.
+  function gefilterd() {
     const q = $('zoek').value.trim().toLowerCase();
     const f = $('filter').value;
-    const rijen = lijst.filter(r => (!q || `${volNaam(r)} ${r.email}`.toLowerCase().includes(q))
+    return lijst.filter(r => (!q || `${volNaam(r)} ${r.email}`.toLowerCase().includes(q))
       && (!f || (f === 'ja') === !!r.betaald));
+  }
+
+  function toon() {
+    const q = $('zoek').value.trim(), f = $('filter').value;
+    const rijen = gefilterd();
     $('telling').innerHTML = q || f ? `<b>${rijen.length}</b> van de ${lijst.length} gevonden` : '';
     $('rijen').innerHTML = rijen.map(r => `<tr>
         <td><button class="linkbtn" data-id="${E(r.id)}" aria-expanded="${open.has(r.id)}">${E(volNaam(r))}</button></td>
@@ -97,6 +104,20 @@
     if (!id) return;
     open.has(id) ? open.delete(id) : open.add(id);
     toon();
+  });
+
+  // E-mail addresses of the rows shown, ready to paste into the BCC field.
+  $('kopieer').addEventListener('click', async () => {
+    const adressen = gefilterd().map(r => r.email).filter(Boolean);
+    const knop = $('kopieer'), tekst = knop.textContent;
+    if (!adressen.length) { knop.textContent = 'Geen adressen'; }
+    else {
+      try {
+        await navigator.clipboard.writeText(adressen.join(', '));
+        knop.textContent = `${adressen.length} gekopieerd ✓`;
+      } catch { prompt('Kopiëren lukte niet automatisch. Selecteer en kopieer:', adressen.join(', ')); }
+    }
+    setTimeout(() => { knop.textContent = tekst; }, 2500);
   });
 
   // Semicolons and a BOM, so Excel with Dutch settings opens it in columns with the right accents.

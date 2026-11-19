@@ -13,6 +13,6 @@
 
 bedrag = 5
 link = https://betaalverzoek.rabobank.nl/betaalverzoek/?id=HvUKcNvSQS-W7T5R90a7CDA
-iban = 
+iban = NL00TEST0111222333
 naam = Scouting Brandevoort
 tekst = wat is het IBAN nummer Marc?

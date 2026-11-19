@@ -25,11 +25,13 @@ a { color: var(--brand); }
 .brand .t { font-weight: 800; font-size: 22px; line-height: 1.15; }
 .brand .t small { display: block; font-weight: 500; font-size: 14px; color: rgba(255,255,255,.8); }
 .strip { position: sticky; top: 0; z-index: 5; background: var(--card); border-bottom: 1px solid var(--line); }
-.strip nav { max-width: 960px; margin: 0 auto; padding: 0 16px; display: flex; flex-wrap: wrap; }
-.strip nav a { color: var(--ink); text-decoration: none; font-size: 15px; padding: 12px 12px; border-bottom: 3px solid transparent; white-space: nowrap; }
-.strip nav a:hover { color: var(--brand); }
-.strip nav a.on { color: var(--brand); font-weight: 700; border-bottom-color: var(--accent); }
-.strip nav a.cta { margin-left: auto; color: var(--brand); font-weight: 700; }
+.strip .in { max-width: 960px; margin: 0 auto; padding: 0 16px; display: flex; }
+.strip nav { display: flex; flex: 1; min-width: 0; }
+.strip a { color: var(--ink); text-decoration: none; font-size: 15px; padding: 12px 12px; border-bottom: 3px solid transparent; white-space: nowrap; }
+.strip a:hover { color: var(--brand); }
+.strip a.on { color: var(--brand); font-weight: 700; border-bottom-color: var(--accent); }
+.strip a.cta { flex: none; color: var(--brand); font-weight: 700; }
+.strip .kort { display: none; }
 
 main { max-width: 960px; margin: 0 auto; padding: 24px 16px 64px; }
 h1 { font-size: clamp(30px, 6vw, 48px); line-height: 1.1; margin: 0 0 12px; color: var(--brand); }
@@ -160,8 +162,6 @@ footer a { color: inherit; }
   .hero, .split, .grid3, .two { grid-template-columns: 1fr; }
   .brand img { height: 46px; }
   .brand .t { font-size: 19px; }
-  .strip nav a { padding: 10px 9px; }
-  .strip nav a.cta { margin-left: 0; }
   .sticky { position: static; }
   .tak { grid-template-columns: 1fr; gap: 4px; }
 }
@@ -231,4 +231,20 @@ dialog.lightbox::backdrop { background: rgba(0, 0, 0, .8); }
 .fotogrid.beoordeel .knoppen { display: flex; gap: 6px; flex-wrap: wrap; padding: 0 8px 8px; }
 .fotogrid.beoordeel .btn, .groepkop .btn { padding: 5px 10px; font-size: 13px; }
 .groepkop { margin: 12px 0 0; font-size: 14px; display: flex; gap: 10px; align-items: center; flex-wrap: wrap; }
+
+/* Menu on narrow screens: one row to swipe, the button on the right stays put */
+@media (max-width: 760px) {
+  .strip .in { padding: 0 0 0 6px; }
+  .strip nav { overflow-x: auto; scrollbar-width: none; }
+  .strip nav::-webkit-scrollbar { display: none; }
+  .strip nav { --l: 0px; --r: 0px;
+    -webkit-mask-image: linear-gradient(90deg, transparent, #000 var(--l), #000 calc(100% - var(--r)), transparent);
+    mask-image: linear-gradient(90deg, transparent, #000 var(--l), #000 calc(100% - var(--r)), transparent); }
+  .strip nav.terug { --l: 32px; }
+  .strip nav.meer { --r: 48px; }
+  .strip a { padding: 11px 9px; }
+  .strip a.cta { border-left: 1px solid var(--line); padding: 11px 12px; }
+  .strip .lang { display: none; }
+  .strip .kort { display: inline; }
+}
 

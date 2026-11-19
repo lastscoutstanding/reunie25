@@ -10,12 +10,13 @@
   ];
   const hier = location.pathname.split('/').pop() || 'index.html';
   const ingelogd = Data.ingelogd();
-  // The last link sits on the right as call to action
-  const links = ingelogd
-    ? [...PAGINAS, ['mijn.html', 'Mijn inschrijving →', 'cta']]
-    : [...PAGINAS, ['inschrijven.html', 'Inschrijven'], ['inloggen.html', 'Inloggen →', 'cta']];
-  const menu = links.map(([href, tekst, cls = '']) =>
-    `<a href="${href}" class="${[cls, href === hier ? 'on' : ''].join(' ').trim()}"${href === hier ? ' aria-current="page"' : ''}>${tekst}</a>`).join('');
+  // Pages in a row (one swipeable row on phones), plus a button on the right that stays put.
+  const links = ingelogd ? PAGINAS : [...PAGINAS, ['inschrijven.html', 'Inschrijven']];
+  const [ctaHref, ctaLang, ctaKort] = ingelogd ? ['mijn.html', 'Mijn inschrijving', 'Mijn'] : ['inloggen.html', 'Inloggen', 'Inloggen'];
+  const link = (href, tekst, cls = '') =>
+    `<a href="${href}" class="${[cls, href === hier ? 'on' : ''].join(' ').trim()}"${href === hier ? ' aria-current="page"' : ''}>${tekst}</a>`;
+  const menu = links.map(([href, tekst]) => link(href, tekst)).join('');
+  const cta = link(ctaHref, `<span class="lang">${ctaLang}</span><span class="kort">${ctaKort}</span> →`, 'cta');
 
   const demo = Data.DEMO
     ? `<div class="demo">Testversie: inschrijvingen blijven alleen in deze browser, de inlogcode is ${Data.DEMO_CODE}. Namen van anderen zijn verzonnen.</div>`
@@ -25,14 +26,28 @@
       <a class="brand" href="index.html"><img src="logo-wit.svg" alt="Logo Scouting Brandevoort">
         <span class="t">25 jaar Scouting Brandevoort<small>Reünie · zondag 23 mei 2027 · de Brandnetel</small></span></a>
     </div></header>
-    <div class="strip"><nav aria-label="Menu">${menu}</nav></div>`;
+    <div class="strip"><div class="in"><nav aria-label="Menu">${menu}</nav>${cta}</div></div>`;
 
-  // Comité members get a "Beheer" link before the button on the right.
+  // Phones: show the current page and fade an edge while there is more to swipe to that side.
+  const nav = document.querySelector('.strip nav');
+  const rand = () => {
+    nav.classList.toggle('terug', nav.scrollLeft > 4);
+    nav.classList.toggle('meer', nav.scrollLeft + nav.clientWidth < nav.scrollWidth - 4);
+  };
+  const opDeHuidige = () => {
+    const on = nav.querySelector('a.on');
+    if (on && nav.scrollWidth > nav.clientWidth) nav.scrollLeft = on.offsetLeft - nav.offsetLeft - (nav.clientWidth - on.offsetWidth) / 2;
+    rand();
+  };
+  nav.addEventListener('scroll', rand, { passive: true });
+  addEventListener('resize', rand);
+  opDeHuidige();
+
+  // Comité members get a "Beheer" link at the end of the row.
   if (ingelogd) Data.beheerder().then(ja => {
-    const cta = document.querySelector('.strip nav a.cta');
-    if (!ja || !cta) return;
-    const on = hier === 'beheer.html';
-    cta.insertAdjacentHTML('beforebegin', `<a href="beheer.html"${on ? ' class="on" aria-current="page"' : ''}>Beheer</a>`);
+    if (!ja) return;
+    nav.insertAdjacentHTML('beforeend', link('beheer.html', 'Beheer'));
+    opDeHuidige();
   });
 
   const icon = document.createElement('link');

@@ -47,8 +47,8 @@
         </label>
         <div id="f-keuzes"></div>
         <div class="rij" style="margin-top:8px">
-          <label><span>Speltak <span class="muted" style="font-weight:400" id="f-voor-alle">(optioneel)</span></span><select id="f-speltak"></select></label>
-          <label><span>Jaar <span class="muted" style="font-weight:400">(optioneel)</span></span><select id="f-jaar"></select></label>
+          <label><span>Speltak <span class="muted" style="font-weight:400" id="f-voor-alle">(optioneel)</span></span><select id="fu-speltak"></select></label>
+          <label><span>Jaar <span class="muted" style="font-weight:400">(optioneel)</span></span><select id="fu-jaar"></select></label>
         </div>
         <label class="check" style="margin-top:10px"><input type="checkbox" id="f-naam" checked> <span>Toon mijn naam bij deze foto's
           <small class="muted">(uit: "gedeeld door een oud-lid"; het comité weet wel van wie ze zijn)</small></span></label>
@@ -428,7 +428,7 @@
         const g = await verklein(k.bestand, 1600);
         items.push({ groot: g.blob, klein: k.klein, breedte: g.w, hoogte: g.h, titel: k.titel.trim() });
       }
-      await Data.stuurFotos(items, { speltak: $('f-speltak').value || null, jaar: +$('f-jaar').value || null, toon_naam: $('f-naam').checked },
+      await Data.stuurFotos(items, { speltak: $('fu-speltak').value || null, jaar: +$('fu-jaar').value || null, toon_naam: $('f-naam').checked },
         i => stap(i, i < goed.length ? `Foto ${i + 1} van ${goed.length} versturen…` : 'Klaar!'));
       const n = goed.length;
       fotoFormulier(false);
@@ -478,8 +478,8 @@
     $('v-jaar').innerHTML = '<option value="">–</option>' + jaren;
     $('ff-speltak').innerHTML = '<option value="">Alle speltakken</option>' + takken;
     $('ff-jaar').innerHTML = '<option value="">Alle jaren</option>' + jaren;
-    $('f-speltak').innerHTML = '<option value="">–</option>' + takken;
-    $('f-jaar').innerHTML = '<option value="">–</option>' + jaren;
+    $('fu-speltak').innerHTML = '<option value="">–</option>' + takken;
+    $('fu-jaar').innerHTML = '<option value="">–</option>' + jaren;
 
     try {
       if (!Data.ingelogd() || !await Data.magVerhalen()) {

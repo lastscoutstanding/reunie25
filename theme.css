@@ -174,3 +174,9 @@ footer a { color: inherit; }
 .rechten th:not(:first-child), .rechten td:not(:first-child) { text-align: center; }
 .rechten .ja { color: #1e8a3a; font-weight: 700; }
 .rechten .nee { color: var(--muted); }
+.pill.nieuw { background: var(--accent); color: #1d2433; }
+.acties { display: flex; gap: 8px; flex-wrap: wrap; justify-content: flex-end; margin-top: 12px; }
+.lijst .acties { justify-content: flex-start; margin-top: 8px; }
+.acties .btn { padding: 7px 14px; font-size: 14px; }
+dialog.dialoog { max-width: min(520px, calc(100vw - 32px)); color: var(--ink); }
+dialog.dialoog::backdrop { background: rgba(0, 0, 0, .45); }

@@ -28,6 +28,8 @@ const Data = (() => {
   const DEMO_SESSIE = 'reunie25.sessie';
   const DEMO_BETAALD = 'reunie25.demo.betaald';
   const DEMO_COMITE = 'reunie25.demo.comite';
+  const DEMO_WEG = 'reunie25.demo.weg';                // removed sample participants
+  const DEMO_GEBLOKKEERD = 'reunie25.demo.geblokkeerd';
   const AUTH = 'reunie25.auth';
   const DEMO_CODE = '123456';
 
@@ -48,6 +50,9 @@ const Data = (() => {
     net: 'Geen verbinding met de server. Probeer het later opnieuw.',
     adres: 'Dit is geen geldig e-mailadres.',
     recht: 'Dat mag alleen een hoofdbeheerder.',
+    geblokkeerd: 'Inschrijven met dit e-mailadres lukt helaas niet. Denk je dat dit niet klopt? Mail dan het reüniecomité via info@scoutingbrandevoort.nl.',
+    zelf: 'Jezelf verwijderen gaat via Mijn inschrijving → Uitschrijven.',
+    comitelid: 'Dit adres hoort bij het comité en kan niet geblokkeerd worden. Haal het eerst weg uit het comité.',
   };
 
   // What others may see of a record: hidden fields become null.
@@ -89,7 +94,9 @@ const Data = (() => {
     ['Roos', 'Bekkers', 1989, ['Explorers'], [1, 0, 1, 0], [['Scouts', 2009, 2014]]],
     ['Pim', 'Aarts', 1991, ['Explorers'], [0, 0, 0, 0]],
   ];
-  const voorbeeld = () => VOORBEELD.map(([voornaam, achternaam, geboortejaar, leden, [v, a, l, t], leiding = []]) => ({
+  const weg = () => lees(DEMO_WEG, []);
+  const voorbeeld = () => voorbeeldAlle().filter((_, i) => !weg().includes('voorbeeld-' + i));
+  const voorbeeldAlle = () => VOORBEELD.map(([voornaam, achternaam, geboortejaar, leden, [v, a, l, t], leiding = []]) => ({
     voornaam, achternaam, geboortejaar,
     takken: [
       ...leden.map(s => [s, Reunie.berekenJaren(geboortejaar, s)]).filter(([, j]) => j)
@@ -100,11 +107,11 @@ const Data = (() => {
   }));
   const alle = () => lees(DEMO_KEY, []);
   // Full sample records as the comité sees them, with made-up e-mail and dates.
-  const voorbeeldVol = () => voorbeeld().map((r, i) => ({
+  const voorbeeldVol = () => voorbeeldAlle().map((r, i) => ({
     ...r, bijnaam: '', id: 'voorbeeld-' + i, sinds: `2026-12-${String(i + 1).padStart(2, '0')}`,
     email: `${r.voornaam}.${r.achternaam}`.toLowerCase().replace(/\s+/g, '') + '@voorbeeld.nl',
     toon: { bijnaam: true, ...r.toon },
-  }));
+  })).filter(r => !weg().includes(r.id));
   // Payments in DEMO: { id: date }. Starts with two out of three sample people paid.
   const betaaldLijst = () => lees(DEMO_BETAALD, null)
     ?? Object.fromEntries(VOORBEELD.map((_, i) => ['voorbeeld-' + i, `2027-01-${String(i + 5).padStart(2, '0')}`]).filter((_, i) => i % 3 !== 2));
@@ -127,6 +134,7 @@ const Data = (() => {
     },
     async vraagCode(email, { nieuw = false } = {}) {
       const bekend = alle().some(r => r.email === norm(email));
+      if (nieuw && lees(DEMO_GEBLOKKEERD, []).some(g => g.email === norm(email))) throw fout('geblokkeerd', MELD.geblokkeerd);
       if (nieuw && bekend) throw fout('bestaat', MELD.bestaat);
       if (!nieuw && !bekend && !comiteLijst().some(c => c.email === norm(email))) throw fout('onbekend', MELD.onbekend);
     },
@@ -176,6 +184,23 @@ const Data = (() => {
       lijst.push({ email: a, rol: 'beheerder', toegevoegd_door: ik?.voornaam || lees(DEMO_SESSIE, null), toegevoegd_op: new Date().toLocaleDateString('sv') });
       schrijf(DEMO_COMITE, lijst);
     },
+    async verwijder(id, { blokkeer = false, reden = '' } = {}) {
+      const ik = lees(DEMO_SESSIE, null);
+      const r = (await this.inschrijvingen()).find(x => x.id === id);
+      if (!r) return;
+      if (r.email === ik) throw fout('zelf', MELD.zelf);
+      if (blokkeer) {
+        if (comiteLijst().some(c => c.email === r.email)) throw fout('comitelid', MELD.comitelid);
+        const lijst = lees(DEMO_GEBLOKKEERD, []).filter(g => g.email !== r.email);
+        const mij = await this.ik();
+        lijst.unshift({ email: r.email, reden: reden.trim() || null, door: mij?.voornaam || ik, op: new Date().toLocaleDateString('sv') });
+        schrijf(DEMO_GEBLOKKEERD, lijst);
+      }
+      if (id.startsWith('voorbeeld-')) schrijf(DEMO_WEG, [...weg(), id]);
+      else schrijf(DEMO_KEY, alle().filter(x => x.email !== r.email));
+    },
+    async geblokkeerde() { return lees(DEMO_GEBLOKKEERD, []); },
+    async deblokkeer(email) { schrijf(DEMO_GEBLOKKEERD, lees(DEMO_GEBLOKKEERD, []).filter(g => g.email !== norm(email))); },
     async comiteWeghalen(email) {
       schrijf(DEMO_COMITE, comiteLijst().filter(c => !(c.email === norm(email) && c.rol === 'beheerder')));
     },
@@ -257,6 +282,9 @@ const Data = (() => {
     },
     // Registering creates the login (create_user); logging in must not.
     async vraagCode(email, { nieuw = false } = {}) {
+      if (nieuw && await verzoek('/rest/v1/rpc/is_geblokkeerd_adres', { method: 'POST', body: { adres: norm(email) } }).catch(() => false)) {
+        throw fout('geblokkeerd', MELD.geblokkeerd);
+      }
       try {
         await verzoek('/auth/v1/otp', { method: 'POST', body: { email: norm(email), create_user: nieuw } });
       } catch (e) {
@@ -293,7 +321,7 @@ const Data = (() => {
       const rows = await verzoek('/rest/v1/deelnemers?on_conflict=id', {
         method: 'POST', token: t, body: naarRij(rec, sessie().user.id),
         headers: { Prefer: 'resolution=merge-duplicates,return=representation' },
-      });
+      }).catch(e => { throw e.message === 'geblokkeerd' ? fout('geblokkeerd', MELD.geblokkeerd) : e; });
       return naarRecord(rows[0]);
     },
     // Removes the login itself; the registration goes with it (on delete cascade).
@@ -327,6 +355,20 @@ const Data = (() => {
       const t = await moetToken();
       await verzoek('/rest/v1/rpc/comite_toevoegen', { method: 'POST', token: t, body: { adres: norm(email) } })
         .catch(e => { throw e.code === '22023' ? fout('adres', MELD.adres) : e.code === '42501' ? fout('recht', MELD.recht) : e; });
+    },
+    // Removes the registration and its login; optionally blocks the address.
+    async verwijder(id, { blokkeer = false, reden = '' } = {}) {
+      const t = await moetToken();
+      await verzoek('/rest/v1/rpc/verwijder_deelnemer', { method: 'POST', token: t, body: { deelnemer: id, blokkeer: !!blokkeer, waarom: reden || null } })
+        .catch(e => { throw MELD[e.message] ? fout(e.message, MELD[e.message]) : e.message === 'comitélid' ? fout('comitelid', MELD.comitelid) : e; });
+    },
+    async geblokkeerde() {
+      const t = await moetToken();
+      return await verzoek('/rest/v1/rpc/geblokkeerde', { method: 'POST', token: t, body: {} });
+    },
+    async deblokkeer(email) {
+      const t = await moetToken();
+      await verzoek('/rest/v1/rpc/deblokkeer', { method: 'POST', token: t, body: { adres: norm(email) } });
     },
     async comiteWeghalen(email) {
       const t = await moetToken();

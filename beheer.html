@@ -22,8 +22,8 @@
     <div class="tegels" id="tegels"></div>
     <div class="filters">
       <input type="search" id="zoek" placeholder="Zoek op naam of e-mail" aria-label="Zoek op naam of e-mail">
-      <select id="filter" aria-label="Betaald">
-        <option value="">Iedereen</option><option value="nee">Nog niet betaald</option><option value="ja">Betaald</option>
+      <select id="filter" aria-label="Filter">
+        <option value="">Iedereen</option><option value="nee">Nog niet betaald</option><option value="ja">Betaald</option><option value="nieuw">Nieuw deze week</option>
       </select>
       <button class="btn ghost" id="kopieer" type="button">Kopieer e-mailadressen</button>
       <button class="btn ghost" id="csv" type="button">Download CSV</button>
@@ -35,7 +35,7 @@
         <tbody id="rijen"></tbody>
       </table>
     </div>
-    <p class="muted" style="font-size:14px">Klik op een naam voor alle gegevens, ook wat iemand niet op "Wie komen er?" laat zien. E-mailadressen zijn alleen voor berichten van het comité.<br>
+    <p class="muted" style="font-size:14px">Klik op een naam voor alle gegevens, ook wat iemand niet op "Wie komen er?" laat zien, en om iemand te verwijderen. E-mailadressen zijn alleen voor berichten van het comité. "Nieuw" = ingeschreven in de afgelopen 7 dagen.<br>
       Een vinkje bij "Betaald" wordt meteen opgeslagen, met de datum van vandaag. De deelnemer ziet het op Mijn inschrijving.</p>
   </div>
 
@@ -58,6 +58,15 @@
       <small class="muted">Diegene logt in met dit adres en ziet daarna "Beheer" in het menu. Zelf inschrijven voor de reünie hoeft niet.</small>
     </form>
 
+    <h2 style="margin-top:28px">Geblokkeerde adressen</h2>
+    <p class="muted" style="font-size:14px;margin-top:-6px">Deze adressen kunnen zich niet opnieuw inschrijven. Blokkeren gaat via Verwijderen bij een inschrijving.</p>
+    <div class="scroll">
+      <table class="lijst">
+        <thead><tr><th>E-mail</th><th>Reden</th><th>Geblokkeerd</th><th></th></tr></thead>
+        <tbody id="blok-rijen"></tbody>
+      </table>
+    </div>
+
     <h2 style="margin-top:28px">Wie mag wat?</h2>
     <div class="scroll">
       <table class="lijst rechten">
@@ -66,6 +75,7 @@
           <tr><td>Programma, vragen en "Wie komen er?" bekijken</td><td class="ja">✓</td><td class="ja">✓</td><td class="ja">✓</td><td class="ja">✓</td></tr>
           <tr><td>Eigen inschrijving aanpassen of uitschrijven</td><td class="nee">–</td><td class="ja">✓</td><td class="ja">✓</td><td class="ja">✓</td></tr>
           <tr><td>Alle inschrijvingen met e-mail, CSV, adressen kopiëren</td><td class="nee">–</td><td class="nee">–</td><td class="ja">✓</td><td class="ja">✓</td></tr>
+          <tr><td>Inschrijving verwijderen, adres blokkeren of deblokkeren</td><td class="nee">–</td><td class="nee">–</td><td class="ja">✓</td><td class="ja">✓</td></tr>
           <tr><td>Betalingen afvinken</td><td class="nee">–</td><td class="nee">–</td><td class="ja">✓</td><td class="ja">✓</td></tr>
           <tr><td>Beheerders toevoegen en weghalen</td><td class="nee">–</td><td class="nee">–</td><td class="nee">–</td><td class="ja">✓</td></tr>
         </tbody>
@@ -74,6 +84,20 @@
     <p class="muted" style="font-size:14px">Hoofdbeheerders wijst de beheerder van het Supabase-account aan (nu Bas). Die kan daar ook alles direct in de database zien en wijzigen.</p>
   </div>
 </main>
+
+<dialog id="dlg" class="card dialoog">
+  <form method="dialog" id="dlg-form">
+    <h3 id="dlg-titel" style="margin:0 0 8px"></h3>
+    <p id="dlg-tekst" style="margin:0 0 10px"></p>
+    <label class="check"><input type="checkbox" id="dlg-blok" checked> Dit e-mailadres ook blokkeren, zodat het niet opnieuw kan inschrijven</label>
+    <label style="margin-top:10px">Reden <span class="muted" style="font-weight:400">(optioneel, alleen voor het comité)</span><input id="dlg-reden" maxlength="200" autocomplete="off"></label>
+    <p class="err" id="dlg-fout" hidden></p>
+    <div class="acties">
+      <button class="btn ghost" value="nee" type="submit" formnovalidate>Annuleren</button>
+      <button class="btn danger" value="ja" type="submit" id="dlg-ok">Verwijderen</button>
+    </div>
+  </form>
+</dialog>
 <footer id="voet"></footer>
 <script src="reunie.js"></script>
 <script src="data.js"></script>
@@ -81,7 +105,7 @@
 <script>
   if (!Data.ingelogd()) location.replace('inloggen.html');
   const E = Reunie.esc;
-  let lijst = null, betalen = null, rol = null, comite = null;
+  let lijst = null, betalen = null, rol = null, comite = null, blokkades = null;
   const open = new Set();
 
   const volNaam = r => Reunie.naam({ voornaam: r.voornaam, bijnaam: r.bijnaam, achternaam: r.achternaam });
@@ -95,15 +119,22 @@
       Geboren in ${r.geboortejaar} (${Reunie.leeftijd(r.geboortejaar)} in ${Reunie.DATUM.getFullYear()})<br>
       ${r.takken.length ? r.takken.map(t => E(takTekst(t))).join(' · ') : '<span class="muted">geen speltakken ingevuld</span>'}<br>
       <span class="muted">Op "Wie komen er?": ${toont.length ? toont.join(', ') : 'niets'}</span>
+      <div class="acties"><button class="btn danger" type="button" data-verwijder="${E(r.id)}">Verwijderen…</button></div>
     </td></tr>`;
   }
 
-  // Rows matching the search box and the paid filter.
+  // Registered in the last 7 days.
+  const isNieuw = r => {
+    const d = r.sinds ? Date.now() - new Date(r.sinds + 'T00:00') : -1;
+    return d >= 0 && d < 7 * 864e5;
+  };
+
+  // Rows matching the search box and the filter.
   function gefilterd() {
     const q = $('zoek').value.trim().toLowerCase();
     const f = $('filter').value;
     return lijst.filter(r => (!q || `${volNaam(r)} ${r.email}`.toLowerCase().includes(q))
-      && (!f || (f === 'ja') === !!r.betaald));
+      && (!f || (f === 'nieuw' ? isNieuw(r) : (f === 'ja') === !!r.betaald)));
   }
 
   function toon() {
@@ -111,7 +142,7 @@
     const rijen = gefilterd();
     $('telling').innerHTML = q || f ? `<b>${rijen.length}</b> van de ${lijst.length} gevonden` : '';
     $('rijen').innerHTML = rijen.map(r => `<tr>
-        <td><button class="linkbtn" data-id="${E(r.id)}" aria-expanded="${open.has(r.id)}">${E(volNaam(r))}</button></td>
+        <td><button class="linkbtn" data-id="${E(r.id)}" aria-expanded="${open.has(r.id)}">${E(volNaam(r))}</button>${isNieuw(r) ? ' <span class="pill nieuw">nieuw</span>' : ''}</td>
         <td>${E(r.email)}</td><td>${datum(r.sinds)}</td>
         <td><label class="check"><input type="checkbox" data-betaald="${E(r.id)}"${r.betaald ? ' checked' : ''}> ${r.betaald ? datum(r.betaald) : 'nee'}</label></td>
       </tr>${open.has(r.id) ? details(r) : ''}`).join('')
@@ -172,6 +203,35 @@
     setTimeout(() => URL.revokeObjectURL(a.href), 1000);
   });
 
+  // ---- remove (and block) a registration --------------------------------
+
+  let teVerwijderen = null;
+  $('rijen').addEventListener('click', e => {
+    const id = e.target.closest('button[data-verwijder]')?.dataset.verwijder;
+    if (!id) return;
+    teVerwijderen = lijst.find(x => x.id === id);
+    $('dlg-titel').textContent = `${volNaam(teVerwijderen)} verwijderen?`;
+    $('dlg-tekst').textContent = `De inschrijving en de login van ${teVerwijderen.email} worden gewist. Dit kan niet ongedaan worden gemaakt.`;
+    $('dlg-blok').checked = true; $('dlg-reden').value = ''; $('dlg-fout').hidden = true;
+    $('dlg').showModal();
+  });
+  $('dlg-blok').addEventListener('change', () => { $('dlg-reden').disabled = !$('dlg-blok').checked; });
+  $('dlg-form').addEventListener('submit', async e => {
+    if (e.submitter?.value !== 'ja') return;          // Annuleren closes the dialog
+    e.preventDefault();
+    $('dlg-ok').disabled = true; $('dlg-fout').hidden = true;
+    const blokkeer = $('dlg-blok').checked;
+    try {
+      await Data.verwijder(teVerwijderen.id, { blokkeer, reden: blokkeer ? $('dlg-reden').value : '' });
+      lijst = lijst.filter(x => x !== teVerwijderen);
+      open.delete(teVerwijderen.id);
+      if (blokkeer) blokkades = null;
+      $('dlg').close();
+      tegels(); toon();
+    } catch (err) { $('dlg-fout').textContent = err.message; $('dlg-fout').hidden = false; }
+    $('dlg-ok').disabled = false;
+  });
+
   // ---- tab Comité --------------------------------------------------------
 
   const hoofd = () => rol === 'hoofdbeheerder';
@@ -196,12 +256,29 @@
     }).join('');
   }
 
+  function toonBlokkades() {
+    $('blok-rijen').innerHTML = blokkades.map(g => `<tr>
+        <td>${E(g.email)}</td><td>${g.reden ? E(g.reden) : '<span class="muted">–</span>'}</td>
+        <td>${datum(g.op)}${g.door ? `<br><small class="muted">door ${E(g.door)}</small>` : ''}</td>
+        <td><button class="linkbtn" type="button" data-deblok="${E(g.email)}">Deblokkeren</button></td>
+      </tr>`).join('') || '<tr><td colspan="4" class="muted">Geen geblokkeerde adressen.</td></tr>';
+  }
+
   async function laadComite() {
-    try { comite = await Data.comite(); }
+    try { [comite, blokkades] = await Promise.all([Data.comite(), Data.geblokkeerde()]); }
     catch (e) { $('comite-laden').textContent = e.message; return; }
     $('comite-laden').hidden = true;
     toonComite();
+    toonBlokkades();
   }
+
+  $('blok-rijen').addEventListener('click', async e => {
+    const adres = e.target.closest('button[data-deblok]')?.dataset.deblok;
+    if (!adres || !confirm(`${adres} deblokkeren? Dit adres kan zich dan weer inschrijven.`)) return;
+    e.target.disabled = true;
+    try { await Data.deblokkeer(adres); blokkades = blokkades.filter(g => g.email !== adres); toonBlokkades(); }
+    catch (err) { alert('Deblokkeren lukte niet: ' + err.message); e.target.disabled = false; }
+  });
 
   $('comite-form').addEventListener('submit', async e => {
     e.preventDefault();
@@ -229,7 +306,7 @@
     $('laden').hidden = c || !!lijst;
     document.querySelectorAll('#tabs button').forEach(b => b.classList.toggle('on', b.dataset.tab === naam));
     history.replaceState(null, '', c ? '#comite' : location.pathname);
-    if (c && !comite) laadComite();
+    if (c && (!comite || !blokkades)) laadComite();
   }
   $('tabs').addEventListener('click', e => { const b = e.target.closest('button[data-tab]'); if (b) tab(b.dataset.tab); });
 

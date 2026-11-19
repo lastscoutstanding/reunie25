@@ -136,8 +136,7 @@
 
     const d = await Data.deelnemers();
     PERSONEN = d.personen;
-    $('totaal').innerHTML = `<b>${d.totaal}</b> ingeschreven · <b>${PERSONEN.length}</b> zichtbaar` +
-      (d.totaal > PERSONEN.length ? ' · de anderen hebben gekozen om niet getoond te worden' : '');
+    $('totaal').innerHTML = `<b>${d.totaal}</b> ingeschreven · <b>${PERSONEN.length}</b> zichtbaar`;
     render(); renderPerJaar();
   })();
 </script>

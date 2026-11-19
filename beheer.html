@@ -81,7 +81,7 @@
         </tbody>
       </table>
     </div>
-    <p class="muted" style="font-size:14px">Hoofdbeheerders wijst de beheerder van het Supabase-account aan (nu Bas). Die kan daar ook alles direct in de database zien en wijzigen.</p>
+    <p class="muted" style="font-size:14px" id="comite-hoofd"></p>
   </div>
 </main>
 
@@ -238,9 +238,14 @@
 
   function toonComite() {
     const ik = (Data.email() || '').toLowerCase();
+    // Names of the hoofdbeheerders, from the list itself: "Peter Jansen" or "Peter Jansen en Bas Krom".
+    const hoofden = comite.filter(c => c.rol === 'hoofdbeheerder').map(c => c.naam || c.email);
+    const namen = hoofden.length > 1 ? `${hoofden.slice(0, -1).join(', ')} en ${hoofden.at(-1)}` : hoofden[0] || 'een hoofdbeheerder';
     $('comite-uitleg').textContent = 'Het reüniecomité ziet alle inschrijvingen met e-mailadres en houdt de betalingen bij. '
       + (hoofd() ? 'Als hoofdbeheerder kun je hier mensen aan het comité toevoegen of eraf halen.'
-                 : 'Iemand toevoegen of weghalen? Vraag het een hoofdbeheerder.');
+                 : `Iemand toevoegen of weghalen? Vraag het ${namen}.`);
+    $('comite-hoofd').textContent = `${hoofden.length > 1 ? 'Hoofdbeheerders' : 'Hoofdbeheerder'}: ${namen}. `
+      + 'Nieuwe hoofdbeheerders worden aangewezen in Supabase, waar ook alles direct in de database te zien en te wijzigen is.';
     document.querySelectorAll('#tab-comite .alleen-hoofd').forEach(el => { el.hidden = !hoofd(); });
     $('comite-rijen').innerHTML = comite.map(c => {
       const jij = c.email.toLowerCase() === ik;

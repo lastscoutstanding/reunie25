@@ -53,7 +53,7 @@
   function details(r) {
     const toont = Object.keys(TOON).filter(k => r.toon[k] && (k !== 'bijnaam' || r.bijnaam) && (k !== 'achternaam' || r.achternaam)).map(k => TOON[k]);
     return `<tr class="meer"><td colspan="4">
-      Geboren in ${r.geboortejaar} (${Reunie.leeftijd(r.geboortejaar)} jaar op de reünie)<br>
+      Geboren in ${r.geboortejaar} (${Reunie.leeftijd(r.geboortejaar)} in ${Reunie.DATUM.getFullYear()})<br>
       ${r.takken.length ? r.takken.map(t => E(takTekst(t))).join(' · ') : '<span class="muted">geen speltakken ingevuld</span>'}<br>
       <span class="muted">Op "Wie komen er?": ${toont.length ? toont.join(', ') : 'niets'}</span>
     </td></tr>`;

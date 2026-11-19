@@ -62,7 +62,8 @@ const Reunie = (() => {
     return [van, tot >= NU ? null : tot];
   }
 
-  // Age at the reunion from birth year only (one too high for birthdays after 23 May).
+  // Age reached in the reunion year, from birth year only; shown as "58 in 2027"
+  // so it is right whatever the birthday.
   const leeftijd = gj => gj ? DATUM.getFullYear() - gj : null;
   const periode = (van, tot) => tot == null ? `${van}–heden` : van === tot ? `${van}` : `${van}–${tot}`;
   const esc = s => String(s ?? '').replace(/[&<>"']/g, c =>
@@ -82,7 +83,7 @@ const Reunie = (() => {
   // fields the person chose to hide are null.
   function kaart(p, hit) {
     const naamTekst = esc(naam(p));
-    const age = p.geboortejaar ? leeftijd(p.geboortejaar) + ' jaar' : '';
+    const age = p.geboortejaar ? `${leeftijd(p.geboortejaar)} in ${DATUM.getFullYear()}` : '';
     const rows = p.takken ? [...p.takken.filter(r => r.rol === 'lid'), ...p.takken.filter(r => r.rol !== 'lid')] : [];
     const chips = rows.map(r => {
       const cls = [r.rol === 'leiding' ? 'ld' : '', hit && hit(r) ? 'hit' : ''].join(' ').trim();

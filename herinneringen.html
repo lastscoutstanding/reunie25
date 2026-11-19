@@ -26,10 +26,43 @@
     </div>
 
     <div id="tab-fotos" hidden>
-      <div class="card lege">
-        <p style="font-size:18px;margin:0 0 6px"><b>Foto's komen binnenkort!</b></p>
-        <p class="muted" style="margin:0">Zoek alvast je oude kampfoto's op. Straks kun je ze hier delen met de andere oud-leden.</p>
+      <p style="margin-top:0">Kampvuren, opkomsten, overvliegen, dat ene natte weekend… Deel je foto's van vroeger met de andere oud-leden.</p>
+      <p class="note ok" id="f-bedankt" hidden></p>
+
+      <div class="kop2">
+        <div class="filters" style="margin:0">
+          <select id="ff-speltak" aria-label="Speltak"></select>
+          <select id="ff-jaar" aria-label="Jaar"></select>
+        </div>
+        <button class="btn" type="button" id="f-nieuw">+ Foto's delen</button>
       </div>
+
+      <form class="card" id="f-form" hidden novalidate style="margin-top:14px">
+        <h2 style="margin:0 0 10px">Foto's delen</h2>
+        <label class="drop" id="f-drop">
+          <input type="file" id="f-bestanden" accept="image/*" multiple hidden>
+          <span><b>Kies foto's</b> of sleep ze hierheen</span>
+          <span class="btn ghost" style="margin:8px auto 0">Foto's kiezen</span>
+          <small class="muted">Meerdere tegelijk mag. We maken ze kleiner, dus grote foto's van je telefoon zijn prima. <span id="f-ruimte"></span></small>
+        </label>
+        <div id="f-keuzes"></div>
+        <div class="rij" style="margin-top:8px">
+          <label><span>Speltak <span class="muted" style="font-weight:400" id="f-voor-alle">(optioneel)</span></span><select id="f-speltak"></select></label>
+          <label><span>Jaar <span class="muted" style="font-weight:400">(optioneel)</span></span><select id="f-jaar"></select></label>
+        </div>
+        <label class="check" style="margin-top:10px"><input type="checkbox" id="f-naam" checked> <span>Toon mijn naam bij deze foto's
+          <small class="muted">(uit: "gedeeld door een oud-lid"; het comité weet wel van wie ze zijn)</small></span></label>
+        <p class="note" style="margin-top:12px">Staan er anderen op? Deel alleen foto's waar zij zich prettig bij voelen. Wie erop staat, kan een foto altijd laten weghalen.</p>
+        <p class="err" id="f-fout" hidden></p>
+        <div id="f-voortgang" hidden style="margin-top:10px"><small class="muted" id="f-voortgang-tekst"></small><div class="balk"><div id="f-balk"></div></div></div>
+        <div class="acties">
+          <button class="btn ghost" type="button" id="f-annuleer">Annuleren</button>
+          <button class="btn" type="submit" id="f-insturen" disabled>Foto's insturen</button>
+        </div>
+      </form>
+
+      <p class="summary" id="f-telling"></p>
+      <div class="fotogrid" id="f-grid"></div>
     </div>
 
     <div id="tab-verhalen">
@@ -51,11 +84,11 @@
         <label style="margin-top:10px">Je verhaal<textarea id="v-tekst" maxlength="3000" required></textarea></label>
         <div class="teller" id="teller">0 / 3000 tekens</div>
         <div class="rij" style="margin-top:6px">
-          <label>Speltak <span class="muted" style="font-weight:400">(optioneel)</span><select id="v-speltak"></select></label>
-          <label>Jaar <span class="muted" style="font-weight:400">(optioneel)</span><select id="v-jaar"></select></label>
+          <label><span>Speltak <span class="muted" style="font-weight:400">(optioneel)</span></span><select id="v-speltak"></select></label>
+          <label><span>Jaar <span class="muted" style="font-weight:400">(optioneel)</span></span><select id="v-jaar"></select></label>
         </div>
-        <label class="check" style="margin-top:10px"><input type="checkbox" id="v-naam" checked> Toon mijn naam bij dit verhaal
-          <small class="muted">(uit: "gedeeld door een oud-lid"; het comité weet wel van wie het is)</small></label>
+        <label class="check" style="margin-top:10px"><input type="checkbox" id="v-naam" checked> <span>Toon mijn naam bij dit verhaal
+          <small class="muted">(uit: "gedeeld door een oud-lid"; het comité weet wel van wie het is)</small></span></label>
         <p class="note" style="margin-top:12px">Noem je anderen bij naam? Houd het vriendelijk: zij lezen het ook.</p>
         <p class="err" id="form-fout" hidden></p>
         <div class="acties">
@@ -70,11 +103,24 @@
   </div>
 </main>
 
+<dialog id="lb" class="lightbox" aria-label="Foto">
+  <button class="lb-sluit" type="button" id="lb-sluit" aria-label="Sluiten">×</button>
+  <div class="lb-foto">
+    <img id="lb-img" alt="">
+    <button class="lb-pijl l" type="button" id="lb-vorige" aria-label="Vorige foto">‹</button>
+    <button class="lb-pijl r" type="button" id="lb-volgende" aria-label="Volgende foto">›</button>
+  </div>
+  <div class="lb-info">
+    <div id="lb-tekst"></div>
+    <div style="text-align:right"><span id="lb-nr"></span><br><span id="lb-actie"></span></div>
+  </div>
+</dialog>
+
 <dialog id="meld" class="card dialoog">
   <form method="dialog" id="meld-form">
-    <h3 style="margin:0 0 8px">Verhaal melden</h3>
-    <p style="margin:0 0 10px">Sta je in dit verhaal en wil je dat liever niet, of klopt er iets niet? Na het melden is het verhaal meteen niet meer te zien. Het reüniecomité kijkt ernaar en neemt zo nodig contact met je op.</p>
-    <label>Wat is er aan de hand? <span class="muted" style="font-weight:400">(optioneel)</span><textarea id="meld-reden" maxlength="500" style="min-height:90px"></textarea></label>
+    <h3 style="margin:0 0 8px" id="meld-kop">Verhaal melden</h3>
+    <p style="margin:0 0 10px" id="meld-tekst"></p>
+    <label><span>Wat is er aan de hand? <span class="muted" style="font-weight:400">(optioneel)</span></span><textarea id="meld-reden" maxlength="500" style="min-height:90px"></textarea></label>
     <p class="err" id="meld-fout" hidden></p>
     <div class="acties">
       <button class="btn ghost" value="nee" type="submit" formnovalidate>Annuleren</button>
@@ -89,7 +135,7 @@
 <script src="nav.js"></script>
 <script>
   const E = Reunie.esc;
-  let verhalen = [], bewerkId = null, teMelden = null;
+  let verhalen = [], bewerkId = null, teMelden = null;   // teMelden: { soort: 'verhaal' | 'foto', id }
   const open = new Set();             // ids of long stories that are unfolded
   const KORT = 450;                   // longer stories get "Lees verder"
 
@@ -149,23 +195,33 @@
       b.disabled = true;
       try { await Data.verwijderVerhaal(b.dataset.weg); $('bedankt').hidden = true; await laad(); }
       catch (err) { alert('Verwijderen lukte niet: ' + err.message); b.disabled = false; }
-    } else if (b.dataset.meld) {
-      teMelden = b.dataset.meld;
-      $('meld-reden').value = ''; $('meld-fout').hidden = true;
-      $('meld').showModal();
-    }
+    } else if (b.dataset.meld) meld('verhaal', b.dataset.meld);
   });
+
+  // Report a story or a photo: hidden at once, the comité gets it.
+  function meld(soort, id) {
+    teMelden = { soort, id };
+    const foto = soort === 'foto';
+    $('meld-kop').textContent = foto ? 'Foto melden' : 'Verhaal melden';
+    $('meld-tekst').textContent = (foto ? 'Sta je op deze foto en wil je dat liever niet, of klopt er iets niet? Na het melden is de foto meteen niet meer te zien.'
+      : 'Sta je in dit verhaal en wil je dat liever niet, of klopt er iets niet? Na het melden is het verhaal meteen niet meer te zien.')
+      + ' Het reüniecomité kijkt ernaar en neemt zo nodig contact met je op.';
+    $('meld-reden').value = ''; $('meld-fout').hidden = true;
+    $('meld').showModal();
+  }
 
   $('meld-form').addEventListener('submit', async e => {
     if (e.submitter?.value !== 'ja') return;
     e.preventDefault();
     $('meld-ok').disabled = true;
+    const foto = teMelden.soort === 'foto';
     try {
-      await Data.meldVerhaal(teMelden, $('meld-reden').value);
+      if (foto) { await Data.meldFoto(teMelden.id, $('meld-reden').value); $('lb').close(); await laadFotos(); }
+      else { await Data.meldVerhaal(teMelden.id, $('meld-reden').value); await laad(); }
       $('meld').close();
-      await laad();
-      $('bedankt').textContent = 'Dank je wel voor je melding. Het verhaal is niet meer te zien.';
-      $('bedankt').hidden = false;
+      const doel = foto ? $('f-bedankt') : $('bedankt');
+      doel.textContent = `Dank je wel voor je melding. ${foto ? 'De foto' : 'Het verhaal'} is niet meer te zien.`;
+      doel.hidden = false;
     } catch (err) { $('meld-fout').textContent = err.message; $('meld-fout').hidden = false; }
     $('meld-ok').disabled = false;
   });
@@ -213,19 +269,196 @@
     $('insturen').disabled = false;
   });
 
+  // ---- photos ------------------------------------------------------------------
+
+  const MAX = 30;
+  let fotos = null, zichtbaar = [], urls = {}, lbIndex = 0, keuzes = [];
+  const fotoLabel = { nieuw: 'binnenkort', gemeld: 'tijdelijk verborgen' };
+
+  function toonFotos() {
+    const t = $('ff-speltak').value, j = +$('ff-jaar').value;
+    zichtbaar = fotos.filter(f => (!t || f.speltak === t) && (!j || f.jaar === j));
+    const geplaatst = fotos.filter(f => f.status === 'geplaatst').length;
+    $('f-telling').innerHTML = t || j ? `<b>${zichtbaar.length}</b> van de ${fotos.length} foto's`
+      : geplaatst ? `Al <b>${geplaatst}</b> ${geplaatst === 1 ? 'foto' : "foto's"} gedeeld!` : '';
+    $('f-grid').innerHTML = zichtbaar.map((f, i) => `<button type="button" class="tegel${f.eigen ? ' eigen' : ''}" data-i="${i}">
+        ${f.eigen && fotoLabel[f.status] ? `<span class="label pill wacht">${fotoLabel[f.status]}</span>` : ''}
+        <img src="${E(urls[f.pad + '-klein.jpg'] || '')}" alt="${E(f.titel)}" loading="lazy">
+        <span class="onder"><b>${E(f.titel) || '&nbsp;'}</b><span>${E([f.speltak, f.jaar, f.eigen ? 'door jou' : ''].filter(Boolean).join(' · '))}</span></span>
+      </button>`).join('')
+      || (fotos.length ? '<p class="muted">Geen foto\'s gevonden.</p>'
+                       : '<div class="card lege" style="grid-column:1/-1"><p style="margin:0"><b>Nog geen foto\'s.</b> Deel jij de eerste?</p></div>');
+  }
+
+  async function laadFotos() {
+    try {
+      fotos = await Data.fotos();
+      Object.assign(urls, await Data.fotoUrls(fotos.map(f => f.pad + '-klein.jpg')));
+    } catch (err) { $('f-telling').textContent = err.message; return; }
+    toonFotos();
+  }
+  ['ff-speltak', 'ff-jaar'].forEach(id => $(id).addEventListener('input', toonFotos));
+
+  // ---- big view (lightbox): arrows, swipe, Esc ----
+  async function toonGroot(i) {
+    lbIndex = (i + zichtbaar.length) % zichtbaar.length;
+    const f = zichtbaar[lbIndex], groot = f.pad + '.jpg';
+    $('lb-img').src = urls[f.pad + '-klein.jpg'] || '';           // sharp version follows
+    $('lb-img').alt = f.titel;
+    const chips = [f.speltak, f.jaar].filter(Boolean).map(c => `<span class="chip">${E(c)}</span>`).join('');
+    $('lb-tekst').innerHTML = `${f.titel ? `<b>${E(f.titel)}</b><br>` : ''}${chips} <span class="zacht">gedeeld door ${E(f.eigen ? 'jou' : Reunie.naam(f) || 'een oud-lid')}</span>`;
+    $('lb-nr').textContent = `${lbIndex + 1} / ${zichtbaar.length}`;
+    $('lb-actie').innerHTML = f.eigen ? `<button class="linkbtn" type="button" id="lb-weg">Verwijderen</button>`
+      : `<button class="linkbtn" type="button" id="lb-meld">Sta jij hierop en wil je dat niet? Meld het</button>`;
+    $('lb-vorige').hidden = $('lb-volgende').hidden = zichtbaar.length < 2;
+    if (!$('lb').open) $('lb').showModal();
+    if (!urls[groot]) Object.assign(urls, await Data.fotoUrls([groot]).catch(() => ({})));
+    if (zichtbaar[lbIndex] === f && urls[groot]) $('lb-img').src = urls[groot];
+  }
+  $('f-grid').addEventListener('click', e => { const b = e.target.closest('button[data-i]'); if (b) toonGroot(+b.dataset.i); });
+  $('lb-vorige').addEventListener('click', () => toonGroot(lbIndex - 1));
+  $('lb-volgende').addEventListener('click', () => toonGroot(lbIndex + 1));
+  $('lb-sluit').addEventListener('click', () => $('lb').close());
+  $('lb').addEventListener('click', e => { if (e.target === $('lb')) $('lb').close(); });   // click beside the photo
+  $('lb').addEventListener('keydown', e => {
+    if (e.key === 'ArrowLeft') toonGroot(lbIndex - 1);
+    if (e.key === 'ArrowRight') toonGroot(lbIndex + 1);
+  });
+  let veegX = null;
+  $('lb').addEventListener('touchstart', e => { veegX = e.touches[0].clientX; }, { passive: true });
+  $('lb').addEventListener('touchend', e => {
+    const dx = veegX == null ? 0 : e.changedTouches[0].clientX - veegX;
+    if (Math.abs(dx) > 50) toonGroot(lbIndex + (dx < 0 ? 1 : -1));
+    veegX = null;
+  });
+  $('lb-actie').addEventListener('click', async e => {
+    const f = zichtbaar[lbIndex];
+    if (e.target.id === 'lb-meld') meld('foto', f.id);
+    if (e.target.id === 'lb-weg') {
+      if (!confirm('Deze foto verwijderen? Dat kan niet ongedaan worden gemaakt.')) return;
+      e.target.disabled = true;
+      try { await Data.verwijderFoto(f.id); $('lb').close(); $('f-bedankt').hidden = true; await laadFotos(); }
+      catch (err) { alert('Verwijderen lukte niet: ' + err.message); e.target.disabled = false; }
+    }
+  });
+
+  // ---- sharing: resize in the browser (also drops location and other hidden data) ----
+  async function verklein(bestand, max) {
+    const url = URL.createObjectURL(bestand);
+    try {
+      const img = new Image();
+      img.src = url;
+      await img.decode();
+      const f = Math.min(1, max / Math.max(img.naturalWidth, img.naturalHeight));
+      const w = Math.round(img.naturalWidth * f), h = Math.round(img.naturalHeight * f);
+      const c = document.createElement('canvas');
+      c.width = w; c.height = h;
+      const ctx = c.getContext('2d');
+      ctx.fillStyle = '#fff'; ctx.fillRect(0, 0, w, h);          // transparent PNG: white, not black
+      ctx.drawImage(img, 0, 0, w, h);
+      let q = 0.82, blob;
+      do { blob = await new Promise(ok => c.toBlob(ok, 'image/jpeg', q)); q -= 0.1; } while (blob && blob.size > 950e3 && q > 0.4);
+      if (!blob) throw new Error('jpeg');
+      return { blob, w, h };
+    } finally { URL.revokeObjectURL(url); }
+  }
+
+  const ruimte = () => MAX - (fotos || []).filter(f => f.eigen).length;
+  function toonKeuzes() {
+    $('f-keuzes').innerHTML = keuzes.map((k, i) => `<div class="keuze">
+        ${k.voorbeeld ? `<img class="mini" src="${k.voorbeeld}" alt="">` : '<span class="mini"></span>'}
+        ${k.fout || !k.klein ? `<span class="muted" style="font-size:14px">${E(k.naam)}: ${E(k.fout || 'even geduld…')}</span>`
+                 : `<label style="font-weight:400"><span>Titel <span class="muted">(optioneel)</span></span><input data-titel="${i}" maxlength="80" value="${E(k.titel)}" placeholder="bijv. Hike naar Asten"></label>`}
+        <button class="linkbtn" type="button" data-weg="${i}">Weghalen</button>
+      </div>`).join('');
+    const goed = keuzes.filter(k => k.klein).length;
+    $('f-insturen').disabled = !goed;
+    $('f-insturen').textContent = goed ? `${goed} ${goed === 1 ? 'foto' : "foto's"} insturen` : "Foto's insturen";
+    $('f-voor-alle').textContent = goed > 1 ? `(voor alle ${goed})` : '(optioneel)';
+    const over = ruimte() - goed;
+    $('f-ruimte').textContent = over < 0 ? `Je kunt er nog ${ruimte()} delen; haal er ${-over} weg.` : `Je kunt er nog ${over} delen.`;
+  }
+
+  async function voegToe(bestanden) {
+    for (const b of bestanden) {
+      const k = { naam: b.name, bestand: b, titel: '' };
+      keuzes.push(k);
+      try { const v = await verklein(b, 400); k.klein = v.blob; k.voorbeeld = URL.createObjectURL(v.blob); }
+      catch { k.fout = 'deze foto kunnen we niet openen. Probeer een JPG of PNG.'; }
+      toonKeuzes();
+    }
+  }
+
+  function fotoFormulier(open) {
+    keuzes.forEach(k => k.voorbeeld && URL.revokeObjectURL(k.voorbeeld));
+    keuzes = [];
+    $('f-form').hidden = !open; $('f-nieuw').hidden = open;
+    $('f-fout').hidden = true; $('f-voortgang').hidden = true; $('f-bestanden').value = '';
+    if (open) { $('f-bedankt').hidden = true; toonKeuzes(); $('f-form').scrollIntoView({ behavior: 'smooth', block: 'start' }); }
+  }
+  $('f-nieuw').addEventListener('click', () => fotoFormulier(true));
+  $('f-annuleer').addEventListener('click', () => fotoFormulier(false));
+  $('f-bestanden').addEventListener('change', e => voegToe([...e.target.files]));
+  $('f-drop').addEventListener('dragover', e => { e.preventDefault(); $('f-drop').classList.add('over'); });
+  $('f-drop').addEventListener('dragleave', () => $('f-drop').classList.remove('over'));
+  $('f-drop').addEventListener('drop', e => {
+    e.preventDefault(); $('f-drop').classList.remove('over');
+    voegToe([...e.dataTransfer.files].filter(f => f.type.startsWith('image/')));
+  });
+  $('f-keuzes').addEventListener('input', e => { const i = e.target.dataset.titel; if (i != null) keuzes[i].titel = e.target.value; });
+  $('f-keuzes').addEventListener('click', e => {
+    const i = e.target.dataset.weg;
+    if (i == null) return;
+    const [k] = keuzes.splice(+i, 1);
+    if (k.voorbeeld) URL.revokeObjectURL(k.voorbeeld);
+    toonKeuzes();
+  });
+
+  $('f-form').addEventListener('submit', async e => {
+    e.preventDefault();
+    const goed = keuzes.filter(k => k.klein);
+    if (!goed.length) return;
+    if (goed.length > ruimte()) { $('f-fout').textContent = `Je kunt er nog ${ruimte()} delen. Haal er een paar weg.`; $('f-fout').hidden = false; return; }
+    $('f-fout').hidden = true; $('f-insturen').disabled = true; $('f-voortgang').hidden = false;
+    const stap = (i, tekst) => { $('f-voortgang-tekst').textContent = tekst; $('f-balk').style.width = `${Math.round(100 * i / goed.length)}%`; };
+    try {
+      const items = [];
+      for (const [i, k] of goed.entries()) {
+        stap(i, `Foto ${i + 1} van ${goed.length} verkleinen…`);
+        const g = await verklein(k.bestand, 1600);
+        items.push({ groot: g.blob, klein: k.klein, breedte: g.w, hoogte: g.h, titel: k.titel.trim() });
+      }
+      await Data.stuurFotos(items, { speltak: $('f-speltak').value || null, jaar: +$('f-jaar').value || null, toon_naam: $('f-naam').checked },
+        i => stap(i, i < goed.length ? `Foto ${i + 1} van ${goed.length} versturen…` : 'Klaar!'));
+      const n = goed.length;
+      fotoFormulier(false);
+      await laadFotos();
+      $('f-bedankt').textContent = `Bedankt voor je ${n === 1 ? 'foto' : "foto's"}! ${n === 1 ? 'Hij verschijnt' : 'Ze verschijnen'} zo snel mogelijk bij Herinneringen. Jij ziet ${n === 1 ? 'hem' : 'ze'} hier nu al staan.`;
+      $('f-bedankt').hidden = false;
+      $('f-bedankt').scrollIntoView({ behavior: 'smooth', block: 'center' });
+    } catch (err) {
+      $('f-fout').textContent = err.message; $('f-fout').hidden = false;
+      $('f-insturen').disabled = false;
+      await laadFotos();       // some may have been sent already
+      toonKeuzes();
+    }
+  });
+
   // ---- tabs (remembered in the address: herinneringen.html#fotos) -------------
 
   function tab(naam) {
     $('tab-verhalen').hidden = naam !== 'verhalen'; $('tab-fotos').hidden = naam !== 'fotos';
     document.querySelectorAll('#tabs button').forEach(b => b.classList.toggle('on', b.dataset.tab === naam));
     history.replaceState(null, '', naam === 'fotos' ? '#fotos' : location.pathname);
+    if (naam === 'fotos' && !fotos) laadFotos();
   }
   $('tabs').addEventListener('click', e => { const b = e.target.closest('button[data-tab]'); if (b) tab(b.dataset.tab); });
 
   // ---- start -------------------------------------------------------------------
 
-  function buiten(aantal, ingelogd) {
-    $('buiten-kop').textContent = aantal ? `Al ${aantal} ${aantal === 1 ? 'verhaal' : 'verhalen'} gedeeld!` : 'Verhalen van vroeger';
+  function buiten(verhalen, fotos, ingelogd) {
+    const delen = [verhalen && `${verhalen} ${verhalen === 1 ? 'verhaal' : 'verhalen'}`, fotos && `${fotos} ${fotos === 1 ? 'foto' : "foto's"}`].filter(Boolean);
+    $('buiten-kop').textContent = delen.length ? `Al ${delen.join(' en ')} gedeeld!` : 'Verhalen en foto\'s van vroeger';
     $('buiten-tekst').textContent = ingelogd
       ? 'Verhalen en foto\'s van vroeger zijn voor deelnemers van de reünie. Maak je inschrijving af om ze te lezen en zelf iets te delen.'
       : 'Verhalen en foto\'s van vroeger zijn alleen voor deelnemers van de reünie. Schrijf je in of log in om ze te lezen en zelf iets te delen.';
@@ -243,10 +476,15 @@
     $('f-jaar').innerHTML = '<option value="">Alle jaren</option>' + jaren;
     $('v-speltak').innerHTML = '<option value="">–</option>' + takken;
     $('v-jaar').innerHTML = '<option value="">–</option>' + jaren;
+    $('ff-speltak').innerHTML = '<option value="">Alle speltakken</option>' + takken;
+    $('ff-jaar').innerHTML = '<option value="">Alle jaren</option>' + jaren;
+    $('f-speltak').innerHTML = '<option value="">–</option>' + takken;
+    $('f-jaar').innerHTML = '<option value="">–</option>' + jaren;
 
     try {
       if (!Data.ingelogd() || !await Data.magVerhalen()) {
-        buiten(await Data.aantalVerhalen().catch(() => 0), Data.ingelogd());
+        const [v, f] = await Promise.all([Data.aantalVerhalen().catch(() => 0), Data.aantalFotos().catch(() => 0)]);
+        buiten(v, f, Data.ingelogd());
       } else {
         await laad();
         $('binnen').hidden = false;

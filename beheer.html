@@ -40,8 +40,12 @@
   </div>
 
   <div id="tab-beoordelen" hidden>
-    <p style="margin-top:0">Nieuwe en aangepaste verhalen van Herinneringen, en verhalen die iemand heeft gemeld. Pas na "Plaatsen" zien de deelnemers een verhaal. De schrijver ziet bij een nieuw verhaal alleen "wordt binnenkort geplaatst".</p>
+    <p style="margin-top:0">Nieuwe foto's en verhalen van Herinneringen, en wat iemand heeft gemeld. Pas na "Plaatsen" zien de deelnemers het. Wie iets instuurt, ziet tot die tijd alleen "binnenkort".</p>
+    <div class="tegels" id="foto-tegels"></div>
     <p class="muted" id="beoordelen-laden">Laden…</p>
+    <h2 style="margin:18px 0 6px">Foto's</h2>
+    <div id="foto-beoordelen"></div>
+    <h2 style="margin:22px 0 6px">Verhalen</h2>
     <div class="verhalen" id="beoordelen"></div>
   </div>
 
@@ -83,6 +87,8 @@
           <tr><td>Alle inschrijvingen met e-mail, CSV, adressen kopiëren</td><td class="nee">–</td><td class="nee">–</td><td class="ja">✓</td><td class="ja">✓</td></tr>
           <tr><td>Inschrijving verwijderen, adres blokkeren of deblokkeren</td><td class="nee">–</td><td class="nee">–</td><td class="ja">✓</td><td class="ja">✓</td></tr>
           <tr><td>Verhalen bij Herinneringen lezen en delen</td><td class="nee">–</td><td class="ja">✓</td><td class="ja">✓</td><td class="ja">✓</td></tr>
+          <tr><td>Foto's bekijken en delen (max. 30 per persoon)</td><td class="nee">–</td><td class="ja">✓</td><td class="ja">✓</td><td class="ja">✓</td></tr>
+          <tr><td>Foto's plaatsen of verwijderen</td><td class="nee">–</td><td class="nee">–</td><td class="ja">✓</td><td class="ja">✓</td></tr>
           <tr><td>Verhalen plaatsen, afwijzen, aanpassen of verwijderen</td><td class="nee">–</td><td class="nee">–</td><td class="ja">✓</td><td class="ja">✓</td></tr>
           <tr><td>Betalingen afvinken</td><td class="nee">–</td><td class="nee">–</td><td class="ja">✓</td><td class="ja">✓</td></tr>
           <tr><td>Beheerders toevoegen en weghalen</td><td class="nee">–</td><td class="nee">–</td><td class="nee">–</td><td class="ja">✓</td></tr>
@@ -98,7 +104,7 @@
     <h3 id="dlg-titel" style="margin:0 0 8px"></h3>
     <p id="dlg-tekst" style="margin:0 0 10px"></p>
     <label class="check"><input type="checkbox" id="dlg-blok" checked> Dit e-mailadres ook blokkeren, zodat het niet opnieuw kan inschrijven</label>
-    <label style="margin-top:10px">Reden <span class="muted" style="font-weight:400">(optioneel, alleen voor het comité)</span><input id="dlg-reden" maxlength="200" autocomplete="off"></label>
+    <label style="margin-top:10px"><span>Reden <span class="muted" style="font-weight:400">(optioneel, alleen voor het comité)</span></span><input id="dlg-reden" maxlength="200" autocomplete="off"></label>
     <p class="err" id="dlg-fout" hidden></p>
     <div class="acties">
       <button class="btn ghost" value="nee" type="submit" formnovalidate>Annuleren</button>
@@ -313,7 +319,7 @@
 
   // ---- tab Te beoordelen (stories) ----------------------------------------
 
-  let beoordeling = null;
+  let beoordeling = null, fotoBeoordeling = [];
   const alineas = t => t.split(/\n\s*\n/).map(p => `<p>${E(p.trim()).replace(/\n/g, '<br>')}</p>`).join('');
 
   function verhaalKaart(v) {
@@ -336,25 +342,72 @@
         <div class="acties"><button class="btn ghost" type="button" data-actie="terug">Annuleren</button><button class="btn" type="button" data-actie="aanpassen">Opslaan</button></div>
       </div>
       <div class="paneel afwijs" hidden>
-        <label>Korte toelichting voor de schrijver <span class="muted" style="font-weight:400">(optioneel, alleen de schrijver ziet dit)</span>
+        <label><span>Korte toelichting voor de schrijver <span class="muted" style="font-weight:400">(optioneel, alleen de schrijver ziet dit)</span></span>
           <textarea class="b-notitie" maxlength="500" style="min-height:80px"></textarea></label>
         <div class="acties"><button class="btn ghost" type="button" data-actie="terug">Annuleren</button><button class="btn danger" type="button" data-actie="afwijzen">Afwijzen</button></div>
       </div>
     </article>`;
   }
 
+  const fotoTegel = (f, urls) => `<div class="tegel" data-foto="${E(f.id)}">
+      <a href="${E(urls[f.pad + '.jpg'] || '#')}" target="_blank" rel="noopener"><img src="${E(urls[f.pad + '-klein.jpg'] || '')}" alt="${E(f.titel)}" loading="lazy"></a>
+      <span class="onder"><b>${f.titel ? E(f.titel) : '<span class="muted" style="font-weight:400">(geen titel)</span>'}</b></span>
+      <span class="knoppen">${f.status === 'gemeld'
+        ? '<button class="btn ghost" type="button" data-factie="plaatsen">Weer tonen</button><button class="btn danger" type="button" data-factie="verwijderen">Verwijderen</button>'
+        : '<button class="btn" type="button" data-factie="plaatsen">Plaatsen</button><button class="btn danger" type="button" data-factie="verwijderen">Afwijzen</button>'}</span>
+    </div>`;
+
+  // New photos grouped per upload; reported photos one by one with the reason.
+  function toonFotoBeoordelen(urls) {
+    const groepen = new Map();
+    for (const f of fotoBeoordeling.filter(f => f.status === 'nieuw')) {
+      if (!groepen.has(f.groep)) groepen.set(f.groep, []);
+      groepen.get(f.groep).push(f);
+    }
+    const nieuw = [...groepen.values()].map(g => {
+      const f = g[0], wat = [f.speltak, f.jaar].filter(Boolean).join(' ');
+      return `<p class="muted groepkop">${g.length} ${g.length === 1 ? 'nieuwe foto' : "nieuwe foto's"} van ${E(f.auteur_naam || 'onbekend')} · ingestuurd ${datum(String(f.aangemaakt).slice(0, 10))}${wat ? ' · ' + E(wat) : ''} · naam tonen: ${f.toon_naam ? 'ja' : 'nee'}
+        ${g.length > 1 ? `<button class="btn" type="button" data-alle="${E(g.map(x => x.id).join(','))}">Alle ${g.length} plaatsen</button>` : ''}</p>
+        <div class="fotogrid beoordeel">${g.map(x => fotoTegel(x, urls)).join('')}</div>`;
+    }).join('');
+    const gemeld = fotoBeoordeling.filter(f => f.status === 'gemeld').map(f => `<p class="muted groepkop"><span class="pill wacht">gemeld</span>
+        door ${E(f.gemeld_door || 'iemand')} op ${datum(f.gemeld_op)}${f.melding ? `: “${E(f.melding)}”` : ''} · foto van ${E(f.auteur_naam || 'onbekend')} · nu niet zichtbaar</p>
+        <div class="fotogrid beoordeel">${fotoTegel(f, urls)}</div>`).join('');
+    $('foto-beoordelen').innerHTML = nieuw + gemeld || '<p class="muted" style="margin:0">Geen foto\'s om te beoordelen.</p>';
+  }
+
   function toonBeoordelen() {
-    $('aantal-beoordelen').textContent = beoordeling.length ? ` (${beoordeling.length})` : '';
+    const n = beoordeling.length + fotoBeoordeling.length;
+    $('aantal-beoordelen').textContent = n ? ` (${n})` : '';
     $('beoordelen').innerHTML = beoordeling.map(verhaalKaart).join('')
-      || '<div class="card lege"><p style="margin:0">Alles is beoordeeld. 🎉</p></div>';
+      || '<p class="muted" style="margin:0">Geen verhalen om te beoordelen.</p>';
   }
 
   async function laadBeoordelen() {
-    try { beoordeling = await Data.teBeoordelen(); }
-    catch (e) { $('beoordelen-laden').textContent = e.message; return; }
+    try {
+      [beoordeling, fotoBeoordeling] = await Promise.all([Data.teBeoordelen(), Data.fotosTeBeoordelen()]);
+      toonBeoordelen();
+      const [urls, opslag] = await Promise.all([
+        Data.fotoUrls(fotoBeoordeling.flatMap(f => [f.pad + '-klein.jpg', f.pad + '.jpg'])), Data.fotoOpslag()]);
+      toonFotoBeoordelen(urls);
+      const mb = opslag.bytes / 1048576;
+      $('foto-tegels').innerHTML = `<div><span>Foto's geplaatst</span><strong>${opslag.geplaatst}</strong></div>
+        <div><span>Opslag foto's</span><strong>${mb < 10 ? mb.toFixed(1) : Math.round(mb)} MB</strong><span>van 1 GB (± 2.500 foto's)</span></div>`;
+    } catch (e) { $('beoordelen-laden').textContent = e.message; $('beoordelen-laden').hidden = false; return; }
     $('beoordelen-laden').hidden = true;
-    toonBeoordelen();
   }
+
+  $('foto-beoordelen').addEventListener('click', async e => {
+    const b = e.target.closest('button');
+    if (!b) return;
+    const ids = b.dataset.alle ? b.dataset.alle.split(',') : [b.closest('[data-foto]')?.dataset.foto];
+    const actie = b.dataset.alle ? 'plaatsen' : b.dataset.factie;
+    if (!ids[0] || !actie) return;
+    if (actie === 'verwijderen' && !confirm('Deze foto verwijderen? De foto wordt definitief gewist.')) return;
+    b.disabled = true;
+    try { for (const id of ids) await Data.beoordeelFoto(id, actie); await laadBeoordelen(); }
+    catch (err) { alert('Dat lukte niet: ' + err.message); b.disabled = false; }
+  });
 
   $('beoordelen').addEventListener('click', async e => {
     const b = e.target.closest('button[data-actie]');

@@ -20,6 +20,9 @@
 //     voornaam, bijnaam, achternaam, aangemaakt }   name fields null when not shown
 //   status: 'nieuw' | 'geplaatst' | 'afgewezen' | 'gemeld'; toelichting only on your own.
 //
+// Photo, as pages get it (files: pad + '.jpg' and pad + '-klein.jpg', see fotoUrls):
+//   { id, pad, titel, speltak, jaar, eigen, status, voornaam, bijnaam, achternaam, aangemaakt }
+//
 // Comité members (beheerders) can also list all registrations and mark payments.
 // Hoofdbeheerders can also add and remove beheerders. Comité member record:
 //   { email, rol: 'beheerder' | 'hoofdbeheerder', toegevoegd_door, toegevoegd_op, naam }
@@ -36,6 +39,8 @@ const Data = (() => {
   const DEMO_WEG = 'reunie25.demo.weg';                // removed sample participants
   const DEMO_GEBLOKKEERD = 'reunie25.demo.geblokkeerd';
   const DEMO_VERHALEN = 'reunie25.demo.verhalen';
+  const DEMO_FOTOS = 'reunie25.demo.fotos';
+  const MAX_FOTOS = 30;
   const AUTH = 'reunie25.auth';
   const DEMO_CODE = '123456';
 
@@ -59,6 +64,8 @@ const Data = (() => {
     geblokkeerd: 'Inschrijven met dit e-mailadres lukt helaas niet. Denk je dat dit niet klopt? Mail dan het reüniecomité via reunie@scoutingbrandevoort.nl.',
     zelf: 'Jezelf verwijderen gaat via Mijn inschrijving → Uitschrijven.',
     comitelid: 'Dit adres hoort bij het comité en kan niet geblokkeerd worden. Haal het eerst weg uit het comité.',
+    max: 'Je hebt het maximum van 30 foto\'s bereikt. Wil je een andere delen? Verwijder dan eerst een van je eigen foto\'s.',
+    upload: 'Het versturen van een foto lukte niet. Probeer het later opnieuw.',
   };
 
   // What others may see of a record: hidden fields become null.
@@ -140,6 +147,29 @@ const Data = (() => {
       status: 'nieuw', aangemaakt: '2026-11-19T08:00:00Z',
       tekst: 'Op zomerkamp was op de laatste avond ineens de grote pan weg. Twee dagen later stond hij, gepoetst en wel, op de stoep van de blokhut.' },
   ];
+  // Photos in DEMO: rows in localStorage, image files only in memory (gone after a reload,
+  // then a coloured placeholder is shown). Sample photos are placeholders too.
+  const demoBestanden = new Map();     // file path -> object URL
+  const fotosStore = () => lees(DEMO_FOTOS, null) ?? [
+    ['lotte.smits@voorbeeld.nl', 'Kampvuur bij de Brandnetel', 'Scouts', 2012, 'geplaatst', '2026-11-10'],
+    ['bram.peters@voorbeeld.nl', 'Kanoën op de Dommel', 'Explorers', 2009, 'geplaatst', '2026-11-11'],
+    ['mark.devries@voorbeeld.nl', '10 jaar Scouting Brandevoort', '', 2011, 'geplaatst', '2026-11-12'],
+    ['eva.mulder@voorbeeld.nl', 'Overvliegen', 'Welpen', 2010, 'geplaatst', '2026-11-13'],
+    ['tim.hendriks@voorbeeld.nl', 'Pinksterkamp', 'Bevers', 2004, 'geplaatst', '2026-11-14'],
+    ['femke.vandijk@voorbeeld.nl', 'Zomerkamp', 'Scouts', 2005, 'nieuw', '2026-11-19'],
+    ['femke.vandijk@voorbeeld.nl', '', 'Scouts', 2005, 'nieuw', '2026-11-19'],
+  ].map(([auteur, titel, speltak, jaar, status, dag], i) => ({
+    id: 'demo-f' + i, pad: `demo/${i}`, groep: status === 'nieuw' ? 'demo-g1' : 'demo-g0' + i, auteur, titel, speltak: speltak || null, jaar,
+    toon_naam: i !== 1, status, aangemaakt: `${dag}T12:00:00Z`,
+  }));
+  const KLEUREN = [['#7fb069', '#3d6b35'], ['#f4a259', '#bc4b51'], ['#5b8e7d', '#2c4696'], ['#f2b705', '#c9772b'], ['#8e7dbe', '#2c4696'], ['#6c9a8b', '#e8c547']];
+  function plaatje(pad) {
+    const f = fotosStore().find(x => pad.startsWith(x.pad)) || {};
+    const [a, b] = KLEUREN[[...pad].reduce((n, c) => n + c.charCodeAt(0), 0) % KLEUREN.length];
+    const t = String(f.titel || 'Foto').replace(/[<&>]/g, '');
+    return 'data:image/svg+xml,' + encodeURIComponent(`<svg xmlns="http://www.w3.org/2000/svg" width="800" height="600"><defs><linearGradient id="g" x1="0" y1="0" x2="1" y2="1"><stop offset="0" stop-color="${a}"/><stop offset="1" stop-color="${b}"/></linearGradient></defs><rect width="800" height="600" fill="url(#g)"/><text x="400" y="315" font-family="sans-serif" font-size="40" fill="#fff" text-anchor="middle">${t}</text></svg>`);
+  }
+
   const demoPersoon = email => [...voorbeeldVol(), ...alle()].find(x => x.email === email);
   const demoNaam = email => {
     const r = [...voorbeeldVol(), ...alle()].find(x => x.email === email);
@@ -272,6 +302,59 @@ const Data = (() => {
       else if (actie === 'verwijderen') lijst = lijst.filter(x => x !== v);
       schrijf(DEMO_VERHALEN, lijst);
     },
+    async aantalFotos() { return fotosStore().filter(f => f.status === 'geplaatst').length; },
+    async fotos() {
+      const ik = lees(DEMO_SESSIE, null);
+      if (!ik) throw fout('sessie', MELD.sessie);
+      return fotosStore().filter(f => f.status === 'geplaatst' || f.auteur === ik)
+        .sort((a, b) => b.aangemaakt.localeCompare(a.aangemaakt))
+        .map(f => {
+          const p = f.toon_naam && demoPersoon(f.auteur);
+          const n = p ? publiek(p) : {};
+          return { id: f.id, pad: f.pad, titel: f.titel, speltak: f.speltak, jaar: f.jaar, eigen: f.auteur === ik, status: f.status,
+            voornaam: n.voornaam || null, bijnaam: n.bijnaam || null, achternaam: n.achternaam || null, aangemaakt: f.aangemaakt };
+        });
+    },
+    async fotoUrls(paden) { return Object.fromEntries(paden.map(p => [p, demoBestanden.get(p) || plaatje(p)])); },
+    async stuurFotos(items, { speltak = null, jaar = null, toon_naam = true } = {}, voortgang = () => {}) {
+      const ik = lees(DEMO_SESSIE, null);
+      if (!ik) throw fout('sessie', MELD.sessie);
+      const groep = 'demo-g' + Date.now();
+      for (const [i, it] of items.entries()) {
+        const lijst = fotosStore();
+        if (lijst.filter(f => f.auteur === ik).length >= MAX_FOTOS) throw fout('max', MELD.max);
+        voortgang(i);
+        const id = 'demo-' + Date.now() + '-' + i, pad = `demo/${id}`;
+        demoBestanden.set(pad + '.jpg', URL.createObjectURL(it.groot));
+        demoBestanden.set(pad + '-klein.jpg', URL.createObjectURL(it.klein));
+        lijst.push({ id, pad, groep, auteur: ik, titel: it.titel || '', speltak, jaar, toon_naam, status: 'nieuw', aangemaakt: new Date().toISOString() });
+        schrijf(DEMO_FOTOS, lijst);
+      }
+      voortgang(items.length);
+    },
+    async verwijderFoto(id) {
+      schrijf(DEMO_FOTOS, fotosStore().filter(f => !(f.id === id && f.auteur === lees(DEMO_SESSIE, null))));
+    },
+    async meldFoto(id, reden = '') {
+      const lijst = fotosStore(), f = lijst.find(x => x.id === id && x.status === 'geplaatst');
+      if (!f) return;
+      const mij = await this.ik();
+      Object.assign(f, { status: 'gemeld', melding: reden.trim() || null, gemeld_door: mij?.voornaam || lees(DEMO_SESSIE, null),
+        gemeld_op: new Date().toLocaleDateString('sv') });
+      schrijf(DEMO_FOTOS, lijst);
+    },
+    async fotosTeBeoordelen() {
+      return fotosStore().filter(f => f.status === 'nieuw' || f.status === 'gemeld')
+        .sort((a, b) => a.aangemaakt.localeCompare(b.aangemaakt))
+        .map(f => ({ ...f, auteur_naam: demoNaam(f.auteur) || f.auteur }));
+    },
+    async beoordeelFoto(id, actie) {
+      let lijst = fotosStore();
+      if (actie === 'plaatsen') lijst.filter(f => f.id === id).forEach(f => Object.assign(f, { status: 'geplaatst', melding: null, gemeld_door: null, gemeld_op: null }));
+      else if (actie === 'verwijderen') lijst = lijst.filter(f => f.id !== id);
+      schrijf(DEMO_FOTOS, lijst);
+    },
+    async fotoOpslag() { return { geplaatst: await this.aantalFotos(), bytes: fotosStore().length * 400e3 }; },
     async comiteWeghalen(email) {
       schrijf(DEMO_COMITE, comiteLijst().filter(c => !(c.email === norm(email) && c.rol === 'beheerder')));
     },
@@ -343,6 +426,27 @@ const Data = (() => {
     toon_leeftijd: !!rec.toon.leeftijd, toon_takken: !!rec.toon.takken,
   });
 
+  // ---- Supabase Storage (bucket "fotos") ----
+  const BUCKET = SUPABASE_URL + '/storage/v1/object';
+  async function opslag(pad, { method = 'GET', body, token: t, type } = {}) {
+    const h = { apikey: SUPABASE_KEY, Authorization: 'Bearer ' + t };
+    if (type) h['Content-Type'] = type;
+    let r;
+    try { r = await fetch(BUCKET + pad, { method, headers: h, body }); }
+    catch { throw fout('net', MELD.net); }
+    const tekst = await r.text();
+    let data = null;
+    try { data = tekst ? JSON.parse(tekst) : null; } catch { data = tekst; }
+    if (!r.ok) throw Object.assign(new Error(data?.message || data?.error || r.statusText), { status: r.status, data });
+    return data;
+  }
+  const bestanden = paden => paden.flatMap(p => [p + '.jpg', p + '-klein.jpg']);
+  async function wisBestanden(paden, t) {
+    if (!paden.length) return;
+    await opslag('/fotos', { method: 'DELETE', token: t, type: 'application/json', body: JSON.stringify({ prefixes: bestanden(paden) }) }).catch(() => {});
+  }
+  const urlCache = new Map();          // file path -> { url, tot }
+
   const live = {
     async deelnemers() {
       const [totaal, personen] = await Promise.all([
@@ -407,6 +511,8 @@ const Data = (() => {
     // Removes the login itself; the registration goes with it (on delete cascade).
     async uitschrijven() {
       const t = await moetToken();
+      const eigen = await verzoek('/rest/v1/fotos?select=pad', { token: t }).catch(() => []);
+      await wisBestanden(eigen.map(r => r.pad), t);
       await verzoek('/rest/v1/rpc/verwijder_mij', { method: 'POST', token: t, body: {} });
       bewaarSessie(null);
     },
@@ -474,11 +580,82 @@ const Data = (() => {
         body: { verhaal: id, actie, notitie: notitie || null, nieuwe_titel: titel, nieuwe_tekst: tekst } });
     },
 
-    // Removes the registration and its login; optionally blocks the address.
+    // ---- photos ----
+    async aantalFotos() {
+      return await verzoek('/rest/v1/rpc/aantal_fotos', { method: 'POST', body: {} });
+    },
+    async fotos() {
+      const t = await moetToken();
+      return await verzoek('/rest/v1/rpc/fotos_lijst', { method: 'POST', token: t, body: {} });
+    },
+    // Signed links (valid 1 hour) for file paths like '<pad>-klein.jpg'; cached for 50 minutes.
+    async fotoUrls(paden) {
+      const t = await moetToken(), nu = Date.now(), uit = {};
+      const nodig = paden.filter(p => { const c = urlCache.get(p); if (c && c.tot > nu) { uit[p] = c.url; return false; } return true; });
+      for (let i = 0; i < nodig.length; i += 200) {
+        const rows = await opslag('/sign/fotos', { method: 'POST', token: t, type: 'application/json',
+          body: JSON.stringify({ expiresIn: 3600, paths: nodig.slice(i, i + 200) }) });
+        for (const r of rows || []) if (r.signedURL) {
+          const url = SUPABASE_URL + '/storage/v1' + r.signedURL;
+          urlCache.set(r.path, { url, tot: nu + 50 * 60e3 });
+          uit[r.path] = url;
+        }
+      }
+      return uit;
+    },
+    // items: [{ groot, klein (JPEG blobs), breedte, hoogte, titel }]. Row first (checks the
+    // limit of 30), then both files; a failed upload removes the row again.
+    async stuurFotos(items, { speltak = null, jaar = null, toon_naam = true } = {}, voortgang = () => {}) {
+      const t = await moetToken(), uid = sessie().user.id, groep = crypto.randomUUID();
+      for (const [i, it] of items.entries()) {
+        voortgang(i);
+        const id = crypto.randomUUID(), pad = `${uid}/${id}`;
+        await verzoek('/rest/v1/fotos', { method: 'POST', token: t, headers: { Prefer: 'return=minimal' },
+          body: { id, auteur: uid, pad, groep, titel: it.titel || '', speltak, jaar, toon_naam: !!toon_naam, breedte: it.breedte, hoogte: it.hoogte } })
+          .catch(e => { throw e.message === 'max' ? fout('max', MELD.max) : e; });
+        try {
+          await opslag(`/fotos/${pad}.jpg`, { method: 'POST', token: t, type: 'image/jpeg', body: it.groot });
+          await opslag(`/fotos/${pad}-klein.jpg`, { method: 'POST', token: t, type: 'image/jpeg', body: it.klein });
+        } catch (e) {
+          await verzoek(`/rest/v1/fotos?id=eq.${id}`, { method: 'DELETE', token: t }).catch(() => {});
+          await wisBestanden([pad], t);
+          throw fout('upload', MELD.upload);
+        }
+      }
+      voortgang(items.length);
+    },
+    async verwijderFoto(id) {
+      const t = await moetToken();
+      const rows = await verzoek(`/rest/v1/fotos?id=eq.${encodeURIComponent(id)}&select=pad`, { method: 'DELETE', token: t, headers: { Prefer: 'return=representation' } });
+      await wisBestanden(rows.map(r => r.pad), t);
+    },
+    async meldFoto(id, reden = '') {
+      const t = await moetToken();
+      await verzoek('/rest/v1/rpc/meld_foto', { method: 'POST', token: t, body: { foto: id, reden: reden || null } });
+    },
+    async fotosTeBeoordelen() {
+      const t = await moetToken();
+      return await verzoek('/rest/v1/rpc/fotos_te_beoordelen', { method: 'POST', token: t, body: {} });
+    },
+    async beoordeelFoto(id, actie) {
+      const t = await moetToken();
+      const pad = await verzoek('/rest/v1/rpc/beoordeel_foto', { method: 'POST', token: t, body: { foto: id, actie } });
+      if (pad) await wisBestanden([pad], t);
+    },
+    async fotoOpslag() {
+      const t = await moetToken();
+      const rows = await verzoek('/rest/v1/rpc/foto_opslag', { method: 'POST', token: t, body: {} });
+      return rows[0] || { geplaatst: 0, bytes: 0 };
+    },
+
+    // Removes the registration and its login; optionally blocks the address. Photo files go
+    // through the Storage API, after the database agreed (the rows go with the login).
     async verwijder(id, { blokkeer = false, reden = '' } = {}) {
       const t = await moetToken();
+      const paden = await verzoek('/rest/v1/rpc/fotos_van', { method: 'POST', token: t, body: { deelnemer: id } }).catch(() => []);
       await verzoek('/rest/v1/rpc/verwijder_deelnemer', { method: 'POST', token: t, body: { deelnemer: id, blokkeer: !!blokkeer, waarom: reden || null } })
         .catch(e => { throw MELD[e.message] ? fout(e.message, MELD[e.message]) : e; });  // server codes: zelf, comitelid
+      await wisBestanden(paden || [], t);
     },
     async geblokkeerde() {
       const t = await moetToken();

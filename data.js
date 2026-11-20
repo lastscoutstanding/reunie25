@@ -25,7 +25,7 @@
 //
 // Overleg (comité only), as pages get it, newest activity first:
 //   { id, titel, soort: 'vrij' | 'deelnemer' | 'verhaal' | 'foto' | 'pagina', ref, ref_naam,
-//     status: 'open' | 'hot' | 'done', auteur_naam, aangemaakt, bijgewerkt,
+//     status: 'open' | 'hot' | 'done', auteur_naam, eigen (you started it), aangemaakt, bijgewerkt,
 //     berichten: [{ id, auteur_naam, tekst, systeem, eigen, aangemaakt }] }   oldest message first
 //
 // Comité members (beheerders) can also list all registrations and mark payments.
@@ -398,7 +398,7 @@ const Data = (() => {
       const ik = lees(DEMO_SESSIE, null);
       if (!ik) throw fout('sessie', MELD.sessie);
       return overlegStore().map(({ auteur, berichten, ...g }) => ({
-        ...g, berichten: berichten.map(({ auteur: a, ...b }) => ({ ...b, eigen: a === ik })),
+        ...g, eigen: auteur === ik, berichten: berichten.map(({ auteur: a, ...b }) => ({ ...b, eigen: a === ik })),
       })).sort((a, b) => b.bijgewerkt.localeCompare(a.bijgewerkt));
     },
     async startOverleg({ titel, soort = 'vrij', ref = null, ref_naam = null, status = 'open', tekst = '' }) {
@@ -424,6 +424,10 @@ const Data = (() => {
       g.status = status; g.bijgewerkt = nu();
       g.berichten.push({ id: demoId('b'), auteur: ik, auteur_naam: (await this.ik())?.voornaam || ik, tekst: 'zette de status op ' + status, systeem: true, aangemaakt: nu() });
       schrijf(DEMO_OVERLEG, lijst);
+    },
+    async verwijderOverleg(id) {     // DEMO: logged in = hoofdbeheerder, so any conversation
+      if (!lees(DEMO_SESSIE, null)) return;
+      schrijf(DEMO_OVERLEG, overlegStore().filter(g => g.id !== id));
     },
     async verwijderBericht(id) {
       const ik = lees(DEMO_SESSIE, null), lijst = overlegStore();
@@ -736,10 +740,10 @@ const Data = (() => {
     // ---- overleg ----
     async overleg() {
       const t = await moetToken(), ik = sessie()?.user?.id;
-      const rijen = await verzoek('/rest/v1/gesprekken?select=id,titel,soort,ref,ref_naam,status,auteur_naam,aangemaakt,bijgewerkt,'
+      const rijen = await verzoek('/rest/v1/gesprekken?select=id,titel,soort,ref,ref_naam,status,auteur,auteur_naam,aangemaakt,bijgewerkt,'
         + 'berichten(id,auteur,auteur_naam,tekst,systeem,aangemaakt)&order=bijgewerkt.desc', { token: t });
-      return rijen.map(g => ({
-        ...g, berichten: g.berichten.sort((a, b) => a.aangemaakt.localeCompare(b.aangemaakt))
+      return rijen.map(({ auteur, ...g }) => ({
+        ...g, eigen: auteur === ik, berichten: g.berichten.sort((a, b) => a.aangemaakt.localeCompare(b.aangemaakt))
           .map(({ auteur, ...b }) => ({ ...b, eigen: auteur === ik })),
       }));
     },
@@ -755,6 +759,12 @@ const Data = (() => {
     async zetOverlegStatus(gesprek, status) {
       const t = await moetToken();
       await verzoek(`/rest/v1/gesprekken?id=eq.${encodeURIComponent(gesprek)}`, { method: 'PATCH', token: t, headers: { Prefer: 'return=minimal' }, body: { status } });
+    },
+    // Your own conversation, or any as hoofdbeheerder; the database checks that.
+    async verwijderOverleg(id) {
+      const t = await moetToken();
+      const weg = await verzoek(`/rest/v1/gesprekken?id=eq.${encodeURIComponent(id)}`, { method: 'DELETE', token: t, headers: { Prefer: 'return=representation' } });
+      if (!weg?.length) throw fout('recht', 'Dit gesprek kan alleen worden verwijderd door wie het startte, of door een hoofdbeheerder.');
     },
     async verwijderBericht(id) {
       const t = await moetToken();

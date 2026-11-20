@@ -55,6 +55,7 @@
       <div class="seg" id="ov-filter"></div>
       <button class="btn" type="button" id="ov-nieuw" style="padding:7px 16px;font-size:15px">+ Nieuw overleg</button>
     </div>
+    <p class="summary" id="ov-over" hidden></p>
     <p class="muted" id="ov-laden">Laden…</p>
     <div class="ov-wrap" id="ov-wrap" hidden>
       <div class="ov-lijst" id="ov-lijst"></div>
@@ -465,6 +466,12 @@
   const FILTERS = [['niet-af', 'Niet af', g => g.status !== 'done'], ['hot', 'Hot', g => g.status === 'hot'],
                    ['done', 'Done', g => g.status === 'done'], ['alles', 'Alles', () => true]];
   let gekozen = null, ovFilter = 'niet-af';
+  // Only the conversations about one item (link "2 gesprekken" next to it): beheer.html?over=foto:<id>
+  let over = (() => {
+    const v = new URLSearchParams(location.search).get('over'), i = v ? v.indexOf(':') : -1;
+    return i > 0 ? { soort: v.slice(0, i), ref: v.slice(i + 1) } : null;
+  })();
+  const hoort = g => !over || (g.soort === over.soort && g.ref === over.ref);
 
   const tijd = t => {
     const d = new Date(t), vandaag = new Date().toDateString() === d.toDateString();
@@ -490,7 +497,10 @@
   }
 
   function toonOverleg() {
-    const alle = Overleg.lijst();
+    const alle = Overleg.lijst().filter(hoort);
+    const eerste = alle[0];
+    $('ov-over').hidden = !over;
+    if (over) $('ov-over').innerHTML = `Alleen over: <span class="ond">${E(Overleg.onderwerp(over.soort, eerste?.ref_naam))}</span> · <button class="linkbtn" type="button" id="ov-over-weg">alles tonen</button>`;
     toonHot();
     $('ov-filter').innerHTML = FILTERS.map(([k, label, f]) =>
       `<button type="button" data-f="${k}" class="${k === ovFilter ? 'on' : ''}">${label} (${alle.filter(f).length})</button>`).join('');
@@ -506,7 +516,7 @@
         <div class="rij2">${Overleg.status(g.status)}<span class="ond">${E(Overleg.onderwerp(g.soort, g.ref_naam))}</span>
           <span>· ${g.berichten.filter(b => !b.systeem).length} · ${tijd(g.bijgewerkt)}</span></div>
       </button>`;
-    }).join('') || `<p class="muted" style="margin:0">${alle.length ? 'Niets in deze lijst.' : 'Nog geen overleg. Start er een met "+ Nieuw overleg", of met 💬 bij een deelnemer, verhaal, foto of pagina.'}</p>`;
+    }).join('') || `<p class="muted" style="margin:0">${alle.length || over ? 'Niets in deze lijst.' : 'Nog geen overleg. Start er een met "+ Nieuw overleg", of met 💬 bij een deelnemer, verhaal, foto of pagina.'}</p>`;
     toonGesprek();
   }
 
@@ -517,7 +527,8 @@
     zetGezien(g);
     $('ov-gesprek').innerHTML = `<div class="kop">
         <div><h2>${E(g.titel)}</h2>${onderwerpLink(g)}
-          <div class="muted" style="font-size:13px;margin-top:4px">Gestart door ${E(g.auteur_naam || '?')}, ${tijdLang(g.aangemaakt)}</div></div>
+          <div class="muted" style="font-size:13px;margin-top:4px">Gestart door ${g.eigen ? 'jou' : E(g.auteur_naam || '?')}, ${tijdLang(g.aangemaakt)}${g.eigen || rol === 'hoofdbeheerder'
+            ? ` · <button class="linkbtn" type="button" data-weg-gesprek="${E(g.id)}" style="font-size:13px">gesprek verwijderen</button>` : ''}</div></div>
         <div class="statusknop">${['hot', 'open', 'done'].map(s => `<button type="button" data-status="${s}" class="${g.status === s ? 'on' : ''}">${s[0].toUpperCase() + s.slice(1)}</button>`).join('')}</div>
       </div>
       <div class="berichten">${g.berichten.map(b => b.systeem
@@ -545,6 +556,12 @@
     catch (err) { $('ov-fout').textContent = 'Dat lukte niet: ' + err.message; $('ov-fout').hidden = false; if (knop) knop.disabled = false; }
   }
 
+  $('ov-over').addEventListener('click', e => {
+    if (e.target.id !== 'ov-over-weg') return;
+    over = null;
+    history.replaceState(null, '', location.pathname + (gekozen ? '#overleg-' + gekozen : '#overleg'));
+    toonOverleg();
+  });
   $('ov-filter').addEventListener('click', e => {
     const b = e.target.closest('button[data-f]');
     if (b) { ovFilter = b.dataset.f; toonOverleg(); }
@@ -558,6 +575,13 @@
   $('ov-nieuw').addEventListener('click', () => Overleg.start());
   $('ov-gesprek').addEventListener('click', e => {
     const s = e.target.closest('button[data-status]'), weg = e.target.closest('button[data-weg-bericht]'), d = e.target.closest('button[data-naar-deelnemer]');
+    const wegG = e.target.closest('button[data-weg-gesprek]');
+    if (wegG) {
+      const g = Overleg.lijst().find(x => x.id === wegG.dataset.wegGesprek), n = g.berichten.filter(b => !b.systeem).length;
+      if (confirm(`"${g.titel}"${n ? ` met ${n === 1 ? 'het bericht' : `alle ${n} berichten`}` : ''} verwijderen? Dit kan niet ongedaan worden gemaakt.`)) {
+        ovActie(async () => { await Data.verwijderOverleg(g.id); gekozen = null; }, wegG);
+      }
+    }
     if (s && !s.classList.contains('on')) ovActie(() => Data.zetOverlegStatus(gekozen, s.dataset.status), s);
     if (weg && confirm('Dit bericht verwijderen?')) ovActie(() => Data.verwijderBericht(weg.dataset.wegBericht), weg);
     if (d) {

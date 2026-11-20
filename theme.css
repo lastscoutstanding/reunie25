@@ -308,6 +308,8 @@ button.ond { font: inherit; font-size: 12.5px; border: 0; cursor: pointer; }
 .praat { display: inline-flex; gap: 5px; align-items: center; font: inherit; font-size: 13px; color: var(--brand); background: transparent;
          border: 1px dashed var(--brand); border-radius: 999px; padding: 2px 10px; cursor: pointer; text-decoration: none; white-space: nowrap; }
 .praat .st { font-size: 11px; padding: 0 7px; }
+.praat-groep { display: inline-flex; gap: 4px; align-items: center; }
+.praat.plus { padding: 2px 9px; font-weight: 700; }
 .paginavoet { max-width: 960px; margin: -36px auto 0; padding: 0 16px 20px; font-size: 13.5px; color: var(--muted);
               display: flex; gap: 10px; align-items: center; justify-content: center; flex-wrap: wrap; }
 

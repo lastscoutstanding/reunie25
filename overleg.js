@@ -24,18 +24,22 @@ const Overleg = (() => {
   const onderwerp = (soort, naam) => `${PICTO[soort] || '💬'} ${soort === 'vrij' ? SOORT.vrij : `${SOORT[soort]}: ${naam || '?'}`}`;
   const status = s => `<span class="st ${E(s)}">${E(s)}</span>`;
 
-  // The conversation about an item: an open one first, else the latest.
-  const over = (soort, ref) => {
-    const bij = lijst.filter(g => g.soort === soort && g.ref === String(ref));
-    return bij.find(g => g.status !== 'done') || bij[0] || null;
-  };
+  // Conversations about an item that are still running (not done): hot first, then newest.
+  const lopend = (soort, ref) => lijst.filter(g => g.soort === soort && g.ref === String(ref) && g.status !== 'done')
+    .sort((a, b) => (a.status === 'hot' ? 0 : 1) - (b.status === 'hot' ? 0 : 1) || b.bijgewerkt.localeCompare(a.bijgewerkt));
 
-  // Button for an item: '' for non-comité (or before klaar).
+  // Button for an item: '' for non-comité (or before klaar). No running conversation: start one.
+  // One: a link to it. More: a link to Overleg filtered on this item. Both with "+" for a new one.
   function knop(soort, ref, naam, tekst = 'Bespreek') {
     if (!comite) return '';
-    const g = over(soort, ref);
-    return g ? `<a class="praat" href="beheer.html#overleg-${E(g.id)}" title="${E(g.titel)}">💬 Overleg ${status(g.status)}</a>`
-      : `<button type="button" class="praat" data-ov-soort="${E(soort)}" data-ov-ref="${E(ref)}" data-ov-naam="${E(naam || '')}">💬 ${E(tekst)}</button>`;
+    const start = (label, titel, cls = '') => `<button type="button" class="praat${cls}" title="${titel}" data-ov-soort="${E(soort)}" data-ov-ref="${E(ref)}" data-ov-naam="${E(naam || '')}">${label}</button>`;
+    const l = lopend(soort, ref);
+    if (!l.length) return start(`💬 ${E(tekst)}`, 'Overleg starten');
+    const [href, label, titel] = l.length === 1
+      ? [`beheer.html#overleg-${E(l[0].id)}`, `💬 Overleg ${status(l[0].status)}`, E(l[0].titel)]
+      : [`beheer.html?over=${encodeURIComponent(soort + ':' + ref)}#overleg`,
+         `💬 ${l.length} gesprekken${l.some(g => g.status === 'hot') ? ' ' + status('hot') : ''}`, 'Alle lopende gesprekken hierover'];
+    return `<span class="praat-groep"><a class="praat" href="${href}" title="${titel}">${label}</a>${start('+', 'Nieuw gesprek hierover', ' plus')}</span>`;
   }
 
   // ---- dialog "Nieuw overleg" ----

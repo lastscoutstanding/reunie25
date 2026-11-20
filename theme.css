@@ -176,6 +176,14 @@ footer a { color: inherit; }
 
 /* Beheer: tabs, comité list and the rights table */
 .tabs { margin: 0 0 16px; }
+/* Phones: segmented buttons a bit smaller and on one line; tabs in rows of two, so all
+   of them are visible and the page never scrolls sideways */
+@media (max-width: 600px) {
+  .seg { max-width: 100%; }
+  .seg button { padding: 7px 10px; font-size: 15px; white-space: nowrap; }
+  .seg.tabs { display: grid; grid-template-columns: 1fr 1fr; width: 100%; border-radius: 14px; }
+  .seg.tabs .vlag { margin-left: 4px; }
+}
 .pill.hoofd { background: var(--brand); color: #fff; }
 .toevoegen { display: flex; gap: 10px; flex-wrap: wrap; align-items: end; margin-top: 12px; }
 .toevoegen label { flex: 1 1 220px; }

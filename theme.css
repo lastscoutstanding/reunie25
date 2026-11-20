@@ -229,6 +229,13 @@ dialog.lightbox::backdrop { background: rgba(0, 0, 0, .8); }
 .lb-info { display: flex; justify-content: space-between; gap: 10px; flex-wrap: wrap; margin-top: 10px; font-size: 14px; }
 .lb-info .chip { background: rgba(255, 255, 255, .12); border-radius: 6px; padding: 1px 7px; font-size: 12.5px; margin-right: 4px; }
 .lb-info .zacht, .lb-info #lb-nr, .lb-info .linkbtn { color: #aab3c5; }
+.lb-form { display: flex; flex-wrap: wrap; gap: 8px; align-items: center; }
+.lb-form input { flex: 1 1 200px; width: auto; }
+.lb-form select { flex: 0 1 auto; width: auto; }
+.lb-form input, .lb-form select { padding: 6px 8px; font-size: 14px; }
+.lb-form .btn { padding: 6px 14px; font-size: 14px; }
+.lb-form .err { flex-basis: 100%; margin: 0; }
+.lb-info > div:first-child { flex: 1 1 auto; }
 .fotogrid.beoordeel .tegel { cursor: default; }
 .fotogrid.beoordeel .knoppen { display: flex; gap: 6px; flex-wrap: wrap; padding: 0 8px 8px; }
 .fotogrid.beoordeel .btn, .groepkop .btn { padding: 5px 10px; font-size: 13px; }

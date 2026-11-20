@@ -273,6 +273,8 @@
 
   const MAX = 30;
   let fotos = null, zichtbaar = [], urls = {}, lbIndex = 0, keuzes = [];
+  let comite = false;      // comité members may change the details of any photo
+  if (Data.ingelogd()) Data.beheerder().then(ja => { comite = ja; }).catch(() => {});
   const fotoLabel = { nieuw: 'binnenkort', gemeld: 'tijdelijk verborgen' };
 
   function toonFotos() {
@@ -308,8 +310,9 @@
     const chips = [f.speltak, f.jaar].filter(Boolean).map(c => `<span class="chip">${E(c)}</span>`).join('');
     $('lb-tekst').innerHTML = `${f.titel ? `<b>${E(f.titel)}</b><br>` : ''}${chips} <span class="zacht">gedeeld door ${E(f.eigen ? 'jou' : Reunie.naam(f) || 'een oud-lid')}</span>`;
     $('lb-nr').textContent = `${lbIndex + 1} / ${zichtbaar.length}`;
-    $('lb-actie').innerHTML = f.eigen ? `<button class="linkbtn" type="button" id="lb-weg">Verwijderen</button>`
-      : `<button class="linkbtn" type="button" id="lb-meld">Sta jij hierop en wil je dat niet? Meld het</button>`;
+    const aanpassen = f.eigen || comite ? `<button class="linkbtn" type="button" id="lb-bewerk">Aanpassen</button> ` : '';
+    $('lb-actie').innerHTML = aanpassen + (f.eigen ? `<button class="linkbtn" type="button" id="lb-weg">Verwijderen</button>`
+      : `<button class="linkbtn" type="button" id="lb-meld">Sta jij hierop en wil je dat niet? Meld het</button>`);
     $('lb-vorige').hidden = $('lb-volgende').hidden = zichtbaar.length < 2;
     if (!$('lb').open) $('lb').showModal();
     if (!urls[groot]) Object.assign(urls, await Data.fotoUrls([groot]).catch(() => ({})));
@@ -321,6 +324,7 @@
   $('lb-sluit').addEventListener('click', () => $('lb').close());
   $('lb').addEventListener('click', e => { if (e.target === $('lb')) $('lb').close(); });   // click beside the photo
   $('lb').addEventListener('keydown', e => {
+    if (e.target.closest('form')) return;      // typing in the edit form
     if (e.key === 'ArrowLeft') toonGroot(lbIndex - 1);
     if (e.key === 'ArrowRight') toonGroot(lbIndex + 1);
   });
@@ -334,6 +338,7 @@
   $('lb-actie').addEventListener('click', async e => {
     const f = zichtbaar[lbIndex];
     if (e.target.id === 'lb-meld') meld('foto', f.id);
+    if (e.target.id === 'lb-bewerk') bewerkFoto(f);
     if (e.target.id === 'lb-weg') {
       if (!confirm('Deze foto verwijderen? Dat kan niet ongedaan worden gemaakt.')) return;
       e.target.disabled = true;
@@ -341,6 +346,37 @@
       catch (err) { alert('Verwijderen lukte niet: ' + err.message); e.target.disabled = false; }
     }
   });
+
+  // ---- change title, speltak and year (the photo itself stays, so no new review) ----
+  function bewerkFoto(f) {
+    $('lb-tekst').innerHTML = `<form class="lb-form" id="lb-form" novalidate>
+        <input id="lb-titel" maxlength="80" placeholder="Titel" aria-label="Titel" value="${E(f.titel)}">
+        <select id="lb-speltak" aria-label="Speltak">${$('fu-speltak').innerHTML}</select>
+        <select id="lb-jaar" aria-label="Jaar">${$('fu-jaar').innerHTML}</select>
+        <button class="btn" type="submit">Opslaan</button>
+        <button class="linkbtn" type="button" id="lb-terug">Annuleren</button>
+        <span class="err" id="lb-fout" hidden></span>
+      </form>`;
+    $('lb-speltak').value = f.speltak || ''; $('lb-jaar').value = f.jaar || '';
+    $('lb-actie').innerHTML = '';
+    $('lb-titel').focus();
+    $('lb-terug').addEventListener('click', () => toonGroot(lbIndex));
+    $('lb-form').addEventListener('submit', async e => {
+      e.preventDefault();
+      const nieuw = { titel: $('lb-titel').value.trim(), speltak: $('lb-speltak').value || null, jaar: +$('lb-jaar').value || null };
+      e.submitter.disabled = true;
+      try {
+        await Data.bewerkFoto(f.id, nieuw);
+        Object.assign(f, nieuw);
+        toonFotos();
+        const i = zichtbaar.indexOf(f);    // a filter may hide it now
+        i >= 0 ? toonGroot(i) : $('lb').close();
+      } catch (err) {
+        $('lb-fout').textContent = 'Opslaan lukte niet: ' + err.message; $('lb-fout').hidden = false;
+        e.submitter.disabled = false;
+      }
+    });
+  }
 
   // ---- sharing: resize in the browser (also drops location and other hidden data) ----
   async function verklein(bestand, max) {

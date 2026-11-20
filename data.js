@@ -335,6 +335,12 @@ const Data = (() => {
     async verwijderFoto(id) {
       schrijf(DEMO_FOTOS, fotosStore().filter(f => !(f.id === id && f.auteur === lees(DEMO_SESSIE, null))));
     },
+    async bewerkFoto(id, { titel = '', speltak = null, jaar = null }) {
+      const ik = lees(DEMO_SESSIE, null), lijst = fotosStore(), f = lijst.find(x => x.id === id);
+      if (!ik || !f) return;   // in DEMO the logged-in user is a beheerder, so any photo may change
+      Object.assign(f, { titel: titel.trim().slice(0, 80), speltak: speltak || null, jaar: jaar || null });
+      schrijf(DEMO_FOTOS, lijst);
+    },
     async meldFoto(id, reden = '') {
       const lijst = fotosStore(), f = lijst.find(x => x.id === id && x.status === 'geplaatst');
       if (!f) return;
@@ -628,6 +634,10 @@ const Data = (() => {
       const t = await moetToken();
       const rows = await verzoek(`/rest/v1/fotos?id=eq.${encodeURIComponent(id)}&select=pad`, { method: 'DELETE', token: t, headers: { Prefer: 'return=representation' } });
       await wisBestanden(rows.map(r => r.pad), t);
+    },
+    async bewerkFoto(id, { titel = '', speltak = null, jaar = null }) {
+      const t = await moetToken();
+      await verzoek('/rest/v1/rpc/bewerk_foto', { method: 'POST', token: t, body: { foto: id, titel, speltak, jaar } });
     },
     async meldFoto(id, reden = '') {
       const t = await moetToken();

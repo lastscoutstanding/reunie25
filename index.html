@@ -29,6 +29,10 @@
       <p style="margin-top:16px"><small class="muted">Ken je iemand van vroeger? Stuur deze pagina door.</small></p>
     </div>
   </div>
+  <section class="nieuwst" id="nieuwst" hidden>
+    <h2>Nieuw bij Herinneringen</h2>
+    <div id="nieuwst-in"></div>
+  </section>
   <div class="grid3">
     <a class="card" href="programma.html"><h2>Programma</h2><p class="muted" style="margin:0">Tijden en wat je mee moet nemen.</p></a>
     <a class="card" href="deelnemers.html"><h2>Wie komen er?</h2><p class="muted" style="margin:0">Zoek oud-leden en leiding per speltak en jaar.</p></a>
@@ -66,6 +70,40 @@
     });
     if (totaal > toon.length) toon.push(`<a href="deelnemers.html">+ ${totaal - toon.length}</a>`);
     $('faces').innerHTML = toon.join('');
+  })();
+
+  // The newest story and photo. Memories are for participants only; others get a teaser.
+  (async () => {
+    const E = Reunie.esc;
+    const blok = html => { $('nieuwst-in').innerHTML = html; $('nieuwst').hidden = false; };
+    const mag = Data.ingelogd() && await Data.magVerhalen().catch(() => false);
+    if (!mag) {
+      const [v, f] = await Promise.all([Data.aantalVerhalen().catch(() => 0), Data.aantalFotos().catch(() => 0)]);
+      const delen = [v && `${v} ${v === 1 ? 'verhaal' : 'verhalen'}`, f && `${f} ${f === 1 ? 'foto' : "foto's"}`].filter(Boolean);
+      if (!delen.length) return;
+      return blok(`<a class="card" href="herinneringen.html"><h3>Al ${delen.join(' en ')} van vroeger gedeeld!</h3>
+        <p class="kort muted">Herinneringen zijn er voor de deelnemers van de reünie. ${Data.ingelogd() ? 'Maak je inschrijving af' : 'Schrijf je in of log in'} om ze te bekijken.</p>
+        <span class="verder">Naar Herinneringen →</span></a>`);
+    }
+    const [verhalen, fotos] = await Promise.all([Data.verhalen().catch(() => []), Data.fotos().catch(() => [])]);
+    const v = verhalen.find(x => x.status === 'geplaatst'), f = fotos.find(x => x.status === 'geplaatst');
+    const door = x => `gedeeld door ${E(x.eigen ? 'jou' : Reunie.naam(x) || 'een oud-lid')}`;
+    const kaarten = [];
+    if (v) {
+      const tekst = v.tekst.replace(/\s+/g, ' ');
+      const kort = tekst.length > 200 ? tekst.slice(0, 180).replace(/\s+\S*$/, '') + '…' : tekst;
+      kaarten.push(`<a class="card" href="herinneringen.html#verhaal-${E(v.id)}"><p class="soort">Verhaal</p>
+        <h3>${E(v.titel)}</h3><p class="door">${door(v)}</p><p class="kort">${E(kort)}</p><span class="verder">Lees het verhaal →</span></a>`);
+    }
+    if (f) {
+      const klein = f.pad + '-klein.jpg';
+      const url = (await Data.fotoUrls([klein]).catch(() => ({})))[klein] || '';
+      kaarten.push(`<a class="card" href="herinneringen.html#foto-${E(f.id)}"><p class="soort">Foto</p><div class="foto">
+        <img src="${E(url)}" alt="${E(f.titel)}"><div>${f.titel ? `<h3>${E(f.titel)}</h3>` : ''}
+        <p class="door">${E([f.speltak, f.jaar].filter(Boolean).join(' · '))}${f.speltak || f.jaar ? '<br>' : ''}${door(f)}</p>
+        <span class="verder">Bekijk de foto →</span></div></div></a>`);
+    }
+    if (kaarten.length) blok(`<div class="${kaarten.length > 1 ? 'two' : ''}">${kaarten.join('')}</div>`);
   })();
 </script>
 </body>

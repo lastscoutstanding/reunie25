@@ -157,7 +157,7 @@
     const acties = v.eigen
       ? `<button class="linkbtn" type="button" data-bewerk="${E(v.id)}">Aanpassen</button><button class="linkbtn" type="button" data-weg="${E(v.id)}">Verwijderen</button>`
       : `<button class="linkbtn zacht" type="button" data-meld="${E(v.id)}">Sta jij hierin en wil je dat niet? Meld het</button>`;
-    return `<article class="verhaal${v.eigen ? ' eigen' : ''}">
+    return `<article class="verhaal${v.eigen ? ' eigen' : ''}" id="verhaal-${E(v.id)}">
       <h3>${E(v.titel)}</h3>
       <div class="meta">${chips} gedeeld door ${E(door(v))}${v.eigen && LABEL[v.status] ? ' · ' + LABEL[v.status] : ''}</div>
       ${v.eigen && v.status === 'afgewezen' ? `<p class="note">${v.toelichting ? `Opmerking: ${E(v.toelichting)}<br>` : ''}Pas je verhaal aan om het opnieuw in te sturen.</p>` : ''}
@@ -467,6 +467,22 @@
     $('buiten').hidden = false;
   }
 
+  // Link from the home page: #verhaal-<id> opens and shows that story, #foto-<id> that photo.
+  // Read before tab() rewrites the address.
+  const DOEL = /^#(verhaal|foto)-[\w-]+$/.test(location.hash) ? location.hash.slice(1) : '';
+  async function naarDoel() {
+    if (DOEL.startsWith('verhaal-')) {
+      open.add(DOEL.slice(8)); toon();
+      const el = document.getElementById(DOEL);
+      if (el) { el.scrollIntoView({ block: 'center' }); el.classList.add('gevonden'); }
+    } else if (DOEL.startsWith('foto-')) {
+      await laadFotos();
+      tab('fotos');
+      const i = zichtbaar.findIndex(f => f.id === DOEL.slice(5));
+      if (i >= 0) toonGroot(i);
+    }
+  }
+
   (async () => {
     await Reunie.laadSpeltakken();
     const takken = Reunie.takken().map(t => `<option>${E(t.naam)}</option>`).join('');
@@ -492,6 +508,7 @@
       }
     } catch (err) { $('laden').textContent = err.message; return; }
     $('laden').hidden = true;
+    if (DOEL && !$('binnen').hidden) naarDoel();
   })();
 </script>
 </body>

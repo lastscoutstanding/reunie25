@@ -152,6 +152,13 @@ table.lijst { border-collapse: collapse; font-size: 14px; width: 100%; }
 .lijst td .linkbtn { text-align: left; font-weight: 600; }
 .lijst tr.meer td { background: var(--bg); font-size: 13.5px; }
 .lijst .check { font-size: 14px; white-space: nowrap; }
+.lijst .mail { overflow-wrap: anywhere; }
+/* Phones: the registration date moves under the e-mail address, so the name gets room */
+.lijst .klein-sinds { display: none; }
+@media (max-width: 600px) {
+  .lijst .kol-sinds { display: none; }
+  .lijst .klein-sinds { display: block; }
+}
 
 /* text pages (programma, vragen, privacy) */
 .prog { display: grid; grid-template-columns: auto 1fr; gap: 6px 18px; margin: 0; }

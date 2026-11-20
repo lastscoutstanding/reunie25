@@ -31,7 +31,7 @@
     <p class="summary" id="telling"></p>
     <div class="scroll">
       <table class="lijst">
-        <thead><tr><th>Naam</th><th>E-mail</th><th>Ingeschreven</th><th>Betaald</th></tr></thead>
+        <thead><tr><th>Naam en e-mail</th><th class="kol-sinds">Ingeschreven</th><th>Betaald</th></tr></thead>
         <tbody id="rijen"></tbody>
       </table>
     </div>
@@ -145,7 +145,7 @@
 
   function details(r) {
     const toont = Object.keys(TOON).filter(k => r.toon[k] && (k !== 'bijnaam' || r.bijnaam) && (k !== 'achternaam' || r.achternaam)).map(k => TOON[k]);
-    return `<tr class="meer"><td colspan="4">
+    return `<tr class="meer"><td colspan="3">
       Geboren in ${r.geboortejaar} (${Reunie.leeftijd(r.geboortejaar)} in ${Reunie.DATUM.getFullYear()})<br>
       ${r.takken.length ? r.takken.map(t => E(takTekst(t))).join(' · ') : '<span class="muted">geen speltakken ingevuld</span>'}<br>
       <span class="muted">Op "Wie komen er?": ${toont.length ? toont.join(', ') : 'niets'}</span>
@@ -172,11 +172,11 @@
     const rijen = gefilterd();
     $('telling').innerHTML = q || f ? `<b>${rijen.length}</b> van de ${lijst.length} gevonden` : '';
     $('rijen').innerHTML = rijen.map(r => `<tr>
-        <td><button class="linkbtn" data-id="${E(r.id)}" aria-expanded="${open.has(r.id)}">${E(volNaam(r))}</button>${isNieuw(r) ? ' <span class="pill nieuw">nieuw</span>' : ''}</td>
-        <td>${E(r.email)}</td><td>${datum(r.sinds)}</td>
+        <td><button class="linkbtn" data-id="${E(r.id)}" aria-expanded="${open.has(r.id)}">${E(volNaam(r))}</button>${isNieuw(r) ? ' <span class="pill nieuw">nieuw</span>' : ''}<br><small class="muted mail">${E(r.email).replace('@', '@<wbr>')}</small><small class="muted klein-sinds">ingeschreven ${datum(r.sinds)}</small></td>
+        <td class="kol-sinds">${datum(r.sinds)}</td>
         <td><label class="check"><input type="checkbox" data-betaald="${E(r.id)}"${r.betaald ? ' checked' : ''}> ${r.betaald ? datum(r.betaald) : 'nee'}</label></td>
       </tr>${open.has(r.id) ? details(r) : ''}`).join('')
-      || '<tr><td colspan="4" class="muted">Niemand gevonden.</td></tr>';
+      || '<tr><td colspan="3" class="muted">Niemand gevonden.</td></tr>';
   }
 
   function tegels() {

@@ -201,7 +201,10 @@
   $('rijen').addEventListener('click', e => {
     const id = e.target.closest('button[data-id]')?.dataset.id;
     if (!id) return;
-    open.has(id) ? open.delete(id) : open.add(id);
+    // One participant open at a time: opening another closes the previous one.
+    const was = open.has(id);
+    open.clear();
+    if (!was) open.add(id);
     toon();
   });
 
@@ -585,7 +588,7 @@
     if (s && !s.classList.contains('on')) ovActie(() => Data.zetOverlegStatus(gekozen, s.dataset.status), s);
     if (weg && confirm('Dit bericht verwijderen?')) ovActie(() => Data.verwijderBericht(weg.dataset.wegBericht), weg);
     if (d) {
-      open.add(d.dataset.naarDeelnemer); $('zoek').value = ''; $('filter').value = '';
+      open.clear(); open.add(d.dataset.naarDeelnemer); $('zoek').value = ''; $('filter').value = '';
       tab('inschrijvingen'); toon();
       document.querySelector(`button[data-id="${CSS.escape(d.dataset.naarDeelnemer)}"]`)?.scrollIntoView({ block: 'center' });
     }

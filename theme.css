@@ -4,11 +4,13 @@
   --bg: #f4f6fb; --card: #ffffff; --ink: #1d2433; --muted: #5f6b80;
   --brand: #2c4696; --accent: #f2b705; --red: #d22f27; --line: #dde3ef;
   --chip: #e7ecf7; --head: #2c4696; --radius: 14px;
+  --pijl: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='12' height='8'%3E%3Cpath d='M1 1.5l5 5 5-5' fill='none' stroke='%235f6b80' stroke-width='1.8' stroke-linecap='round' stroke-linejoin='round'/%3E%3C/svg%3E");
 }
 @media (prefers-color-scheme: dark) {
   :root {
     --bg: #11151f; --card: #1a2030; --ink: #e8ecf5; --muted: #98a2b8;
     --brand: #8ea8ec; --red: #f0665e; --line: #2a3247; --chip: #222b40; --head: #1f3270;
+    --pijl: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='12' height='8'%3E%3Cpath d='M1 1.5l5 5 5-5' fill='none' stroke='%2398a2b8' stroke-width='1.8' stroke-linecap='round' stroke-linejoin='round'/%3E%3C/svg%3E");
   }
 }
 * { box-sizing: border-box; }
@@ -63,6 +65,10 @@ form { display: grid; gap: 14px; }
 label { font-weight: 600; font-size: 15px; display: grid; gap: 4px; }
 input, select { font: inherit; padding: 10px 12px; border-radius: 10px; border: 1px solid var(--line); background: var(--bg); color: var(--ink); width: 100%; }
 input[readonly] { opacity: .7; }
+/* Drop-down lists get the same look as the text fields; Safari otherwise draws its own glossy one. */
+select { -webkit-appearance: none; appearance: none; padding-right: 34px; cursor: pointer;
+         background-image: var(--pijl); background-repeat: no-repeat; background-position: right 12px center; background-size: 12px 8px; }
+select:disabled { cursor: default; opacity: .6; }
 .two { display: grid; grid-template-columns: 1fr 1fr; gap: 14px; }
 fieldset { border: 1px solid var(--line); border-radius: 12px; padding: 12px 14px; margin: 0; }
 legend { font-weight: 600; padding: 0 6px; }
@@ -233,6 +239,7 @@ dialog.lightbox::backdrop { background: rgba(0, 0, 0, .8); }
 .lb-form input { flex: 1 1 200px; width: auto; }
 .lb-form select { flex: 0 1 auto; width: auto; }
 .lb-form input, .lb-form select { padding: 6px 8px; font-size: 14px; }
+.lb-form select { padding-right: 26px; background-position: right 8px center; }
 .lb-form .btn { padding: 6px 14px; font-size: 14px; }
 .lb-form .err { flex-basis: 100%; margin: 0; }
 .lb-info > div:first-child { flex: 1 1 auto; }

@@ -55,5 +55,5 @@
   document.head.appendChild(icon);
 
   $('voet').innerHTML = `Reünie 25 jaar Scouting Brandevoort · zondag 23 mei 2027 · blokhut de Brandnetel, Helmond<br>
-    <a href="privacy.html">Privacy</a> · geen cookies, geen tracking · Scobra, sinds 2001`;
+    <a href="privacy.html">Privacy</a> · <a href="over.html">Over deze site</a> · geen cookies, geen tracking · Scobra, sinds 2001`;
 })();

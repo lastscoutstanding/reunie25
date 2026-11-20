@@ -301,7 +301,8 @@ a.person:hover { background: color-mix(in srgb, var(--accent) 12%, var(--card));
 .st.hot { background: #ffd9d6; color: #9b1c14; }
 .st.open { background: var(--chip); color: var(--brand); }
 .st.done { background: #dcf1df; color: #1e6b2c; }
-.ond { display: inline-flex; gap: 4px; align-items: center; background: var(--chip); border-radius: 6px; padding: 1px 7px; font-size: 12.5px; color: var(--ink); text-decoration: none; }
+/* Subject label: wraps like text, so a long photo title never widens a window or column */
+.ond { display: inline-block; max-width: 100%; overflow-wrap: anywhere; background: var(--chip); border-radius: 6px; padding: 1px 7px; font-size: 12.5px; color: var(--ink); text-decoration: none; text-align: left; }
 a.ond:hover, button.ond:hover { text-decoration: underline; }
 button.ond { font: inherit; font-size: 12.5px; border: 0; cursor: pointer; }
 .praat { display: inline-flex; gap: 5px; align-items: center; font: inherit; font-size: 13px; color: var(--brand); background: transparent;
@@ -311,9 +312,10 @@ button.ond { font: inherit; font-size: 12.5px; border: 0; cursor: pointer; }
               display: flex; gap: 10px; align-items: center; justify-content: center; flex-wrap: wrap; }
 
 /* Overleg tab on Beheer: list + conversation */
-.ov-wrap { display: grid; grid-template-columns: 340px 1fr; gap: 16px; align-items: start; margin-top: 14px; }
-@media (max-width: 760px) { .ov-wrap { grid-template-columns: 1fr; } }
-.ov-lijst { display: grid; gap: 8px; }
+.ov-wrap { display: grid; grid-template-columns: 340px minmax(0, 1fr); gap: 16px; align-items: start; margin-top: 14px; }
+@media (max-width: 760px) { .ov-wrap { grid-template-columns: minmax(0, 1fr); } }
+/* minmax(0, …): long titles and messages must not stretch the columns */
+.ov-lijst { display: grid; grid-template-columns: minmax(0, 1fr); gap: 8px; }
 .ov-item { display: block; width: 100%; text-align: left; font: inherit; color: var(--ink); background: var(--card);
            border: 1px solid var(--line); border-radius: 12px; padding: 10px 12px; cursor: pointer; }
 .ov-item.on { border-color: var(--brand); box-shadow: 0 0 0 1px var(--brand); }

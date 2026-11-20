@@ -15,4 +15,4 @@ bedrag = 5
 link = https://betaalverzoek.rabobank.nl/betaalverzoek/?id=HvUKcNvSQSW7T5R90a7CDA
 iban = NL51 RABO 0181 0751 48
 naam = Scouting Brandevoort
-tekst = Om te betalen kan je de onderstaande opties gebruiken, of contant op de avond zelf.
+tekst = Om te betalen kan je de onderstaande opties gebruiken, maar het mag ook op de dag zelf als je dat liever wil.

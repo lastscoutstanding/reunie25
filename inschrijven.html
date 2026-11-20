@@ -83,8 +83,8 @@
       const r = Reunie.berekenJaren(jaar, t.naam);
       if (!k.eigen) [k.van, k.tot] = r ? [r[0], r[1] ?? ''] : ['', ''];
       const later = jaar && jaar + t.vanaf > NU;
-      extra = `<span class="age">vanaf ${t.vanaf} jaar</span>` + (r || !jaar ? '' :
-        ` <span class="age">${later ? 'nog niet aan de beurt' : `vóór ${Reunie.opgericht()}, mag toch`}</span>`);
+      // Too old for this speltak when Brandevoort started: no hint, ticking it is fine.
+      extra = `<span class="age">vanaf ${t.vanaf} jaar</span>` + (later ? ' <span class="age">nog niet aan de beurt</span>' : '');
     }
     const naam = Reunie.esc(t.naam);
     const data = `data-rol="${rol}" data-naam="${naam}"`;

@@ -57,11 +57,14 @@
     const namen = personen.filter(p => p.voornaam || p.bijnaam || p.achternaam);
     const mij = namen.find(isZelf);
     const rij = [...(mij ? [mij] : []), ...namen.filter(p => p !== mij).slice(mij ? -5 : -6).reverse()];
+    // Your own name goes to your registration, others to their card on "Wie komen er?".
     const toon = rij.map(p => {
       const naam = p.voornaam || p.bijnaam || p.achternaam;
-      return `<span${p === mij ? ' class="zelf" title="Dit ben jij"' : ''}>${Reunie.esc(naam)}${p.geboortejaar ? ', ' + Reunie.leeftijd(p.geboortejaar) : ''}</span>`;
+      const [href, extra] = p === mij ? ['mijn.html', ' class="zelf" title="Dit ben jij: naar je inschrijving"']
+        : [`deelnemers.html#p-${personen.indexOf(p)}`, ''];
+      return `<a href="${href}"${extra}>${Reunie.esc(naam)}${p.geboortejaar ? ', ' + Reunie.leeftijd(p.geboortejaar) : ''}</a>`;
     });
-    if (totaal > toon.length) toon.push(`<span>+ ${totaal - toon.length}</span>`);
+    if (totaal > toon.length) toon.push(`<a href="deelnemers.html">+ ${totaal - toon.length}</a>`);
     $('faces').innerHTML = toon.join('');
   })();
 </script>

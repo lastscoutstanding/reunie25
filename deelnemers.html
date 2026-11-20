@@ -39,9 +39,12 @@
 <script>
   const NU = Reunie.NU;
   let PERSONEN = [], isZelf = () => false;
+  const DOEL = /^#p-\d+$/.test(location.hash) ? location.hash : '';  // read before render() rewrites the URL
 
+  // Anchor = position in the list; the home page gets the same list in the same order.
+  const kaart = (p, hit) => Reunie.kaart(p, hit, isZelf(p), 'p-' + PERSONEN.indexOf(p));
   const grid = (titel, lijst, hit) => lijst.length
-    ? `${titel ? `<h3 class="sub">${titel}</h3>` : ''}<div class="people">${lijst.map(p => Reunie.kaart(p, hit, isZelf(p))).join('')}</div>` : '';
+    ? `${titel ? `<h3 class="sub">${titel}</h3>` : ''}<div class="people">${lijst.map(p => kaart(p, hit)).join('')}</div>` : '';
   const naamVan = p => [p.voornaam, p.bijnaam, p.achternaam].filter(Boolean).join(' ').toLowerCase();
 
   function render() {
@@ -67,7 +70,7 @@
     // to be seen: list them separately, the same for every filter (so nothing leaks).
     const zonder = hit ? PERSONEN.filter(p => !p.takken && (p.voornaam || p.achternaam || p.bijnaam || p.geboortejaar)).filter(opNaam) : [];
     $('zonder').hidden = !zonder.length;
-    $('people2').innerHTML = zonder.map(p => Reunie.kaart(p, null, isZelf(p))).join('');
+    $('people2').innerHTML = zonder.map(p => kaart(p, null)).join('');
 
     const wat = t && j ? `${t} in ${j}` : t ? `Ooit bij ${t}` : j ? `Bij Brandevoort in ${j}` : '';
     $('summary').innerHTML = wat
@@ -138,6 +141,13 @@
     PERSONEN = d.personen;
     $('totaal').innerHTML = `<b>${d.totaal}</b> ingeschreven · <b>${PERSONEN.length}</b> zichtbaar`;
     render(); renderPerJaar();
+
+    // From a name on the home page (#p-3): scroll to that card and light it up briefly.
+    const doel = DOEL && document.querySelector(DOEL);
+    if (doel) {
+      doel.scrollIntoView({ block: 'center' });
+      doel.classList.add('gevonden');
+    }
   })();
 </script>
 </body>

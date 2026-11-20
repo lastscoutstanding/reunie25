@@ -91,8 +91,9 @@ const Reunie = (() => {
   }
 
   // Person card from a public row {voornaam, achternaam, bijnaam, geboortejaar, takken}:
-  // fields the person chose to hide are null. jij = your own card, with an accent.
-  function kaart(p, hit, jij = false) {
+  // fields the person chose to hide are null. jij = your own card, with an accent and a
+  // link to your registration. id = anchor, so the home page can link to this card.
+  function kaart(p, hit, jij = false, id = '') {
     const naamTekst = esc(naam(p));
     const age = p.geboortejaar ? `${leeftijd(p.geboortejaar)} in ${DATUM.getFullYear()}` : '';
     const rows = p.takken ? [...p.takken.filter(r => r.rol === 'lid'), ...p.takken.filter(r => r.rol !== 'lid')] : [];
@@ -104,8 +105,9 @@ const Reunie = (() => {
     if (!naamTekst && !age && !chips) {
       return '<div class="person anon"><div class="name">Je bent niet zichtbaar in “Wie komen er?”</div><div class="meta">Je telt wel mee bij het aantal inschrijvingen.</div></div>';
     }
-    return `<div class="person${jij ? ' zelf' : ''}"><div class="name">${naamTekst || '<span class="muted">Anoniem</span>'}${jij ? ' <span class="pill jij">jij</span>' : ''}</div>
-      <div class="meta">${age || '&nbsp;'}</div>${chips ? `<div class="tk">${chips}</div>` : ''}</div>`;
+    const [tag, extra] = jij ? ['a', ' href="mijn.html" title="Naar je inschrijving"'] : ['div', ''];
+    return `<${tag} class="person${jij ? ' zelf' : ''}"${id ? ` id="${id}"` : ''}${extra}><div class="name">${naamTekst || '<span class="muted">Anoniem</span>'}${jij ? ' <span class="pill jij">jij</span>' : ''}</div>
+      <div class="meta">${age || '&nbsp;'}</div>${chips ? `<div class="tk">${chips}</div>` : ''}${jij ? '<div class="naar">Mijn inschrijving →</div>' : ''}</${tag}>`;
   }
 
   // Year fields (class "yr" with min/max): arrow up from empty starts at min (opgericht),

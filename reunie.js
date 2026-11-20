@@ -79,9 +79,20 @@ const Reunie = (() => {
     return [p.voornaam, bij, p.achternaam].filter(Boolean).join(' ');
   }
 
+  // Is a public row the logged-in person's own? Public rows carry no id, so compare what
+  // is shown with your own record as others see it (Data.publiek). Takken are compared
+  // as text, because the database may return their keys in another order.
+  function zelf(ik) {
+    if (!ik) return () => false;
+    const sleutel = p => JSON.stringify([p.voornaam ?? null, p.achternaam ?? null, p.bijnaam ?? null, p.geboortejaar ?? null,
+      (p.takken || []).map(t => `${t.speltak}|${t.rol}|${t.van ?? ''}|${t.tot ?? ''}`).sort()]);
+    const mijn = sleutel(Data.publiek(ik));
+    return p => sleutel(p) === mijn;
+  }
+
   // Person card from a public row {voornaam, achternaam, bijnaam, geboortejaar, takken}:
-  // fields the person chose to hide are null.
-  function kaart(p, hit) {
+  // fields the person chose to hide are null. jij = your own card, with an accent.
+  function kaart(p, hit, jij = false) {
     const naamTekst = esc(naam(p));
     const age = p.geboortejaar ? `${leeftijd(p.geboortejaar)} in ${DATUM.getFullYear()}` : '';
     const rows = p.takken ? [...p.takken.filter(r => r.rol === 'lid'), ...p.takken.filter(r => r.rol !== 'lid')] : [];
@@ -93,7 +104,7 @@ const Reunie = (() => {
     if (!naamTekst && !age && !chips) {
       return '<div class="person anon"><div class="name">Je bent niet zichtbaar in “Wie komen er?”</div><div class="meta">Je telt wel mee bij het aantal inschrijvingen.</div></div>';
     }
-    return `<div class="person"><div class="name">${naamTekst || '<span class="muted">Anoniem</span>'}</div>
+    return `<div class="person${jij ? ' zelf' : ''}"><div class="name">${naamTekst || '<span class="muted">Anoniem</span>'}${jij ? ' <span class="pill jij">jij</span>' : ''}</div>
       <div class="meta">${age || '&nbsp;'}</div>${chips ? `<div class="tk">${chips}</div>` : ''}</div>`;
   }
 
@@ -119,7 +130,7 @@ const Reunie = (() => {
     stapJaar(el, e.clientY < r.top + r.height / 2 ? 1 : -1);
   });
 
-  return { DATUM, NU, laadSpeltakken, laadBetalen, euro, takken, opgericht, isRol, berekenJaren, leeftijd, periode, esc, matcher, naam, kaart };
+  return { DATUM, NU, laadSpeltakken, laadBetalen, euro, takken, opgericht, isRol, berekenJaren, leeftijd, periode, esc, matcher, naam, kaart, zelf };
 })();
 
 const $ = id => document.getElementById(id);

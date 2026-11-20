@@ -38,10 +38,10 @@
 <script src="nav.js"></script>
 <script>
   const NU = Reunie.NU;
-  let PERSONEN = [];
+  let PERSONEN = [], isZelf = () => false;
 
   const grid = (titel, lijst, hit) => lijst.length
-    ? `${titel ? `<h3 class="sub">${titel}</h3>` : ''}<div class="people">${lijst.map(p => Reunie.kaart(p, hit)).join('')}</div>` : '';
+    ? `${titel ? `<h3 class="sub">${titel}</h3>` : ''}<div class="people">${lijst.map(p => Reunie.kaart(p, hit, isZelf(p))).join('')}</div>` : '';
   const naamVan = p => [p.voornaam, p.bijnaam, p.achternaam].filter(Boolean).join(' ').toLowerCase();
 
   function render() {
@@ -67,7 +67,7 @@
     // to be seen: list them separately, the same for every filter (so nothing leaks).
     const zonder = hit ? PERSONEN.filter(p => !p.takken && (p.voornaam || p.achternaam || p.bijnaam || p.geboortejaar)).filter(opNaam) : [];
     $('zonder').hidden = !zonder.length;
-    $('people2').innerHTML = zonder.map(p => Reunie.kaart(p)).join('');
+    $('people2').innerHTML = zonder.map(p => Reunie.kaart(p, null, isZelf(p))).join('');
 
     const wat = t && j ? `${t} in ${j}` : t ? `Ooit bij ${t}` : j ? `Bij Brandevoort in ${j}` : '';
     $('summary').innerHTML = wat
@@ -133,7 +133,8 @@
     $('speltak').value = u.get('speltak') || '';
     $('jaar').value = u.get('jaar') || '';
 
-    const d = await Data.deelnemers();
+    const [d, ik] = await Promise.all([Data.deelnemers(), Data.ingelogd() ? Data.ik().catch(() => null) : null]);
+    isZelf = Reunie.zelf(ik);
     PERSONEN = d.personen;
     $('totaal').innerHTML = `<b>${d.totaal}</b> ingeschreven · <b>${PERSONEN.length}</b> zichtbaar`;
     render(); renderPerJaar();

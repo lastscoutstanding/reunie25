@@ -12,7 +12,7 @@
 # Regels die met # beginnen worden overgeslagen.
 
 bedrag = 5
-link = https://betaalverzoek.rabobank.nl/betaalverzoek/?id=HvUKcNvSQS-W7T5R90a7CDA
+link = https://betaalverzoek.rabobank.nl/betaalverzoek/?id=HvUKcNvSQSW7T5R90a7CDA
 iban = 
 naam = Scouting Brandevoort
 tekst = 

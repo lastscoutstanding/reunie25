@@ -12,7 +12,7 @@
 <main>
   <h1>Beheer</h1>
   <div class="seg tabs" id="tabs" hidden>
-    <button type="button" data-tab="inschrijvingen" class="on">Inschrijvingen</button><button type="button" data-tab="beoordelen">Te beoordelen<span id="aantal-beoordelen"></span></button><button type="button" data-tab="comite">Comité</button>
+    <button type="button" data-tab="inschrijvingen" class="on">Inschrijvingen</button><button type="button" data-tab="beoordelen">Te beoordelen<span id="aantal-beoordelen"></span></button><button type="button" data-tab="overleg">Overleg<span id="aantal-hot"></span></button><button type="button" data-tab="comite">Comité</button>
   </div>
   <p class="muted" id="laden">Laden…</p>
   <div class="card narrow" id="geen" hidden>
@@ -47,6 +47,19 @@
     <div id="foto-beoordelen"></div>
     <h2 style="margin:22px 0 6px">Verhalen</h2>
     <div class="verhalen" id="beoordelen"></div>
+  </div>
+
+  <div id="tab-overleg" hidden>
+    <p style="margin-top:0">Overleg binnen het comité, los of over een deelnemer, verhaal, foto of pagina. Alleen het comité ziet dit. Berichten worden niet gemaild: kijk hier af en toe, of let op het rode bolletje bij <b>hot</b>.</p>
+    <div class="filters" style="margin-top:0">
+      <div class="seg" id="ov-filter"></div>
+      <button class="btn" type="button" id="ov-nieuw" style="padding:7px 16px;font-size:15px">+ Nieuw overleg</button>
+    </div>
+    <p class="muted" id="ov-laden">Laden…</p>
+    <div class="ov-wrap" id="ov-wrap" hidden>
+      <div class="ov-lijst" id="ov-lijst"></div>
+      <section class="card gesprek" id="ov-gesprek"></section>
+    </div>
   </div>
 
   <div id="tab-comite" hidden>
@@ -90,6 +103,7 @@
           <tr><td>Foto's bekijken en delen (max. 30 per persoon)</td><td class="nee">–</td><td class="ja">✓</td><td class="ja">✓</td><td class="ja">✓</td></tr>
           <tr><td>Foto's plaatsen of verwijderen</td><td class="nee">–</td><td class="nee">–</td><td class="ja">✓</td><td class="ja">✓</td></tr>
           <tr><td>Verhalen plaatsen, afwijzen, aanpassen of verwijderen</td><td class="nee">–</td><td class="nee">–</td><td class="ja">✓</td><td class="ja">✓</td></tr>
+          <tr><td>Overleg binnen het comité</td><td class="nee">–</td><td class="nee">–</td><td class="ja">✓</td><td class="ja">✓</td></tr>
           <tr><td>Betalingen afvinken</td><td class="nee">–</td><td class="nee">–</td><td class="ja">✓</td><td class="ja">✓</td></tr>
           <tr><td>Beheerders toevoegen en weghalen</td><td class="nee">–</td><td class="nee">–</td><td class="nee">–</td><td class="ja">✓</td></tr>
         </tbody>
@@ -116,6 +130,7 @@
 <script src="reunie.js"></script>
 <script src="data.js"></script>
 <script src="nav.js"></script>
+<script src="overleg.js"></script>
 <script>
   if (!Data.ingelogd()) location.replace('inloggen.html');
   const E = Reunie.esc;
@@ -133,7 +148,7 @@
       Geboren in ${r.geboortejaar} (${Reunie.leeftijd(r.geboortejaar)} in ${Reunie.DATUM.getFullYear()})<br>
       ${r.takken.length ? r.takken.map(t => E(takTekst(t))).join(' · ') : '<span class="muted">geen speltakken ingevuld</span>'}<br>
       <span class="muted">Op "Wie komen er?": ${toont.length ? toont.join(', ') : 'niets'}</span>
-      <div class="acties"><button class="btn danger" type="button" data-verwijder="${E(r.id)}">Verwijderen…</button></div>
+      <div class="acties" style="align-items:center">${Overleg.knop('deelnemer', r.id, volNaam(r), 'Overleg')}<button class="btn danger" type="button" data-verwijder="${E(r.id)}">Verwijderen…</button></div>
     </td></tr>`;
   }
 
@@ -335,6 +350,7 @@
         <button class="btn ghost" type="button" data-actie="bewerk">Aanpassen</button>
         ${gemeld ? '<button class="btn danger" type="button" data-actie="verwijderen">Verwijderen</button>'
                  : '<button class="btn danger" type="button" data-actie="afwijs">Afwijzen…</button>'}
+        ${Overleg.knop('verhaal', v.id, v.titel)}
       </div>
       <div class="paneel bewerk" hidden>
         <label>Titel<input class="b-titel" maxlength="80" value="${E(v.titel)}"></label>
@@ -354,7 +370,7 @@
       <span class="onder"><b>${f.titel ? E(f.titel) : '<span class="muted" style="font-weight:400">(geen titel)</span>'}</b></span>
       <span class="knoppen">${f.status === 'gemeld'
         ? '<button class="btn ghost" type="button" data-factie="plaatsen">Weer tonen</button><button class="btn danger" type="button" data-factie="verwijderen">Verwijderen</button>'
-        : '<button class="btn" type="button" data-factie="plaatsen">Plaatsen</button><button class="btn danger" type="button" data-factie="verwijderen">Afwijzen</button>'}</span>
+        : '<button class="btn" type="button" data-factie="plaatsen">Plaatsen</button><button class="btn danger" type="button" data-factie="verwijderen">Afwijzen</button>'}${Overleg.knop('foto', f.id, f.titel || 'zonder titel')}</span>
     </div>`;
 
   // New photos grouped per upload; reported photos one by one with the reason.
@@ -378,12 +394,13 @@
 
   function toonBeoordelen() {
     const n = beoordeling.length + fotoBeoordeling.length;
-    $('aantal-beoordelen').textContent = n ? ` (${n})` : '';
+    $('aantal-beoordelen').innerHTML = n ? `<span class="vlag">${n}</span>` : '';
     $('beoordelen').innerHTML = beoordeling.map(verhaalKaart).join('')
       || '<p class="muted" style="margin:0">Geen verhalen om te beoordelen.</p>';
   }
 
   async function laadBeoordelen() {
+    await Overleg.klaar;            // the overleg buttons on the cards
     try {
       [beoordeling, fotoBeoordeling] = await Promise.all([Data.teBeoordelen(), Data.fotosTeBeoordelen()]);
       toonBeoordelen();
@@ -429,6 +446,140 @@
     catch (err) { alert('Dat lukte niet: ' + err.message); b.disabled = false; }
   });
 
+  // ---- tab Overleg -----------------------------------------------------------
+
+  // Seen per conversation (this browser): { id: time of the last message you saw }.
+  const GEZIEN = 'reunie25.overleg.gezien';
+  const gezien = () => { try { return JSON.parse(localStorage.getItem(GEZIEN)) || {}; } catch { return {}; } };
+  const zetGezien = g => {
+    const z = gezien(), t = g.berichten.at(-1)?.aangemaakt || g.aangemaakt;
+    z[g.id] = t;
+    try { localStorage.setItem(GEZIEN, JSON.stringify(z)); } catch {}
+  };
+  // New for you: a message by someone else after the last one you saw.
+  const ongelezen = g => {
+    const z = gezien()[g.id];
+    return g.berichten.some(b => !b.eigen && !b.systeem && (!z || b.aangemaakt > z));
+  };
+  const VOLGORDE = { hot: 0, open: 1, done: 2 };
+  const FILTERS = [['niet-af', 'Niet af', g => g.status !== 'done'], ['hot', 'Hot', g => g.status === 'hot'],
+                   ['done', 'Done', g => g.status === 'done'], ['alles', 'Alles', () => true]];
+  let gekozen = null, ovFilter = 'niet-af';
+
+  const tijd = t => {
+    const d = new Date(t), vandaag = new Date().toDateString() === d.toDateString();
+    return vandaag ? d.toLocaleTimeString('nl-NL', { hour: '2-digit', minute: '2-digit' })
+      : d.toLocaleDateString('nl-NL', { day: 'numeric', month: 'short' }) + (d.getFullYear() !== new Date().getFullYear() ? ' ' + d.getFullYear() : '');
+  };
+  const tijdLang = t => new Date(t).toLocaleString('nl-NL', { day: 'numeric', month: 'short', hour: '2-digit', minute: '2-digit' });
+
+  function toonHot() {
+    const n = Overleg.lijst().filter(g => g.status === 'hot').length;
+    $('aantal-hot').innerHTML = n ? `<span class="vlag hot" title="${n} op hot">${n}</span>` : '';
+  }
+
+  // Subject of a conversation, as a link to the item (a participant opens in this page).
+  function onderwerpLink(g) {
+    const tekst = E(Overleg.onderwerp(g.soort, g.ref_naam));
+    if (g.soort === 'deelnemer') {
+      return lijst && !lijst.some(r => r.id === g.ref) ? `<span class="ond">${tekst} (verwijderd)</span>`
+        : `<button type="button" class="ond" data-naar-deelnemer="${E(g.ref)}">${tekst} →</button>`;
+    }
+    const href = { verhaal: `herinneringen.html#verhaal-${g.ref}`, foto: `herinneringen.html#foto-${g.ref}`, pagina: g.ref }[g.soort];
+    return href ? `<a class="ond" href="${E(href)}">${tekst} →</a>` : `<span class="ond">${tekst}</span>`;
+  }
+
+  function toonOverleg() {
+    const alle = Overleg.lijst();
+    toonHot();
+    $('ov-filter').innerHTML = FILTERS.map(([k, label, f]) =>
+      `<button type="button" data-f="${k}" class="${k === ovFilter ? 'on' : ''}">${label} (${alle.filter(f).length})</button>`).join('');
+    const rijen = alle.filter(FILTERS.find(f => f[0] === ovFilter)[2])
+      .sort((a, b) => VOLGORDE[a.status] - VOLGORDE[b.status] || b.bijgewerkt.localeCompare(a.bijgewerkt));
+    if (gekozen && !alle.some(g => g.id === gekozen)) gekozen = null;
+    if (!gekozen && rijen.length && matchMedia('(min-width: 761px)').matches) gekozen = rijen[0].id;
+    $('ov-lijst').innerHTML = rijen.map(g => {
+      const laatst = [...g.berichten].reverse().find(b => !b.systeem);
+      return `<button type="button" class="ov-item${g.id === gekozen ? ' on' : ''}" data-g="${E(g.id)}">
+        <div class="t">${ongelezen(g) && g.id !== gekozen ? '<span class="ongelezen" title="Nieuw voor jou"></span>' : ''}${E(g.titel)}</div>
+        <div class="laatst">${laatst ? `${E(laatst.eigen ? 'Jij' : laatst.auteur_naam || '?')}: ${E(laatst.tekst)}` : '<i>nog geen berichten</i>'}</div>
+        <div class="rij2">${Overleg.status(g.status)}<span class="ond">${E(Overleg.onderwerp(g.soort, g.ref_naam))}</span>
+          <span>· ${g.berichten.filter(b => !b.systeem).length} · ${tijd(g.bijgewerkt)}</span></div>
+      </button>`;
+    }).join('') || `<p class="muted" style="margin:0">${alle.length ? 'Niets in deze lijst.' : 'Nog geen overleg. Start er een met "+ Nieuw overleg", of met 💬 bij een deelnemer, verhaal, foto of pagina.'}</p>`;
+    toonGesprek();
+  }
+
+  function toonGesprek() {
+    const g = Overleg.lijst().find(x => x.id === gekozen);
+    $('ov-gesprek').hidden = !g;
+    if (!g) return;
+    zetGezien(g);
+    $('ov-gesprek').innerHTML = `<div class="kop">
+        <div><h2>${E(g.titel)}</h2>${onderwerpLink(g)}
+          <div class="muted" style="font-size:13px;margin-top:4px">Gestart door ${E(g.auteur_naam || '?')}, ${tijdLang(g.aangemaakt)}</div></div>
+        <div class="statusknop">${['hot', 'open', 'done'].map(s => `<button type="button" data-status="${s}" class="${g.status === s ? 'on' : ''}">${s[0].toUpperCase() + s.slice(1)}</button>`).join('')}</div>
+      </div>
+      <div class="berichten">${g.berichten.map(b => b.systeem
+        ? `<div class="systeem">${E(b.eigen ? 'Jij' : b.auteur_naam || '?')} ${E(b.tekst.replace(/(hot|open|done)$/, '«$1»'))} · ${tijd(b.aangemaakt)}</div>`
+        : `<div class="bericht${b.eigen ? ' mij' : ''}"><div class="wie"><span>${E(b.eigen ? 'Jij' : b.auteur_naam || '?')} · ${tijdLang(b.aangemaakt)}</span>${b.eigen ? `<button class="linkbtn" type="button" data-weg-bericht="${E(b.id)}">verwijderen</button>` : ''}</div>
+            <p>${E(b.tekst).replace(/\n/g, '<br>')}</p></div>`).join('') || '<p class="muted" style="margin:0">Nog geen berichten.</p>'}</div>
+      <form class="antwoord" id="ov-antwoord">
+        <textarea id="ov-bericht" maxlength="1000" placeholder="Schrijf een bericht…" aria-label="Bericht"></textarea>
+        <button class="btn" type="submit" style="padding:10px 18px">Stuur</button>
+      </form>
+      <p class="err" id="ov-fout" hidden></p>`;
+    history.replaceState(null, '', '#overleg-' + g.id);
+  }
+
+  async function laadOverleg() {
+    await Overleg.klaar;
+    await Overleg.herlaad();
+    $('ov-laden').hidden = true; $('ov-wrap').hidden = false;
+    toonOverleg();
+  }
+
+  async function ovActie(fn, knop) {
+    if (knop) knop.disabled = true;
+    try { await fn(); await Overleg.herlaad(); toonOverleg(); }
+    catch (err) { $('ov-fout').textContent = 'Dat lukte niet: ' + err.message; $('ov-fout').hidden = false; if (knop) knop.disabled = false; }
+  }
+
+  $('ov-filter').addEventListener('click', e => {
+    const b = e.target.closest('button[data-f]');
+    if (b) { ovFilter = b.dataset.f; toonOverleg(); }
+  });
+  $('ov-lijst').addEventListener('click', e => {
+    const b = e.target.closest('button[data-g]');
+    if (!b) return;
+    gekozen = b.dataset.g; toonOverleg();
+    if (!matchMedia('(min-width: 761px)').matches) $('ov-gesprek').scrollIntoView({ behavior: 'smooth', block: 'start' });
+  });
+  $('ov-nieuw').addEventListener('click', () => Overleg.start());
+  $('ov-gesprek').addEventListener('click', e => {
+    const s = e.target.closest('button[data-status]'), weg = e.target.closest('button[data-weg-bericht]'), d = e.target.closest('button[data-naar-deelnemer]');
+    if (s && !s.classList.contains('on')) ovActie(() => Data.zetOverlegStatus(gekozen, s.dataset.status), s);
+    if (weg && confirm('Dit bericht verwijderen?')) ovActie(() => Data.verwijderBericht(weg.dataset.wegBericht), weg);
+    if (d) {
+      open.add(d.dataset.naarDeelnemer); $('zoek').value = ''; $('filter').value = '';
+      tab('inschrijvingen'); toon();
+      document.querySelector(`button[data-id="${CSS.escape(d.dataset.naarDeelnemer)}"]`)?.scrollIntoView({ block: 'center' });
+    }
+  });
+  $('ov-gesprek').addEventListener('submit', e => {
+    e.preventDefault();
+    const tekst = $('ov-bericht').value.trim();
+    if (tekst) ovActie(() => Data.stuurBericht(gekozen, tekst), e.target.querySelector('button'));
+  });
+  $('ov-gesprek').addEventListener('keydown', e => {   // Cmd/Ctrl+Enter sends
+    if (e.target.id === 'ov-bericht' && e.key === 'Enter' && (e.metaKey || e.ctrlKey)) $('ov-antwoord').requestSubmit();
+  });
+  // A link to another conversation on this page (e.g. after "Nieuw overleg").
+  addEventListener('hashchange', () => {
+    const m = location.hash.match(/^#overleg-([\w-]+)$/);
+    if (m) { gekozen = m[1]; ovFilter = 'alles'; tab('overleg'); }
+  });
+
   // ---- tabs (remembered in the address: beheer.html#beoordelen, #comite) ----
 
   let huidig = 'inschrijvingen';
@@ -438,10 +589,13 @@
     $('laden').hidden = naam !== 'inschrijvingen' || !!lijst;
     $('tab-beoordelen').hidden = naam !== 'beoordelen';
     $('tab-comite').hidden = naam !== 'comite';
+    $('tab-overleg').hidden = naam !== 'overleg';
     document.querySelectorAll('#tabs button').forEach(b => b.classList.toggle('on', b.dataset.tab === naam));
-    history.replaceState(null, '', naam === 'inschrijvingen' ? location.pathname : '#' + naam);
+    history.replaceState(null, '', naam === 'inschrijvingen' ? location.pathname
+      : naam === 'overleg' && gekozen ? '#overleg-' + gekozen : '#' + naam);
     if (naam === 'comite' && (!comite || !blokkades)) laadComite();
     if (naam === 'beoordelen') laadBeoordelen();
+    if (naam === 'overleg') laadOverleg();
   }
   $('tabs').addEventListener('click', e => { const b = e.target.closest('button[data-tab]'); if (b) tab(b.dataset.tab); });
 
@@ -450,8 +604,11 @@
     rol = await Data.rol();
     if (!rol) { $('laden').hidden = true; $('geen').hidden = false; return; }
     $('tabs').hidden = false;
-    if (['#beoordelen', '#comite'].includes(location.hash)) tab(location.hash.slice(1));
-    else laadBeoordelen();          // for the count on the tab
+    Overleg.klaar.then(() => { toonHot(); if (lijst) toon(); });   // buttons in the details
+    const m = location.hash.match(/^#overleg-([\w-]+)$/);
+    if (m) { gekozen = m[1]; tab('overleg'); }
+    else if (['#beoordelen', '#comite', '#overleg'].includes(location.hash)) tab(location.hash.slice(1));
+    if (huidig !== 'beoordelen') laadBeoordelen();          // for the count on the tab
     betalen = await Reunie.laadBetalen();
     try { lijst = await Data.inschrijvingen(); }
     catch (e) { $('laden').textContent = e.message; return; }

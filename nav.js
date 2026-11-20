@@ -44,10 +44,25 @@
   opDeHuidige();
 
   // Comité members get a "Beheer" link at the end of the row.
+  // The yellow number counts stories and photos waiting for a decision. They also get the
+  // overleg buttons (overleg.js), loaded here unless the page loads it itself.
   if (ingelogd) Data.beheerder().then(ja => {
     if (!ja) return;
-    nav.insertAdjacentHTML('beforeend', link('beheer.html', 'Beheer'));
+    nav.insertAdjacentHTML('beforeend', link('beheer.html', 'Beheer<span class="vlag" id="vlag-beheer" hidden></span>'));
     opDeHuidige();
+    Data.aantalTeBeoordelen().then(n => {
+      const v = $('vlag-beheer');
+      if (!v || !n) return;
+      v.textContent = n; v.title = `${n} ${n === 1 ? 'ding wacht' : 'dingen wachten'} op beoordeling`; v.hidden = false;
+    });
+    // Wait until the page's own scripts ran: it may load overleg.js itself.
+    const laad = () => {
+      if (typeof Overleg !== 'undefined') return;
+      const s = document.createElement('script');
+      s.src = 'overleg.js';
+      document.body.appendChild(s);
+    };
+    document.readyState === 'loading' ? addEventListener('DOMContentLoaded', laad) : laad();
   });
 
   const icon = document.createElement('link');

@@ -133,6 +133,7 @@
 <script src="reunie.js"></script>
 <script src="data.js"></script>
 <script src="nav.js"></script>
+<script src="overleg.js"></script>
 <script>
   const E = Reunie.esc;
   let verhalen = [], bewerkId = null, teMelden = null;   // teMelden: { soort: 'verhaal' | 'foto', id }
@@ -162,7 +163,7 @@
       <div class="meta">${chips} gedeeld door ${E(door(v))}${v.eigen && LABEL[v.status] ? ' · ' + LABEL[v.status] : ''}</div>
       ${v.eigen && v.status === 'afgewezen' ? `<p class="note">${v.toelichting ? `Opmerking: ${E(v.toelichting)}<br>` : ''}Pas je verhaal aan om het opnieuw in te sturen.</p>` : ''}
       ${alineas(tekst)}
-      <div class="voet">${v.tekst.length > KORT ? `<button class="linkbtn" type="button" data-open="${E(v.id)}">${lang ? 'Lees verder' : 'Minder'}</button>` : ''}${acties}</div>
+      <div class="voet">${v.tekst.length > KORT ? `<button class="linkbtn" type="button" data-open="${E(v.id)}">${lang ? 'Lees verder' : 'Minder'}</button>` : ''}${acties}${Overleg.knop('verhaal', v.id, v.titel)}</div>
     </article>`;
   }
 
@@ -184,6 +185,7 @@
   }
 
   ['zoek', 'f-speltak', 'f-jaar'].forEach(id => $(id).addEventListener('input', toon));
+  Overleg.klaar.then(ja => { if (ja && verhalen.length) toon(); });
 
   $('lijst').addEventListener('click', async e => {
     const b = e.target.closest('button');
@@ -311,8 +313,9 @@
     $('lb-tekst').innerHTML = `${f.titel ? `<b>${E(f.titel)}</b><br>` : ''}${chips} <span class="zacht">gedeeld door ${E(f.eigen ? 'jou' : Reunie.naam(f) || 'een oud-lid')}</span>`;
     $('lb-nr').textContent = `${lbIndex + 1} / ${zichtbaar.length}`;
     const aanpassen = f.eigen || comite ? `<button class="linkbtn" type="button" id="lb-bewerk">Aanpassen</button> ` : '';
+    const ov = Overleg.knop('foto', f.id, f.titel || 'zonder titel');
     $('lb-actie').innerHTML = aanpassen + (f.eigen ? `<button class="linkbtn" type="button" id="lb-weg">Verwijderen</button>`
-      : `<button class="linkbtn" type="button" id="lb-meld">Sta jij hierop en wil je dat niet? Meld het</button>`);
+      : `<button class="linkbtn" type="button" id="lb-meld">Sta jij hierop en wil je dat niet? Meld het</button>`) + (ov ? '<br>' + ov : '');
     $('lb-vorige').hidden = $('lb-volgende').hidden = zichtbaar.length < 2;
     if (!$('lb').open) $('lb').showModal();
     if (!urls[groot]) Object.assign(urls, await Data.fotoUrls([groot]).catch(() => ({})));
@@ -506,16 +509,20 @@
   // Link from the home page: #verhaal-<id> opens and shows that story, #foto-<id> that photo.
   // Read before tab() rewrites the address.
   const DOEL = /^#(verhaal|foto)-[\w-]+$/.test(location.hash) ? location.hash.slice(1) : '';
+  const niet = wat => $(DOEL.startsWith('foto-') ? 'f-telling' : 'telling').insertAdjacentHTML('beforebegin',
+    `<p class="note">${wat} staat hier (nog) niet: misschien wacht het op beoordeling of is het verwijderd.`
+    + (comite ? ' Kijk bij <a href="beheer.html#beoordelen">Beheer → Te beoordelen</a>.' : '') + '</p>');
   async function naarDoel() {
     if (DOEL.startsWith('verhaal-')) {
       open.add(DOEL.slice(8)); toon();
       const el = document.getElementById(DOEL);
       if (el) { el.scrollIntoView({ block: 'center' }); el.classList.add('gevonden'); }
+      else niet('Dit verhaal');
     } else if (DOEL.startsWith('foto-')) {
       await laadFotos();
       tab('fotos');
       const i = zichtbaar.findIndex(f => f.id === DOEL.slice(5));
-      if (i >= 0) toonGroot(i);
+      if (i >= 0) toonGroot(i); else niet('Deze foto');
     }
   }
 

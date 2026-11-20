@@ -23,6 +23,11 @@
 // Photo, as pages get it (files: pad + '.jpg' and pad + '-klein.jpg', see fotoUrls):
 //   { id, pad, titel, speltak, jaar, eigen, status, voornaam, bijnaam, achternaam, aangemaakt }
 //
+// Overleg (comité only), as pages get it, newest activity first:
+//   { id, titel, soort: 'vrij' | 'deelnemer' | 'verhaal' | 'foto' | 'pagina', ref, ref_naam,
+//     status: 'open' | 'hot' | 'done', auteur_naam, aangemaakt, bijgewerkt,
+//     berichten: [{ id, auteur_naam, tekst, systeem, eigen, aangemaakt }] }   oldest message first
+//
 // Comité members (beheerders) can also list all registrations and mark payments.
 // Hoofdbeheerders can also add and remove beheerders. Comité member record:
 //   { email, rol: 'beheerder' | 'hoofdbeheerder', toegevoegd_door, toegevoegd_op, naam }
@@ -40,6 +45,7 @@ const Data = (() => {
   const DEMO_GEBLOKKEERD = 'reunie25.demo.geblokkeerd';
   const DEMO_VERHALEN = 'reunie25.demo.verhalen';
   const DEMO_FOTOS = 'reunie25.demo.fotos';
+  const DEMO_OVERLEG = 'reunie25.demo.overleg';
   const MAX_FOTOS = 30;
   const AUTH = 'reunie25.auth';
   const DEMO_CODE = '123456';
@@ -169,6 +175,24 @@ const Data = (() => {
     const t = String(f.titel || 'Foto').replace(/[<&>]/g, '');
     return 'data:image/svg+xml,' + encodeURIComponent(`<svg xmlns="http://www.w3.org/2000/svg" width="800" height="600"><defs><linearGradient id="g" x1="0" y1="0" x2="1" y2="1"><stop offset="0" stop-color="${a}"/><stop offset="1" stop-color="${b}"/></linearGradient></defs><rect width="800" height="600" fill="url(#g)"/><text x="400" y="315" font-family="sans-serif" font-size="40" fill="#fff" text-anchor="middle">${t}</text></svg>`);
   }
+
+  // Overleg in DEMO: conversations with their messages; auteur = e-mail.
+  const overlegStore = () => lees(DEMO_OVERLEG, null) ?? [
+    { id: 'demo-o1', titel: 'Tijden middagprogramma', soort: 'pagina', ref: 'programma.html', ref_naam: 'Programma', status: 'open',
+      auteur: 'femke.vandijk@voorbeeld.nl', auteur_naam: 'Femke', aangemaakt: '2026-11-18T19:00:00Z', bijgewerkt: '2026-11-19T20:10:00Z',
+      berichten: [
+        { id: 'demo-b1', auteur: 'femke.vandijk@voorbeeld.nl', auteur_naam: 'Femke', tekst: 'Zullen we de fotopresentatie om 15:00 doen, na de koffie?', systeem: false, aangemaakt: '2026-11-18T19:00:00Z' },
+        { id: 'demo-b2', auteur: 'mark.devries@voorbeeld.nl', auteur_naam: 'Mark', tekst: 'Prima, dan kan de borrel om 16:00 beginnen.', systeem: false, aangemaakt: '2026-11-19T20:10:00Z' },
+      ] },
+    { id: 'demo-o2', titel: 'Klopt dit jaartal?', soort: 'verhaal', ref: 'demo-v2', ref_naam: 'Mijn eerste overvliegen', status: 'hot',
+      auteur: 'mark.devries@voorbeeld.nl', auteur_naam: 'Mark', aangemaakt: '2026-11-19T09:00:00Z', bijgewerkt: '2026-11-19T09:05:00Z',
+      berichten: [
+        { id: 'demo-b3', auteur: 'mark.devries@voorbeeld.nl', auteur_naam: 'Mark', tekst: 'In 2004 had de Welpen nog geen overvliegen bij de blokhut, toch? Weet iemand dit?', systeem: false, aangemaakt: '2026-11-19T09:00:00Z' },
+        { id: 'demo-b4', auteur: 'mark.devries@voorbeeld.nl', auteur_naam: 'Mark', tekst: 'zette de status op hot', systeem: true, aangemaakt: '2026-11-19T09:05:00Z' },
+      ] },
+  ];
+  const nu = () => new Date().toISOString();
+  const demoId = soort => `demo-${soort}${Date.now()}${Math.floor(Math.random() * 1000)}`;
 
   const demoPersoon = email => [...voorbeeldVol(), ...alle()].find(x => x.email === email);
   const demoNaam = email => {
@@ -364,6 +388,48 @@ const Data = (() => {
     async comiteWeghalen(email) {
       schrijf(DEMO_COMITE, comiteLijst().filter(c => !(c.email === norm(email) && c.rol === 'beheerder')));
     },
+    async aantalTeBeoordelen() {
+      if (!lees(DEMO_SESSIE, null)) return 0;
+      return verhalenStore().filter(v => ['nieuw', 'gemeld'].includes(v.status)).length
+        + fotosStore().filter(f => ['nieuw', 'gemeld'].includes(f.status)).length;
+    },
+    // ---- overleg ----
+    async overleg() {
+      const ik = lees(DEMO_SESSIE, null);
+      if (!ik) throw fout('sessie', MELD.sessie);
+      return overlegStore().map(({ auteur, berichten, ...g }) => ({
+        ...g, berichten: berichten.map(({ auteur: a, ...b }) => ({ ...b, eigen: a === ik })),
+      })).sort((a, b) => b.bijgewerkt.localeCompare(a.bijgewerkt));
+    },
+    async startOverleg({ titel, soort = 'vrij', ref = null, ref_naam = null, status = 'open', tekst = '' }) {
+      const ik = lees(DEMO_SESSIE, null);
+      if (!ik) throw fout('sessie', MELD.sessie);
+      const naam = (await this.ik())?.voornaam || ik, lijst = overlegStore(), id = demoId('o');
+      lijst.push({ id, titel: titel.trim().slice(0, 80), soort, ref: ref == null ? null : String(ref), ref_naam, status, auteur: ik, auteur_naam: naam,
+        aangemaakt: nu(), bijgewerkt: nu(),
+        berichten: tekst.trim() ? [{ id: demoId('b'), auteur: ik, auteur_naam: naam, tekst: tekst.trim().slice(0, 1000), systeem: false, aangemaakt: nu() }] : [] });
+      schrijf(DEMO_OVERLEG, lijst);
+      return id;
+    },
+    async stuurBericht(gesprek, tekst) {
+      const ik = lees(DEMO_SESSIE, null), lijst = overlegStore(), g = lijst.find(x => x.id === gesprek);
+      if (!ik || !g) return;
+      g.berichten.push({ id: demoId('b'), auteur: ik, auteur_naam: (await this.ik())?.voornaam || ik, tekst: tekst.trim().slice(0, 1000), systeem: false, aangemaakt: nu() });
+      g.bijgewerkt = nu();
+      schrijf(DEMO_OVERLEG, lijst);
+    },
+    async zetOverlegStatus(gesprek, status) {
+      const ik = lees(DEMO_SESSIE, null), lijst = overlegStore(), g = lijst.find(x => x.id === gesprek);
+      if (!ik || !g || g.status === status) return;
+      g.status = status; g.bijgewerkt = nu();
+      g.berichten.push({ id: demoId('b'), auteur: ik, auteur_naam: (await this.ik())?.voornaam || ik, tekst: 'zette de status op ' + status, systeem: true, aangemaakt: nu() });
+      schrijf(DEMO_OVERLEG, lijst);
+    },
+    async verwijderBericht(id) {
+      const ik = lees(DEMO_SESSIE, null), lijst = overlegStore();
+      for (const g of lijst) g.berichten = g.berichten.filter(b => !(b.id === id && b.auteur === ik && !b.systeem));
+      schrijf(DEMO_OVERLEG, lijst);
+    },
     async inschrijvingen() {
       if (!lees(DEMO_SESSIE, null)) throw fout('sessie', MELD.sessie);
       return [...voorbeeldVol(), ...alle()].map(metBetaald);
@@ -452,6 +518,7 @@ const Data = (() => {
     await opslag('/fotos', { method: 'DELETE', token: t, type: 'application/json', body: JSON.stringify({ prefixes: bestanden(paden) }) }).catch(() => {});
   }
   const urlCache = new Map();          // file path -> { url, tot }
+  let beheerderVraag = null;
 
   const live = {
     async deelnemers() {
@@ -528,10 +595,13 @@ const Data = (() => {
       if (t) await verzoek('/auth/v1/logout', { method: 'POST', token: t }).catch(() => {});
     },
     // Comité member? The database decides (table beheerders); this only picks what to show.
-    async beheerder() {
-      const t = await token();
-      if (!t) return false;
-      return !!(await verzoek('/rest/v1/rpc/is_beheerder', { method: 'POST', token: t, body: {} }).catch(() => false));
+    // Asked once per page: the menu, the page itself and overleg.js all want to know.
+    beheerder() {
+      return beheerderVraag ||= (async () => {
+        const t = await token();
+        if (!t) return false;
+        return !!(await verzoek('/rest/v1/rpc/is_beheerder', { method: 'POST', token: t, body: {} }).catch(() => false));
+      })();
     },
     // 'beheerder', 'hoofdbeheerder' or null; again only decides what to show.
     async rol() {
@@ -656,6 +726,39 @@ const Data = (() => {
       const t = await moetToken();
       const rows = await verzoek('/rest/v1/rpc/foto_opslag', { method: 'POST', token: t, body: {} });
       return rows[0] || { geplaatst: 0, bytes: 0 };
+    },
+
+    async aantalTeBeoordelen() {
+      const t = await token();
+      if (!t) return 0;
+      return await verzoek('/rest/v1/rpc/aantal_te_beoordelen', { method: 'POST', token: t, body: {} }).catch(() => 0);
+    },
+    // ---- overleg ----
+    async overleg() {
+      const t = await moetToken(), ik = sessie()?.user?.id;
+      const rijen = await verzoek('/rest/v1/gesprekken?select=id,titel,soort,ref,ref_naam,status,auteur_naam,aangemaakt,bijgewerkt,'
+        + 'berichten(id,auteur,auteur_naam,tekst,systeem,aangemaakt)&order=bijgewerkt.desc', { token: t });
+      return rijen.map(g => ({
+        ...g, berichten: g.berichten.sort((a, b) => a.aangemaakt.localeCompare(b.aangemaakt))
+          .map(({ auteur, ...b }) => ({ ...b, eigen: auteur === ik })),
+      }));
+    },
+    async startOverleg({ titel, soort = 'vrij', ref = null, ref_naam = null, status = 'open', tekst = '' }) {
+      const t = await moetToken();
+      return await verzoek('/rest/v1/rpc/start_gesprek', { method: 'POST', token: t,
+        body: { titel, soort, ref: ref == null ? null : String(ref), ref_naam, status, tekst: tekst || null } });
+    },
+    async stuurBericht(gesprek, tekst) {
+      const t = await moetToken();
+      await verzoek('/rest/v1/berichten', { method: 'POST', token: t, headers: { Prefer: 'return=minimal' }, body: { gesprek, tekst: tekst.trim() } });
+    },
+    async zetOverlegStatus(gesprek, status) {
+      const t = await moetToken();
+      await verzoek(`/rest/v1/gesprekken?id=eq.${encodeURIComponent(gesprek)}`, { method: 'PATCH', token: t, headers: { Prefer: 'return=minimal' }, body: { status } });
+    },
+    async verwijderBericht(id) {
+      const t = await moetToken();
+      await verzoek(`/rest/v1/berichten?id=eq.${encodeURIComponent(id)}`, { method: 'DELETE', token: t });
     },
 
     // Removes the registration and its login; optionally blocks the address. Photo files go

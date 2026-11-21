@@ -62,9 +62,21 @@ const Reunie = (() => {
     return [van, tot >= NU ? null : tot];
   }
 
-  // Age reached in the reunion year, from birth year only; shown as "58 in 2027"
-  // so it is right whatever the birthday.
-  const leeftijd = gj => gj ? DATUM.getFullYear() - gj : null;
+  // Age in the jubilee year (founded + 25 = 2026), from birth year only: shown as
+  // "57 bij het jubileum". With only a birth year this is right for more people, both now
+  // and on the reunion day, than the reunion year, and when wrong it errs on the young side.
+  const jubileum = () => cfg.opgericht + 25;
+  const leeftijd = gj => gj ? jubileum() - gj : null;
+  // A wink: "2,3 keer zo oud als de club"; close to 25 in years ("4 jaar ouder dan de club").
+  function knipoog(gj) {
+    const l = leeftijd(gj);
+    if (l == null) return '';
+    if (l === 25) return 'precies zo oud als de club';
+    if (l < 25) return `${25 - l} jaar jonger dan de club`;
+    if (l - 25 <= 12) return `${l - 25} jaar ouder dan de club`;
+    return `${(l / 25).toLocaleString('nl-NL', { maximumFractionDigits: 1 })} keer zo oud als de club`;
+  }
+  const leeftijdTekst = gj => gj ? `<span title="In ${jubileum()}, toen Scouting Brandevoort 25 werd: ${knipoog(gj)}">${leeftijd(gj)} bij het jubileum</span>` : '';
   const periode = (van, tot) => tot == null ? `${van}–heden` : van === tot ? `${van}` : `${van}–${tot}`;
   const esc = s => String(s ?? '').replace(/[&<>"']/g, c =>
     ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' })[c]);
@@ -95,7 +107,7 @@ const Reunie = (() => {
   // link to your registration. id = anchor, so the home page can link to this card.
   function kaart(p, hit, jij = false, id = '') {
     const naamTekst = esc(naam(p));
-    const age = p.geboortejaar ? `${leeftijd(p.geboortejaar)} in ${DATUM.getFullYear()}` : '';
+    const age = leeftijdTekst(p.geboortejaar);
     const rows = p.takken ? [...p.takken.filter(r => r.rol === 'lid'), ...p.takken.filter(r => r.rol !== 'lid')] : [];
     const chips = rows.map(r => {
       const cls = [r.rol === 'leiding' ? 'ld' : '', hit && hit(r) ? 'hit' : ''].join(' ').trim();
@@ -132,7 +144,7 @@ const Reunie = (() => {
     stapJaar(el, e.clientY < r.top + r.height / 2 ? 1 : -1);
   });
 
-  return { DATUM, NU, laadSpeltakken, laadBetalen, euro, takken, opgericht, isRol, berekenJaren, leeftijd, periode, esc, matcher, naam, kaart, zelf };
+  return { DATUM, NU, laadSpeltakken, laadBetalen, euro, takken, opgericht, isRol, berekenJaren, jubileum, leeftijd, leeftijdTekst, knipoog, periode, esc, matcher, naam, kaart, zelf };
 })();
 
 const $ = id => document.getElementById(id);

@@ -146,7 +146,7 @@
   function details(r) {
     const toont = Object.keys(TOON).filter(k => r.toon[k] && (k !== 'bijnaam' || r.bijnaam) && (k !== 'achternaam' || r.achternaam)).map(k => TOON[k]);
     return `<tr class="meer"><td colspan="3">
-      Geboren in ${r.geboortejaar} (${Reunie.leeftijd(r.geboortejaar)} in ${Reunie.DATUM.getFullYear()})<br>
+      Geboren in ${r.geboortejaar} (${Reunie.leeftijd(r.geboortejaar)} bij het jubileum in ${Reunie.jubileum()})<br>
       ${r.takken.length ? r.takken.map(t => E(takTekst(t))).join(' · ') : '<span class="muted">geen speltakken ingevuld</span>'}<br>
       <span class="muted">Op "Wie komen er?": ${toont.length ? toont.join(', ') : 'niets'}</span>
       <div class="acties" style="align-items:center">${Overleg.knop('deelnemer', r.id, volNaam(r), 'Overleg')}<button class="btn danger" type="button" data-verwijder="${E(r.id)}">Verwijderen…</button></div>

@@ -88,7 +88,7 @@
     $('bestond').hidden = location.hash !== '#bestond';
     $('sinds').textContent = 'sinds ' + new Date(ik.sinds + 'T12:00').toLocaleDateString('nl-NL', { day: 'numeric', month: 'long', year: 'numeric' });
     $('kaart').innerHTML = Reunie.kaart(Data.publiek(ik));
-    $('gegevens').innerHTML = `${E(ik.voornaam)} ${E(ik.achternaam)}${ik.bijnaam ? `<br>bijnaam: ${E(ik.bijnaam)}` : ''}<br>${E(ik.email)}<br>geboren in ${ik.geboortejaar}`;
+    $('gegevens').innerHTML = `${E(ik.voornaam)} ${E(ik.achternaam)}${ik.bijnaam ? `<br>bijnaam: ${E(ik.bijnaam)}` : ''}<br>${E(ik.email)}<br>geboren in ${ik.geboortejaar}<br>${Reunie.leeftijd(ik.geboortejaar)} bij het jubileum in ${Reunie.jubileum()}, ${Reunie.knipoog(ik.geboortejaar)}`;
 
     // Links to the participants page, filtered on the first year in each speltak
     const links = (ik.takken || []).map(x => {

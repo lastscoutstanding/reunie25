@@ -55,7 +55,8 @@
   // Payment block from betalen.txt; the status is set by the comité on the beheer page.
   function betaalblok(b, ik) {
     const E = Reunie.esc;
-    const omschrijving = `Reünie ${ik.voornaam} ${ik.achternaam}`.trim();
+    // Plain letters only: many bank apps choke on ë, é and the like (also in names).
+    const omschrijving = `Reunie ${ik.voornaam} ${ik.achternaam}`.normalize('NFD').replace(/[\u0300-\u036f]/g, '').trim();
     const kop = `<p class="bedrag">Bijdrage: ${Reunie.euro(b.bedrag)}</p>`;
     if (ik.betaald) {
       const d = new Date(ik.betaald + 'T12:00').toLocaleDateString('nl-NL', { day: 'numeric', month: 'long' });

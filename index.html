@@ -57,10 +57,21 @@
     if (!totaal) { $('stat').textContent = 'Nog niemand!'; $('stat-sub').textContent = 'Schrijf je in en wees de eerste.'; return; }
     $('stat').innerHTML = `Al <b>${totaal}</b> ${totaal === 1 ? 'inschrijving' : 'inschrijvingen'}!`;
     $('stat-sub').textContent = Data.ingelogd() ? 'En jij bent er ook bij.' : 'Ben jij er ook bij?';
-    // The newest six names; your own name always comes first, with an accent.
+    // 10 names on a phone, 20 on a wider screen: all of them (newest first) while they fit,
+    // otherwise a random pick on every visit. Your own name always comes first, with an accent.
+    const max = matchMedia('(max-width: 600px)').matches ? 10 : 20;
     const namen = personen.filter(p => p.voornaam || p.bijnaam || p.achternaam);
     const mij = namen.find(isZelf);
-    const rij = [...(mij ? [mij] : []), ...namen.filter(p => p !== mij).slice(mij ? -5 : -6).reverse()];
+    let anderen = namen.filter(p => p !== mij).reverse();
+    const plek = max - (mij ? 1 : 0);
+    if (anderen.length > plek) {
+      for (let i = anderen.length - 1; i > 0; i--) {      // Fisher-Yates shuffle
+        const j = Math.floor(Math.random() * (i + 1));
+        [anderen[i], anderen[j]] = [anderen[j], anderen[i]];
+      }
+      anderen = anderen.slice(0, plek);
+    }
+    const rij = [...(mij ? [mij] : []), ...anderen];
     // Your own name goes to your registration, others to their card on "Wie komen er?".
     const toon = rij.map(p => {
       const naam = p.voornaam || p.bijnaam || p.achternaam;

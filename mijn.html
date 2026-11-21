@@ -33,6 +33,7 @@
         <p style="margin:0" id="gegevens"></p>
         <p class="muted" style="font-size:14px">Je e-mailadres is alleen voor het inloggen en voor berichten van het reüniecomité. Alleen het comité ziet het; andere deelnemers nooit.</p>
       </div>
+      <div class="card" id="leuk" hidden></div>
     </div>
   </div>
 </main>
@@ -101,7 +102,22 @@
     const b = await betalen;
     if (b) { $('betaal').innerHTML = betaalblok(b, ik); $('betaal').hidden = false; }
     $('inhoud').hidden = false;
+    leukBlok();
   })();
+
+  // Hearts on your own placed stories and photos; nothing when there are none.
+  async function leukBlok() {
+    const [h, v, f] = await Promise.all([Data.hartjes(), Data.verhalen(), Data.fotos()]).catch(() => []);
+    if (!h) return;
+    const totaal = h.filter(r => r.eigen).reduce((n, r) => n + r.aantal, 0);
+    if (!totaal) return;
+    const nv = v.filter(x => x.eigen && x.status === 'geplaatst').length, nf = f.filter(x => x.eigen && x.status === 'geplaatst').length;
+    const delen = [nv && `${nv} ${nv === 1 ? 'verhaal' : 'verhalen'}`, nf && `${nf} ${nf === 1 ? 'foto' : "foto's"}`].filter(Boolean);
+    const hart = `<b class="rood">♥\uFE0E ${totaal}</b>`;
+    $('leuk').innerHTML = `<h2>Jouw herinneringen</h2><p style="margin:0">Je deelde ${delen.join(' en ')}. `
+      + `${nv + nf === 1 ? (nv ? 'Het' : 'Die') + ' kreeg' : 'Samen kregen ze'} ${hart}: leuk! <a href="herinneringen.html${nv ? '' : '#fotos'}">${nv + nf === 1 ? 'Bekijken' : 'Bekijk ze'}</a></p>`;
+    $('leuk').hidden = false;
+  }
 </script>
 </body>
 </html>

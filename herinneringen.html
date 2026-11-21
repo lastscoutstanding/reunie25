@@ -140,6 +140,49 @@
   const open = new Set();             // ids of long stories that are unfolded
   const KORT = 450;                   // longer stories get "Lees verder"
 
+  // ---- hearts --------------------------------------------------------------------
+  // One per participant per placed story or photo; you see the count, never who.
+  const HART = new Map();             // 'verhaal:<id>' / 'foto:<id>' -> { aantal, van_mij }
+  const VOL = '♥\uFE0E', LEEG = '♡'; // \uFE0E: text glyph, so the colour follows the CSS
+  async function laadHartjes() {
+    const rijen = await Data.hartjes().catch(() => null);
+    if (!rijen) return;
+    HART.clear();
+    for (const r of rijen) HART.set(r.soort + ':' + r.ref, { aantal: r.aantal, van_mij: r.van_mij });
+  }
+  const leuk = n => n === 1 ? '1 iemand vindt dit leuk' : `${n} mensen vinden dit leuk`;
+  function hart(soort, x) {
+    if (x.status !== 'geplaatst') return '';
+    const { aantal = 0, van_mij = false } = HART.get(soort + ':' + x.id) || {};
+    if (x.eigen) return aantal ? `<span class="hart eigen"><span class="i">${VOL}</span>${leuk(aantal)}</span>` : '';
+    return `<button class="hart${van_mij ? ' aan' : ''}" type="button" data-hart="${soort}" data-ref="${E(x.id)}" aria-pressed="${van_mij}" title="Vind ik leuk" aria-label="Vind ik leuk${aantal ? ` (${aantal})` : ''}"><span class="i">${van_mij ? VOL : LEEG}</span><span class="n">${aantal || ''}</span></button>`;
+  }
+  function hartje(f) {      // small badge on a photo tile
+    const h = f.status === 'geplaatst' && HART.get('foto:' + f.id);
+    return h && h.aantal ? `<span class="hartje${h.van_mij ? ' aan' : ''}" aria-label="${leuk(h.aantal)}">${VOL} ${h.aantal}</span>` : '';
+  }
+  // Optimistic: the heart changes at once, the stored count follows.
+  document.addEventListener('click', async e => {
+    const b = e.target.closest('button[data-hart]');
+    if (!b || b.disabled) return;
+    const soort = b.dataset.hart, ref = b.dataset.ref, k = soort + ':' + ref;
+    const was = HART.get(k) || { aantal: 0, van_mij: false }, aan = !was.van_mij;
+    const zet = h => {
+      HART.set(k, h);
+      b.classList.toggle('aan', h.van_mij); b.setAttribute('aria-pressed', h.van_mij);
+      b.querySelector('.i').textContent = h.van_mij ? VOL : LEEG;
+      b.querySelector('.n').textContent = h.aantal || '';
+      b.setAttribute('aria-label', `Vind ik leuk${h.aantal ? ` (${h.aantal})` : ''}`);
+    };
+    zet({ aantal: Math.max(0, was.aantal + (aan ? 1 : -1)), van_mij: aan });
+    if (aan) { b.classList.add('pof'); setTimeout(() => b.classList.remove('pof'), 160); }
+    b.disabled = true;
+    try { zet({ aantal: await Data.zetHartje(soort, ref, aan), van_mij: aan }); }
+    catch { zet(was); }
+    b.disabled = false;
+    if (soort === 'foto' && fotos) toonFotos();     // badge on the tile
+  });
+
   // ---- list ------------------------------------------------------------------
 
   // Blank line = new paragraph, single line break kept.
@@ -163,7 +206,7 @@
       <div class="meta">${chips} gedeeld door ${E(door(v))}${v.eigen && LABEL[v.status] ? ' · ' + LABEL[v.status] : ''}</div>
       ${v.eigen && v.status === 'afgewezen' ? `<p class="note">${v.toelichting ? `Opmerking: ${E(v.toelichting)}<br>` : ''}Pas je verhaal aan om het opnieuw in te sturen.</p>` : ''}
       ${alineas(tekst)}
-      <div class="voet">${v.tekst.length > KORT ? `<button class="linkbtn" type="button" data-open="${E(v.id)}">${lang ? 'Lees verder' : 'Minder'}</button>` : ''}${acties}${Overleg.knop('verhaal', v.id, v.titel)}</div>
+      <div class="voet">${hart('verhaal', v)}${v.tekst.length > KORT ? `<button class="linkbtn" type="button" data-open="${E(v.id)}">${lang ? 'Lees verder' : 'Minder'}</button>` : ''}${acties}${Overleg.knop('verhaal', v.id, v.titel)}</div>
     </article>`;
   }
 
@@ -180,7 +223,7 @@
   }
 
   async function laad() {
-    verhalen = await Data.verhalen();
+    [verhalen] = await Promise.all([Data.verhalen(), laadHartjes()]);
     toon();
   }
 
@@ -287,7 +330,7 @@
       : geplaatst ? `Al <b>${geplaatst}</b> ${geplaatst === 1 ? 'foto' : "foto's"} gedeeld!` : '';
     $('f-grid').innerHTML = zichtbaar.map((f, i) => `<button type="button" class="tegel${f.eigen ? ' eigen' : ''}" data-i="${i}">
         ${f.eigen && fotoLabel[f.status] ? `<span class="label pill wacht">${fotoLabel[f.status]}</span>` : ''}
-        <img src="${E(urls[f.pad + '-klein.jpg'] || '')}" alt="${E(f.titel)}" loading="lazy">
+        <img src="${E(urls[f.pad + '-klein.jpg'] || '')}" alt="${E(f.titel)}" loading="lazy">${hartje(f)}
         <span class="onder"><b>${E(f.titel) || '&nbsp;'}</b><span>${E([f.speltak, f.jaar, f.eigen ? 'door jou' : ''].filter(Boolean).join(' · '))}</span></span>
       </button>`).join('')
       || (fotos.length ? '<p class="muted">Geen foto\'s gevonden.</p>'
@@ -296,7 +339,7 @@
 
   async function laadFotos() {
     try {
-      fotos = await Data.fotos();
+      [fotos] = await Promise.all([Data.fotos(), laadHartjes()]);
       Object.assign(urls, await Data.fotoUrls(fotos.map(f => f.pad + '-klein.jpg')));
     } catch (err) { $('f-telling').textContent = err.message; return; }
     toonFotos();
@@ -310,7 +353,8 @@
     $('lb-img').src = urls[f.pad + '-klein.jpg'] || '';           // sharp version follows
     $('lb-img').alt = f.titel;
     const chips = [f.speltak, f.jaar].filter(Boolean).map(c => `<span class="chip">${E(c)}</span>`).join('');
-    $('lb-tekst').innerHTML = `${f.titel ? `<b>${E(f.titel)}</b><br>` : ''}${chips} <span class="zacht">gedeeld door ${E(f.eigen ? 'jou' : Reunie.naam(f) || 'een oud-lid')}</span>`;
+    $('lb-tekst').innerHTML = `${f.titel ? `<b>${E(f.titel)}</b><br>` : ''}${chips} <span class="zacht">gedeeld door ${E(f.eigen ? 'jou' : Reunie.naam(f) || 'een oud-lid')}</span>`
+      + (hart('foto', f) ? `<div class="lb-hart">${hart('foto', f)}</div>` : '');
     $('lb-nr').textContent = `${lbIndex + 1} / ${zichtbaar.length}`;
     const aanpassen = f.eigen || comite ? `<button class="linkbtn" type="button" id="lb-bewerk">Aanpassen</button> ` : '';
     const ov = Overleg.knop('foto', f.id, f.titel || 'zonder titel');

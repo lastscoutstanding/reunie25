@@ -46,6 +46,7 @@ const Data = (() => {
   const DEMO_VERHALEN = 'reunie25.demo.verhalen';
   const DEMO_FOTOS = 'reunie25.demo.fotos';
   const DEMO_OVERLEG = 'reunie25.demo.overleg';
+  const DEMO_HARTJES = 'reunie25.demo.hartjes';
   const MAX_FOTOS = 30;
   const AUTH = 'reunie25.auth';
   const DEMO_CODE = '123456';
@@ -168,6 +169,10 @@ const Data = (() => {
     id: 'demo-f' + i, pad: `demo/${i}`, groep: status === 'nieuw' ? 'demo-g1' : 'demo-g0' + i, auteur, titel, speltak: speltak || null, jaar,
     toon_naam: i !== 1, status, aangemaakt: `${dag}T12:00:00Z`,
   }));
+  // Hearts in DEMO: {soort, ref, auteur}; the samples come from made-up participants.
+  const hartjesStore = () => lees(DEMO_HARTJES, null)
+    ?? [['verhaal', 'demo-v1', 4], ['verhaal', 'demo-v2', 7], ['foto', 'demo-f0', 3], ['foto', 'demo-f1', 12], ['foto', 'demo-f3', 1]]
+      .flatMap(([soort, ref, n]) => Array.from({ length: n }, (_, i) => ({ soort, ref, auteur: `voorbeeld-${i}` })));
   const KLEUREN = [['#7fb069', '#3d6b35'], ['#f4a259', '#bc4b51'], ['#5b8e7d', '#2c4696'], ['#f2b705', '#c9772b'], ['#8e7dbe', '#2c4696'], ['#6c9a8b', '#e8c547']];
   function plaatje(pad) {
     const f = fotosStore().find(x => pad.startsWith(x.pad)) || {};
@@ -387,6 +392,31 @@ const Data = (() => {
     async fotoOpslag() { return { geplaatst: await this.aantalFotos(), bytes: fotosStore().length * 400e3 }; },
     async comiteWeghalen(email) {
       schrijf(DEMO_COMITE, comiteLijst().filter(c => !(c.email === norm(email) && c.rol === 'beheerder')));
+    },
+    // ---- hartjes ----
+    async hartjes() {
+      const ik = lees(DEMO_SESSIE, null);
+      if (!ik) throw fout('sessie', MELD.sessie);
+      const items = { verhaal: verhalenStore(), foto: fotosStore() }, per = new Map();
+      for (const h of hartjesStore()) {
+        const item = items[h.soort]?.find(x => x.id === h.ref && x.status === 'geplaatst');
+        if (!item) continue;
+        const k = h.soort + ':' + h.ref;
+        const r = per.get(k) || { soort: h.soort, ref: h.ref, aantal: 0, van_mij: false, eigen: item.auteur === ik };
+        r.aantal++; r.van_mij ||= h.auteur === ik;
+        per.set(k, r);
+      }
+      return [...per.values()];
+    },
+    async zetHartje(soort, ref, aan) {
+      const ik = lees(DEMO_SESSIE, null);
+      if (!ik) throw fout('sessie', MELD.sessie);
+      const item = (soort === 'verhaal' ? verhalenStore() : fotosStore()).find(x => x.id === ref && x.status === 'geplaatst');
+      if (!item || item.auteur === ik) throw new Error('Dat kan hier niet.');
+      const lijst = hartjesStore().filter(h => !(h.soort === soort && h.ref === ref && h.auteur === ik));
+      if (aan) lijst.push({ soort, ref, auteur: ik });
+      schrijf(DEMO_HARTJES, lijst);
+      return lijst.filter(h => h.soort === soort && h.ref === ref).length;
     },
     async aantalTeBeoordelen() {
       if (!lees(DEMO_SESSIE, null)) return 0;
@@ -716,6 +746,15 @@ const Data = (() => {
     async meldFoto(id, reden = '') {
       const t = await moetToken();
       await verzoek('/rest/v1/rpc/meld_foto', { method: 'POST', token: t, body: { foto: id, reden: reden || null } });
+    },
+    // ---- hartjes ----
+    async hartjes() {
+      const t = await moetToken();
+      return await verzoek('/rest/v1/rpc/hartjes', { method: 'POST', token: t, body: {} });
+    },
+    async zetHartje(soort, ref, aan) {
+      const t = await moetToken();
+      return await verzoek('/rest/v1/rpc/zet_hartje', { method: 'POST', token: t, body: { soort, ref, aan } });
     },
     async fotosTeBeoordelen() {
       const t = await moetToken();

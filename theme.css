@@ -356,3 +356,20 @@ button.ond { font: inherit; font-size: 12.5px; border: 0; cursor: pointer; }
 .systeem { text-align: center; font-size: 12.5px; color: var(--muted); }
 .antwoord { display: flex; gap: 8px; align-items: end; }
 .antwoord textarea { flex: 1; min-height: 44px; height: 60px; resize: vertical; }
+
+/* Hearts on stories and photos */
+.hart { display: inline-flex; align-items: center; gap: 5px; font: inherit; font-size: 14px; line-height: 1; padding: 5px 11px; border-radius: 999px; border: 1px solid var(--line); background: var(--card); color: var(--muted); cursor: pointer; }
+.hart .i { font-size: 16px; font-variant-emoji: text; transition: transform .15s; }
+.hart:hover { border-color: var(--red); color: var(--red); }
+.hart.aan { background: color-mix(in srgb, var(--red) 12%, var(--card)); border-color: var(--red); color: var(--red); font-weight: 600; }
+.hart.pof .i { transform: scale(1.35); }
+.hart.eigen { cursor: default; font-size: 13.5px; }
+.hart.eigen .i { color: var(--red); }
+.hart.eigen:hover { border-color: var(--line); color: var(--muted); }
+.tegel .hartje { position: absolute; top: 6px; right: 6px; background: rgba(0, 0, 0, .55); color: #fff; font-size: 12px; border-radius: 999px; padding: 2px 8px; font-variant-emoji: text; }
+.tegel .hartje.aan { background: var(--red); }
+.lb-hart { margin-top: 8px; }
+.lb-info .hart { background: transparent; border-color: rgba(255, 255, 255, .3); color: #fff; }
+.lb-info .hart.aan { background: rgba(240, 102, 94, .2); border-color: #f0665e; color: #ff8a83; }
+.lb-info .hart.eigen .i { color: #ff8a83; }
+.rood { color: var(--red); font-variant-emoji: text; }

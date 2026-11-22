@@ -10,7 +10,7 @@
 <header id="kop"></header>
 <main>
   <h1>Programma</h1>
-  <p class="muted">Zondag 23 mei 2027 · blokhut de Brandnetel, Helmond</p>
+  <p class="muted">Zondag 23 mei 2027 · 14:00 – 19:00 · blokhut de Brandnetel, Helmond<br><span id="agenda"></span></p>
   <div class="card text" id="inhoud"><p class="muted" style="margin:0">Laden…</p></div>
 </main>
 <footer id="voet"></footer>
@@ -18,6 +18,7 @@
 <script src="data.js"></script>
 <script src="nav.js"></script>
 <script>
+  $('agenda').innerHTML = Reunie.agenda();
   // programma.txt: "tijd | omschrijving" = programme item, other lines = paragraphs
   fetch('programma.txt', { cache: 'no-cache' }).then(r => r.text()).then(txt => {
     const E = Reunie.esc;

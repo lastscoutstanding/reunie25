@@ -33,6 +33,11 @@
         <p style="margin:0" id="gegevens"></p>
         <p class="muted" style="font-size:14px">Je e-mailadres is alleen voor het inloggen en voor berichten van het reüniecomité. Alleen het comité ziet het; andere deelnemers nooit.</p>
       </div>
+      <div class="card" id="agenda-blok">
+        <h2>In je agenda</h2>
+        <p style="margin:0 0 8px">Zondag 23 mei 2027, vrije inloop van 14:00 tot 19:00 in blokhut de Brandnetel.</p>
+        <p style="margin:0" id="agenda"></p>
+      </div>
       <div class="card" id="leuk" hidden></div>
     </div>
   </div>
@@ -86,6 +91,7 @@
     if (!ik) { location.replace(Data.ingelogd() ? 'inschrijven.html' : 'inloggen.html'); return; }
     const E = Reunie.esc;
     $('hoi').textContent = `Hoi ${ik.voornaam}`;
+    $('agenda').innerHTML = Reunie.agenda();
     $('welkom').hidden = location.hash !== '#welkom';
     $('bestond').hidden = location.hash !== '#bestond';
     $('sinds').textContent = 'sinds ' + new Date(ik.sinds + 'T12:00').toLocaleDateString('nl-NL', { day: 'numeric', month: 'long', year: 'numeric' });

@@ -1,6 +1,19 @@
 // Shared helpers for the reunion pages: speltakken.txt, year maths, person cards.
 const Reunie = (() => {
   const DATUM = new Date(2027, 4, 23);
+  const TIJD = '14:00 – 19:00';
+
+  // "Add to calendar": reunie.ics for Apple Calendar and Outlook, a link for Google Calendar.
+  function agenda() {
+    const q = new URLSearchParams({
+      action: 'TEMPLATE', text: 'Reünie 25 jaar Scouting Brandevoort',
+      dates: '20270523T140000/20270523T190000', ctz: 'Europe/Amsterdam',
+      location: 'Blokhut de Brandnetel, Brandevoort 13-A, 5706 KA Helmond',
+      details: 'Vrije inloop tussen 14:00 en 19:00.',
+    });
+    return `<a href="reunie.ics" download="reunie-scouting-brandevoort.ics">📅 Zet in je agenda</a>`
+      + ` <small class="muted">of <a href="https://calendar.google.com/calendar/render?${q}" target="_blank" rel="noopener">Google Agenda</a></small>`;
+  }
   const NU = new Date().getFullYear();
   let cfg = { opgericht: 2001, takken: [] };
 
@@ -144,7 +157,7 @@ const Reunie = (() => {
     stapJaar(el, e.clientY < r.top + r.height / 2 ? 1 : -1);
   });
 
-  return { DATUM, NU, laadSpeltakken, laadBetalen, euro, takken, opgericht, isRol, berekenJaren, jubileum, leeftijd, leeftijdTekst, knipoog, periode, esc, matcher, naam, kaart, zelf };
+  return { DATUM, TIJD, agenda, NU, laadSpeltakken, laadBetalen, euro, takken, opgericht, isRol, berekenJaren, jubileum, leeftijd, leeftijdTekst, knipoog, periode, esc, matcher, naam, kaart, zelf };
 })();
 
 const $ = id => document.getElementById(id);

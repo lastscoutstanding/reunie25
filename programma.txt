@@ -5,4 +5,6 @@
 # Een regel zonder | wordt een gewone alinea.
 # Lege regels en regels die met # beginnen worden overgeslagen.
 
-Het programma volgt. Zet de datum alvast in je agenda: zondag 23 mei 2027 in blokhut de Brandnetel.
+14:00 – 19:00 | Vrije inloop in blokhut de Brandnetel: kom wanneer het je uitkomt.
+
+Verdere invulling volgt. Zet de datum alvast in je agenda.

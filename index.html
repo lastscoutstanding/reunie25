@@ -4,7 +4,7 @@
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1">
 <title>Reünie 25 jaar Scouting Brandevoort</title>
-<meta name="description" content="Reünie 25 jaar Scouting Brandevoort, zondag 23 mei 2027 in blokhut de Brandnetel, Helmond. Schrijf je in en zie wie er komen.">
+<meta name="description" content="Reünie 25 jaar Scouting Brandevoort, zondag 23 mei 2027 van 14:00 tot 19:00 in blokhut de Brandnetel, Helmond. Schrijf je in en zie wie er komen.">
 <link rel="stylesheet" href="theme.css">
 </head>
 <body>
@@ -14,7 +14,8 @@
     <div class="card">
       <span class="pill">2001 – 2026</span>
       <h1>Welkom terug!</h1>
-      <p class="date">Reünie · zondag 23 mei 2027 · blokhut de Brandnetel, Helmond</p>
+      <p class="date">Reünie · zondag 23 mei 2027 · 14:00 – 19:00 · blokhut de Brandnetel, Helmond</p>
+      <p class="agenda" id="agenda"></p>
       <div class="count" id="count"></div>
       <p class="muted">Ben jij ooit bever, welp, scout, explorer, roverscout, vuurvogel, plusscout of leiding geweest? Kom terug naar de Brandnetel, schrijf je in en zie wie er nog meer komen.</p>
       <div class="row">
@@ -48,6 +49,7 @@
   $('count').innerHTML = dagen > 0
     ? `<div><strong>${dagen}</strong><span>dagen</span></div><div><strong>${Math.floor(dagen / 7)}</strong><span>weken</span></div>`
     : dagen === 0 ? '<div><strong>Vandaag!</strong><span>tot straks</span></div>' : '';
+  $('agenda').innerHTML = Reunie.agenda();
   if (Data.ingelogd()) { $('cta').textContent = 'Mijn inschrijving'; $('cta').href = 'mijn.html'; }
 
   (async () => {

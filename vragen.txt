@@ -8,6 +8,9 @@
 V: Wie mogen er komen?
 A: Iedereen die ooit jeugdlid, leiding, bestuurslid of vrijwilliger was bij Scouting Brandevoort.
 
+V: Hoe laat moet ik er zijn?
+A: Het is vrije inloop van 14:00 tot 19:00. Kom wanneer het je uitkomt en blijf zo lang als je wilt.
+
 V: Wat kost het?
 A: {bedrag} per persoon. Na je inschrijving zie je op Mijn inschrijving hoe je kunt betalen. Het comité vinkt je af zodra je betaling binnen is.
 

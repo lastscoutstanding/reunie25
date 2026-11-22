@@ -89,6 +89,7 @@ legend { font-weight: 600; padding: 0 6px; }
 /* home */
 .hero { display: grid; grid-template-columns: 1.3fr 1fr; gap: 20px; align-items: stretch; }
 .hero .date { font-size: 20px; font-weight: 600; }
+.hero .agenda { margin: -6px 0 0; font-size: 15px; }
 .count { display: flex; gap: 10px; margin: 18px 0; }
 .count div { background: var(--chip); border-radius: 12px; padding: 10px 14px; text-align: center; min-width: 72px; }
 .count strong { display: block; font-size: 28px; color: var(--brand); }

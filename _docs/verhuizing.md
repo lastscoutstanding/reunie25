@@ -26,9 +26,9 @@ De reüniesite verhuist van `lastscoutstanding.com/reunie25/` naar deze repo `la
 - [x] GitHub Pages aan (`main`, root); eigen domein `reunie.lastscoutstanding.com` (GitHub zette zelf het bestand `CNAME`).
 - [x] Webreus: CNAME `reunie` → `lastscoutstanding.github.io.`
 - [x] Gecontroleerd: site, txt-bestanden en `reunie.ics` laden op het testadres, gegevens uit Supabase verschijnen, `_docs` en `.claude` geven 404, `lastscoutstanding.github.io/reunie25/` stuurt door naar het testadres.
-- [ ] *Enforce HTTPS* aanvinken (op 22 november 2026 gaf `http://` nog geen doorverwijzing).
-- [ ] Actions: workflows toestaan en "Supabase keep-alive" één keer met *Run workflow* starten. Tot de overstap draait hij in beide repo's; dat kan geen kwaad.
-- [ ] Testlijst hieronder op het testadres doorlopen, ook inloggen, als deelnemer en als comitélid.
+- [x] *Enforce HTTPS* aan; `http://` stuurt door naar `https://` (gecontroleerd 22 november 2026).
+- [x] "Supabase keep-alive" met de hand gestart: geslaagd (22 november 2026). Tot de overstap draait hij in beide repo's; dat kan geen kwaad.
+- [x] Inloggen op het testadres als deelnemer en als comitélid werkt (getest door Bas, 23 november 2026). Inschrijven/uitschrijven met een testadres en de telefoon nog niet apart getest.
 
 ## Fase 2: DNS bij de scouting (kan ruim van tevoren)
 

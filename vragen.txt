@@ -9,15 +9,15 @@ V: Wie mogen er komen?
 A: Iedereen die jeugdlid, leiding, bestuurslid of vrijwilliger is of was bij Scouting Brandevoort, van nu en van toen.
 
 V: Hoe laat moet ik er zijn?
-A: Het is vrije inloop van 14:00 tot 19:00. Kom wanneer het je uitkomt en blijf zo lang als je wilt.
+A: De reunie receptie is van 14:00 tot 19:00. Kom wanneer het je uitkomt (en opruimers zijn altijd welkom ;)
 
 V: Wat kost het?
 A: {bedrag} per persoon. Na je inschrijving zie je op Mijn inschrijving hoe je kunt betalen. Het comité vinkt je af zodra je betaling binnen is.
 
 V: Mag ik iemand meenemen?
-A: De reünie is voor iedereen die zelf bij Scouting Brandevoort was. Was je partner, broer of zus ook lid of leiding? Dan kan die zich zelf inschrijven.
+A: De reünie is voor iedereen die zelf bij Scouting Brandevoort was. Was je partner, broer of zus ook lid of leiding? Laat die zich zelf dan vooral inschrijven.
 
-V: Ik ken iemand van vroeger die dit niet weet.
+V: Ik ken iemand van vroeger die dit nog niet weet.
 A: Stuur deze site door! Hoe meer scouts van nu en toen, hoe leuker.
 
 V: Wie zien mijn gegevens?
@@ -27,4 +27,4 @@ V: Hoe pas ik mijn gegevens aan of schrijf ik me uit?
 A: Log in met je e-mailadres. Je krijgt een code per mail, daarna kun je alles aanpassen of je uitschrijven.
 
 V: Ik heb een andere vraag.
-A: Mail het reüniecomité via reunie@scoutingbrandevoort.nl.
+A: Mail het reüniecomité via reunie@scoutingbrandevoort.nl

@@ -1,55 +1,62 @@
-# lastscoutstanding.com
+# reunie25
 
-Domein van Bas. Nu vooral de site voor de reünie van 25 jaar Scouting Brandevoort (Helmond) in `reunie25/`; de root stuurt daarheen door.
-Repo: github.com/lastscoutstanding/lastscoutstanding.com, gehost op GitHub Pages (lastscoutstanding.com, via `CNAME`).
+Site voor de reünie van 25 jaar Scouting Brandevoort (Helmond), beheerd door Bas. De site staat in de root van deze repo.
+Repo: github.com/lastscoutstanding/reunie25, gehost op GitHub Pages. Testadres: reunie.lastscoutstanding.com; einddoel: reunie.scoutingbrandevoort.nl (zie "Verhuizing").
+Afgesplitst uit `lastscoutstanding.com/reunie25/` met de geschiedenis erbij (22 november 2026).
 Stand: 22 november 2026.
+
+## Verhuizing (bezig)
+
+- Parallel: tot de overstap draait de live site nog vanuit de repo `lastscoutstanding.com` (map ``), en deze repo is de kopie die op het testadres draait. Beide praten met dezelfde Supabase (echte data).
+- Siteveranderingen tot de overstap in `lastscoutstanding.com` doen en hier binnenhalen:
+  `cd ~/Websites/lastscoutstanding.com && git pull && git subtree split --prefix=reunie25 -b reunie25-split`, dan hier `git pull ../lastscoutstanding.com reunie25-split`.
+- Stappen en status: `_docs/verhuizing.md`.
 
 ## Werkwijze in Claude Code
 
 - Werk direct in deze lokale repo. Begin een taak met `git pull`; Bas past soms zelf bestanden aan via GitHub.
 - Eén logische wijziging = één commit. Push pas na akkoord van Bas: de site staat live.
-- Testen via `python3 -m http.server 8000` in de repo-root (config `site` in `.claude/launch.json`), dan `/reunie25/`. De txt-bestanden worden met `fetch` geladen en werken niet via `file://`.
-- Het push-token in de sleutelhanger dekt sinds 16 november 2026 ook deze repo. Sinds 20 november 2026 heeft het ook het recht Workflows (nodig voor `.github/workflows/`).
+- Testen via `python3 -m http.server 8000` in de repo-root (config `site` in `.claude/launch.json`), dan `/`. De txt-bestanden worden met `fetch` geladen en werken niet via `file://`.
+- Het push-token in de sleutelhanger (Contents + Workflows) moet ook deze repo dekken; Bas voegt de repo daar zelf aan toe.
 - Werk dit bestand bij na elke grotere wijziging, vooral "Reünie" en "Open punten".
 
 ## Architectuur
 
-Vanilla HTML/CSS/JS, geen build-stap. Alleen relatieve paden, zodat `reunie25/` als geheel kan verhuizen (bijv. later via een doorverwijzing vanaf reunie.scoutingbrandevoort.nl). Geen cookies of tracking. Alleen NL.
+Vanilla HTML/CSS/JS, geen build-stap. Alleen relatieve paden, zodat de site op elk adres werkt (behalve `reunie.ics`, zie daar). Geen cookies of tracking. Alleen NL.
 
 | Pad | Rol |
 | --- | --- |
-| `index.html` | Stuurt door naar `reunie25/` (meta refresh). Vervangen als de root iets anders moet worden |
-| `reunie25/index.html` | Home: datum en tijd, agendalink, aftelling, tellers (doen mee / komen / misschien), namen (10 op telefoon, 20 breder; zijn er meer, dan een willekeurige selectie per bezoek, jijzelf altijd vooraan), "Nieuw bij Herinneringen" (nieuwste geplaatste verhaal en foto voor deelnemers, links naar `herinneringen.html#verhaal-<id>` / `#foto-<id>`; anderen een teaser met aantallen) |
-| `reunie25/inschrijven.html` | "Doe mee" (inschrijven), eerste vraag "Ben je erbij?"; ingelogd = gegevens aanpassen |
-| `reunie25/inloggen.html` | Inloggen met e-mail + code van 6 cijfers (stap `#code`) |
-| `reunie25/mijn.html` | Eigen inschrijving: "Ben je erbij?" met één klik aanpassen, kaartje, links "wie was er tegelijk met jou", betaalblok (alleen bij ja), "Weet je het al?" (misschien), agendablok (niet bij nee), aanpassen, uitschrijven, uitloggen |
-| `reunie25/deelnemers.html` | "Wie doen er mee?": zoeken, filter speltak + jaar (`?speltak=&jaar=`), tabblad "Per jaar" |
-| `reunie25/herinneringen.html` | Herinneringen (menu na "Wie doen er mee?"): tabblad Verhalen (lezen, zoeken/filteren, delen, eigen verhaal aanpassen/verwijderen, "Meld het") en Foto's (`#fotos`: grid, groot bekijken met pijltjes/vegen, meerdere tegelijk delen, eigen foto verwijderen, "Meld het"), met hartjes bij beide. Alleen voor deelnemers en comité; anderen zien een teaser met het aantal |
-| `reunie25/programma.html` + `programma.txt` | Programma (`tijd | omschrijving`, andere regels = alinea) |
-| `reunie25/vragen.html` + `vragen.txt` | FAQ (`V:` / `A:`); `{bedrag}` = bedrag uit `betalen.txt`, e-mailadressen worden links |
-| `reunie25/beheer.html` | Comité. Tabblad Inschrijvingen: tegels, zoeken, filters te combineren (erbij / betaald / nieuw deze week), kolom "Erbij?" met keuzelijst + "sinds", details, verwijderen (+ blokkeren, `<dialog>`), CSV, adressen kopiëren, betaald afvinken. Tabblad Te beoordelen (`#beoordelen`): foto's per inzending (plaatsen / afwijzen = wissen, "Alle N plaatsen"), opslaggebruik, en nieuwe/aangepaste en gemelde verhalen plaatsen, afwijzen (met opmerking), aanpassen, verwijderen. Tabblad Overleg (`#overleg`, `#overleg-<id>`): comité-chat, zie "Overleg". Tabblad Comité (`#comite`): lijst, hoofdbeheerder voegt beheerders toe/haalt weg, geblokkeerde adressen (deblokkeren), tabel "Wie mag wat?". Link "Beheer" alleen voor beheerders (`Data.beheerder()`, rol via `Data.rol()`) |
-| `reunie25/reunie.ics` | Agendabestand (14:00–19:00, Europe/Amsterdam); `Reunie.agenda()` maakt de links "Zet in je agenda" + Google Agenda (home, programma, mijn). Bevat het volledige adres van de site |
-| `reunie25/betalen.txt` | Bedrag, betaallink, IBAN voor het betaalblok op `mijn.html`; leeg = geen blok |
-| `reunie25/over.html` | "Over deze site" (link in de footer): gemaakt door Peter (“Peter Limonade”) en Claude samen; tijdens gebruik kijkt geen AI mee |
-| `reunie25/privacy.html` | Privacyverklaring (noemt Supabase en Resend, wissen uiterlijk 23 augustus 2027) |
-| `reunie25/speltakken.txt` | Speltakken met instapleeftijd, `opgericht = 2001`; regel zonder leeftijd = rol zonder speltak (Bestuur / vrijwilliger); oude namen achter een `\|` (zie "Oude speltaknamen") |
-| `reunie25/reunie.js` | Gedeeld: speltakken.txt inlezen, jaren berekenen, persoonskaartje, `esc()`, jaarvelden-pijltjes |
-| `reunie25/data.js` | Datalaag: de enige plek die met opslag praat. `SUPABASE_KEY` leeg = DEMO (localStorage), ingevuld = Supabase via `fetch` (geen bibliotheek) |
+| `index.html` | Home: datum en tijd, agendalink, aftelling, tellers (doen mee / komen / misschien), namen (10 op telefoon, 20 breder; zijn er meer, dan een willekeurige selectie per bezoek, jijzelf altijd vooraan), "Nieuw bij Herinneringen" (nieuwste geplaatste verhaal en foto voor deelnemers, links naar `herinneringen.html#verhaal-<id>` / `#foto-<id>`; anderen een teaser met aantallen) |
+| `inschrijven.html` | "Doe mee" (inschrijven), eerste vraag "Ben je erbij?"; ingelogd = gegevens aanpassen |
+| `inloggen.html` | Inloggen met e-mail + code van 6 cijfers (stap `#code`) |
+| `mijn.html` | Eigen inschrijving: "Ben je erbij?" met één klik aanpassen, kaartje, links "wie was er tegelijk met jou", betaalblok (alleen bij ja), "Weet je het al?" (misschien), agendablok (niet bij nee), aanpassen, uitschrijven, uitloggen |
+| `deelnemers.html` | "Wie doen er mee?": zoeken, filter speltak + jaar (`?speltak=&jaar=`), tabblad "Per jaar" |
+| `herinneringen.html` | Herinneringen (menu na "Wie doen er mee?"): tabblad Verhalen (lezen, zoeken/filteren, delen, eigen verhaal aanpassen/verwijderen, "Meld het") en Foto's (`#fotos`: grid, groot bekijken met pijltjes/vegen, meerdere tegelijk delen, eigen foto verwijderen, "Meld het"), met hartjes bij beide. Alleen voor deelnemers en comité; anderen zien een teaser met het aantal |
+| `programma.html` + `programma.txt` | Programma (`tijd | omschrijving`, andere regels = alinea) |
+| `vragen.html` + `vragen.txt` | FAQ (`V:` / `A:`); `{bedrag}` = bedrag uit `betalen.txt`, e-mailadressen worden links |
+| `beheer.html` | Comité. Tabblad Inschrijvingen: tegels, zoeken, filters te combineren (erbij / betaald / nieuw deze week), kolom "Erbij?" met keuzelijst + "sinds", details, verwijderen (+ blokkeren, `<dialog>`), CSV, adressen kopiëren, betaald afvinken. Tabblad Te beoordelen (`#beoordelen`): foto's per inzending (plaatsen / afwijzen = wissen, "Alle N plaatsen"), opslaggebruik, en nieuwe/aangepaste en gemelde verhalen plaatsen, afwijzen (met opmerking), aanpassen, verwijderen. Tabblad Overleg (`#overleg`, `#overleg-<id>`): comité-chat, zie "Overleg". Tabblad Comité (`#comite`): lijst, hoofdbeheerder voegt beheerders toe/haalt weg, geblokkeerde adressen (deblokkeren), tabel "Wie mag wat?". Link "Beheer" alleen voor beheerders (`Data.beheerder()`, rol via `Data.rol()`) |
+| `reunie.ics` | Agendabestand (14:00–19:00, Europe/Amsterdam); `Reunie.agenda()` maakt de links "Zet in je agenda" + Google Agenda (home, programma, mijn). Bevat het volledige adres van de site |
+| `betalen.txt` | Bedrag, betaallink, IBAN voor het betaalblok op `mijn.html`; leeg = geen blok |
+| `over.html` | "Over deze site" (link in de footer): gemaakt door Peter (“Peter Limonade”) en Claude samen; tijdens gebruik kijkt geen AI mee |
+| `privacy.html` | Privacyverklaring (noemt Supabase en Resend, wissen uiterlijk 23 augustus 2027) |
+| `speltakken.txt` | Speltakken met instapleeftijd, `opgericht = 2001`; regel zonder leeftijd = rol zonder speltak (Bestuur / vrijwilliger); oude namen achter een `\|` (zie "Oude speltaknamen") |
+| `reunie.js` | Gedeeld: speltakken.txt inlezen, jaren berekenen, persoonskaartje, `esc()`, jaarvelden-pijltjes |
+| `data.js` | Datalaag: de enige plek die met opslag praat. `SUPABASE_KEY` leeg = DEMO (localStorage), ingevuld = Supabase via `fetch` (geen bibliotheek) |
 | `.github/workflows/supabase-keep-alive.yml` | Houdt Supabase wakker: elke 3 dagen één aanroep van `aantal_deelnemers` |
 | `_docs/beheer.md` | Beheerhandleiding: alle instellingen bij GitHub, Webreus (DNS), Resend en Supabase. Bijwerken bij elke wijziging daar |
-| `_docs/verhuizing.md` | Stappenplan (nog niet uitgevoerd) om de reünie te verhuizen naar een eigen repo `reunie25` op reunie.scoutingbrandevoort.nl (optie 1a, 20 november 2026) |
+| `_docs/verhuizing.md` | Stappenplan om de reünie te verhuizen naar deze repo op reunie.scoutingbrandevoort.nl (optie 1a, 20 november 2026); bezig |
 | `_supabase/schema.sql` | Tabellen, row level security en functies voor Supabase; één keer draaien in de SQL-editor. Map met `_`, dus niet gepubliceerd |
-| `reunie25/nav.js` | Kop (blauwe band met logo, titel en datum) + lichte menubalk eronder (sticky, actieve pagina geel onderstreept, "Mijn inschrijving →" / "Inloggen →" vast rechts; onder 760 px één veegbare regel met vervaagde randen en "Mijn →"), footer, testversie-balk bij DEMO |
-| `reunie25/logo.svg`, `logo-wit.svg` | Logo als vector, zie "Reünie" |
-| `reunie25/overleg.js` | Overleg-knopjes (💬) voor het comité bij deelnemers, verhalen, foto's en onderaan elke pagina, en de dialoog "Nieuw overleg". Herinneringen en Beheer laden het zelf; op andere pagina's laadt `nav.js` het voor comitéleden |
-| `reunie25/theme.css` | Stijl; kleuren van scoutingbrandevoort.nl (#2c4696) en het logo (geel). Licht/donker volgt het systeem |
+| `nav.js` | Kop (blauwe band met logo, titel en datum) + lichte menubalk eronder (sticky, actieve pagina geel onderstreept, "Mijn inschrijving →" / "Inloggen →" vast rechts; onder 760 px één veegbare regel met vervaagde randen en "Mijn →"), footer, testversie-balk bij DEMO |
+| `logo.svg`, `logo-wit.svg` | Logo als vector, zie "Reünie" |
+| `overleg.js` | Overleg-knopjes (💬) voor het comité bij deelnemers, verhalen, foto's en onderaan elke pagina, en de dialoog "Nieuw overleg". Herinneringen en Beheer laden het zelf; op andere pagina's laadt `nav.js` het voor comitéleden |
+| `theme.css` | Stijl; kleuren van scoutingbrandevoort.nl (#2c4696) en het logo (geel). Licht/donker volgt het systeem |
 
 ## Reünie
 
 - Zondag 23 mei 2027, 14:00–19:00, vrije inloop, blokhut de Brandnetel, Helmond. Scouting Brandevoort is opgericht in 2001.
 - Contactadres van het comité: reunie@scoutingbrandevoort.nl (sinds 19 november 2026). Bijdrage € 5 per persoon (bedrag in `betalen.txt`). Voor iedereen van de club, van nu en toen (jeugdleden, leiding, bestuur, vrijwilligers), geen introducés. Er komt waarschijnlijk een leeftijdsgrens; nog niet bepaald (22 november 2026). Woordkeus: "scouts van nu en toen", niet "oud-leden" of "(oud-)leden"; anoniem gedeeld = "gedeeld door iemand van de club". Knop/menu "Doe mee" i.p.v. "Inschrijven". Op Beheer → Comité worden de hoofdbeheerders bij naam genoemd, uit de lijst zelf.
 - "Scobra" alleen heel spaarzaam gebruiken (nu één keer, in de footer): niet iedereen vindt het een goede naam.
-- Logo: `reunie25/logo.svg` (zwarte letters) en `logo-wit.svg` (witte letters, in de blauwe kop; ook favicon via `nav.js`). Omgezet van het originele Illustrator-bestand uit 2011 (`~/Documents/Peter/Scouting Brandevoort/Nieuwe logo/20110503 Definitief/`), een PDF-compatibel `.ai`. macOS rendert dat bestand met een zwarte lelie; de SVG heeft de juiste kleuren (geel #ffe400, rood #fa0000, blauw #495faa).
+- Logo: `logo.svg` (zwarte letters) en `logo-wit.svg` (witte letters, in de blauwe kop; ook favicon via `nav.js`). Omgezet van het originele Illustrator-bestand uit 2011 (`~/Documents/Peter/Scouting Brandevoort/Nieuwe logo/20110503 Definitief/`), een PDF-compatibel `.ai`. macOS rendert dat bestand met een zwarte lelie; de SVG heeft de juiste kleuren (geel #ffe400, rood #fa0000, blauw #495faa).
 - Persoon: voornaam, achternaam, bijnaam (optioneel, max. 40, getoond als Sanne “Snoes” Jansen), e-mail, geboortejaar, `takken: [{speltak, rol: 'lid'|'leiding', van, tot, naam?}]` (`tot` null = heden, `naam` = oude naam), `toon: {voornaam, achternaam, bijnaam, leeftijd, takken}`, `sinds`, `erbij` + `erbij_sinds` (zie "Ben je erbij?").
 - Jeugdlid-jaren worden berekend uit geboortejaar + `speltakken.txt` (je zit in een speltak tot de leeftijd van de eerstvolgende hogere speltak; dezelfde leeftijd = naast elkaar, zoals Vuurvogels en Plusscouts, allebei Stam vanaf 21), in kalenderjaren, nooit vóór 2001, en zijn met de hand aan te passen. Leiding-jaren vult iemand zelf in. Jaren vóór 2001 (oudere leden) kunnen met de hand of met pijltje omlaag, tot 1930; pijltje omhoog vanuit leeg begint bij 2001 (`data-start`). Het jaarfilter op "Wie doen er mee?" begint bij 2001.
 - Leeftijd = jubileumjaar (opgericht + 25 = 2026) − geboortejaar, getoond als "57 bij het jubileum" (21 november 2026; eerst 2027). Klopt vaker dan het reüniejaar, nu en op de reüniedag, en zit het ernaast dan is iemand een jaar jonger. Knipoog in de tooltip en op `mijn.html`: "2,3 keer zo oud als de club" / "5 jaar jonger dan de club". Geen "Scobra".
@@ -146,5 +153,6 @@ Besloten op 18 en 19 november 2026, na mockups:
 - [ ] Hartjes live testen (geven, weghalen, eigen item, blok op Mijn inschrijving).
 - [ ] Programma en vragen verder invullen (`programma.txt`, `vragen.txt`); tijden 14:00–19:00 staan erin (22 november 2026).
 - [x] Jaarvelden-pijltjes werken in Safari (getest door Bas, 20 november 2026). Keuzelijsten hebben een eigen stijl (`appearance: none`), in Safari nog nakijken.
-- [ ] `README.md` noemt de oude reponaam.
-- [ ] Eventueel verhuizen naar reunie.scoutingbrandevoort.nl volgens `_docs/verhuizing.md` (vóór de aankondiging; vraagt twee DNS-records van de scouting).
+- [ ] `README.md` toevoegen (kort: wat deze repo is).
+- [x] Repo afgesplitst met geschiedenis (22 november 2026).
+- [ ] Verder verhuizen volgens `_docs/verhuizing.md`: Pages + testadres, DNS-records bij de scouting, overstap, doorsturen vanaf lastscoutstanding.com (vóór de aankondiging).

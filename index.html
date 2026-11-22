@@ -54,11 +54,11 @@
 
   (async () => {
     await Reunie.laadSpeltakken();
-    const [{ totaal, personen }, ik] = await Promise.all([Data.deelnemers(), Data.ingelogd() ? Data.ik().catch(() => null) : null]);
+    const [{ totaal, erbij, personen }, ik] = await Promise.all([Data.deelnemers(), Data.ingelogd() ? Data.ik().catch(() => null) : null]);
     const isZelf = Reunie.zelf(ik);
     if (!totaal) { $('stat').textContent = 'Nog niemand!'; $('stat-sub').textContent = 'Doe mee en wees de eerste.'; return; }
-    $('stat').innerHTML = `Al <b>${totaal}</b> ${totaal === 1 ? 'inschrijving' : 'inschrijvingen'}!`;
-    $('stat-sub').textContent = Data.ingelogd() ? 'En jij bent er ook bij.' : 'Ben jij er ook bij?';
+    $('stat').innerHTML = `<b>${totaal}</b> ${totaal === 1 ? 'scout van nu en toen doet' : 'scouts van nu en toen doen'} mee`;
+    $('stat-sub').textContent = `${Reunie.erbijTekst(erbij)}. ${Data.ingelogd() ? 'En jij doet ook mee!' : 'Doe jij ook mee?'}`;
     // 10 names on a phone, 20 on a wider screen: all of them (newest first) while they fit,
     // otherwise a random pick on every visit. Your own name always comes first, with an accent.
     const max = matchMedia('(max-width: 600px)').matches ? 10 : 20;

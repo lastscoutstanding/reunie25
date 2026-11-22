@@ -13,6 +13,15 @@
   <p class="note" id="comite-noot" hidden style="margin-bottom:16px">Je bent ingelogd als lid van het reüniecomité, maar nog niet ingeschreven voor de reünie zelf. Kom je ook? Vul dan dit formulier in. Anders kun je gewoon naar <a href="beheer.html">Beheer</a> of <button class="linkbtn" id="comite-uit" type="button">uitloggen</button>.</p>
   <div class="split">
     <form class="card" id="form" novalidate>
+      <fieldset class="erbij-vraag">
+        <legend>Ben je erbij op zondag 23 mei 2027?</legend>
+        <div class="erbij">
+          <label><input type="radio" name="erbij" value="ja" checked><b>Ja, ik ben erbij!</b><small>Tot in de Brandnetel</small></label>
+          <label><input type="radio" name="erbij" value="misschien"><b>Misschien</b><small>Ik weet het nog niet</small></label>
+          <label><input type="radio" name="erbij" value="nee"><b>Helaas niet</b><small>Maar ik doe graag mee met de herinneringen</small></label>
+        </div>
+        <p class="note" id="erbij-uitleg"></p>
+      </fieldset>
       <div class="two">
         <label>Voornaam<input id="f-voor" autocomplete="given-name" required></label>
         <label>Achternaam<input id="f-achter" autocomplete="family-name"></label>
@@ -112,6 +121,17 @@
   });
   $('f-jaar').addEventListener('input', () => { renderTakken(); preview(); });
   $('f-leiding').addEventListener('change', () => { $('blok-leiding').hidden = !$('f-leiding').checked; preview(); });
+  // Coming? Only the participant and the comité see the choice; it can be changed any time.
+  const ERBIJ_TEKST = {
+    ja: 'Fijn, we zien je graag in de Brandnetel!',
+    misschien: 'Prima. Je kunt al meedoen met de herinneringen; pas je keuze aan zodra je het weet.',
+    nee: 'Jammer dat je niet kan! Je bent van harte welkom om wel bij te dragen aan de herinneringen. Verandert er iets, pas het dan <a href="mijn.html">hier</a> aan.',
+  };
+  const erbij = () => document.querySelector('input[name=erbij]:checked')?.value || 'ja';
+  const erbijUitleg = () => { $('erbij-uitleg').innerHTML = ERBIJ_TEKST[erbij()]; };
+  document.querySelectorAll('input[name=erbij]').forEach(i => i.addEventListener('change', erbijUitleg));
+  erbijUitleg();
+
   ['f-voor', 'f-achter', 'f-bijnaam', 's-voor', 's-achter', 's-bijnaam', 's-leeftijd', 's-tak'].forEach(id => $(id).addEventListener('input', preview));
 
   function leesForm() {
@@ -121,7 +141,7 @@
     });
     return {
       voornaam: $('f-voor').value.trim(), achternaam: $('f-achter').value.trim(), bijnaam: $('f-bijnaam').value.trim(),
-      email: $('f-email').value.trim(), geboortejaar: +$('f-jaar').value || null,
+      email: $('f-email').value.trim(), geboortejaar: +$('f-jaar').value || null, erbij: erbij(),
       takken: [...rows('lid'), ...($('f-leiding').checked ? rows('leiding') : [])],
       toon: { voornaam: $('s-voor').checked, achternaam: $('s-achter').checked, bijnaam: $('s-bijnaam').checked, leeftijd: $('s-leeftijd').checked, takken: $('s-tak').checked },
     };
@@ -184,6 +204,8 @@
     $('blok-leiding').hidden = !$('f-leiding').checked;
     $('s-voor').checked = r.toon.voornaam; $('s-achter').checked = r.toon.achternaam; $('s-bijnaam').checked = r.toon.bijnaam !== false;
     $('s-leeftijd').checked = r.toon.leeftijd; $('s-tak').checked = r.toon.takken;
+    const k = document.querySelector(`input[name=erbij][value="${r.erbij || 'ja'}"]`);
+    if (k) { k.checked = true; erbijUitleg(); }
   }
 
   (async () => {

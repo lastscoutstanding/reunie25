@@ -4,6 +4,12 @@ const Reunie = (() => {
   const TIJD = '14:00 – 19:00';
 
   // "Add to calendar": reunie.ics for Apple Calendar and Outlook, a link for Google Calendar.
+  // "42 komen naar de reünie, 11 weten het nog niet": totals only, never who.
+  function erbijTekst(n = {}) {
+    const ja = n.ja || 0, mis = n.misschien || 0;
+    return `${ja} ${ja === 1 ? 'komt' : 'komen'} naar de reünie` + (mis ? `, ${mis} ${mis === 1 ? 'weet' : 'weten'} het nog niet` : '');
+  }
+
   function agenda() {
     const q = new URLSearchParams({
       action: 'TEMPLATE', text: 'Reünie 25 jaar Scouting Brandevoort',
@@ -157,7 +163,7 @@ const Reunie = (() => {
     stapJaar(el, e.clientY < r.top + r.height / 2 ? 1 : -1);
   });
 
-  return { DATUM, TIJD, agenda, NU, laadSpeltakken, laadBetalen, euro, takken, opgericht, isRol, berekenJaren, jubileum, leeftijd, leeftijdTekst, knipoog, periode, esc, matcher, naam, kaart, zelf };
+  return { DATUM, TIJD, agenda, erbijTekst, NU, laadSpeltakken, laadBetalen, euro, takken, opgericht, isRol, berekenJaren, jubileum, leeftijd, leeftijdTekst, knipoog, periode, esc, matcher, naam, kaart, zelf };
 })();
 
 const $ = id => document.getElementById(id);

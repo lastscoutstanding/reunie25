@@ -18,6 +18,9 @@
   <div class="split" id="inhoud" hidden>
     <div class="card">
       <p style="margin-top:0"><span class="pill">✓ Ingeschreven</span> <span id="sinds"></span></p>
+      <h2 style="margin-bottom:8px">Ben je erbij op 23 mei?</h2>
+      <div class="seg" id="erbij"><button type="button" data-v="ja">Ja!</button><button type="button" data-v="misschien">Misschien</button><button type="button" data-v="nee">Helaas niet</button></div>
+      <p class="muted" style="font-size:14px;margin:8px 0 20px" id="erbij-noot">Alleen het comité ziet je keuze. Je kunt hem altijd aanpassen.</p>
       <p>Op "Wie doen er mee?" sta je zo:</p>
       <div id="kaart"></div>
       <p class="muted" style="font-size:14px" id="samen"></p>
@@ -28,6 +31,10 @@
     </div>
     <div class="stack">
       <div class="card betaal" id="betaal" hidden></div>
+      <div class="card" id="weet-je" hidden>
+        <h2>Weet je het al?</h2>
+        <p style="margin:0">Geen haast. Kies "Ja!" zodra je het weet, dan zie je hier hoe je de bijdrage betaalt. Tot die tijd ben je van harte welkom bij de <a href="herinneringen.html">herinneringen</a>.</p>
+      </div>
       <div class="card">
         <h2>Je gegevens</h2>
         <p style="margin:0" id="gegevens"></p>
@@ -106,11 +113,50 @@
       return `<a href="deelnemers.html?${q}">${E(label)} (${x.van})</a>`;
     });
     $('samen').innerHTML = links.length ? 'Wie was er tegelijk met jou: ' + links.join(' · ') : '';
-    const b = await betalen;
-    if (b) { $('betaal').innerHTML = betaalblok(b, ik); $('betaal').hidden = false; }
+    ikNu = ik; betaalInfo = await betalen;
+    toonErbij();
     $('inhoud').hidden = false;
     leukBlok();
   })();
+
+  // Coming? The payment block only for "ja" (or when already paid), "Weet je het al?" for
+  // "misschien", and no calendar link for "nee".
+  let ikNu = null, betaalInfo = null;
+  const WELKOM = {
+    ja: 'Je bent ingeschreven. Tot 23 mei 2027 in de Brandnetel!',
+    misschien: 'Je doet mee! Laat je hier weten of je er op 23 mei bij bent, zodra je het weet.',
+    nee: 'Je doet mee. Fijn dat je je herinneringen wilt delen!',
+  };
+  function toonErbij() {
+    const k = ikNu.erbij || 'ja';
+    document.querySelectorAll('#erbij button').forEach(x => x.classList.toggle('on', x.dataset.v === k));
+    $('welkom').textContent = WELKOM[k];
+    const b = betaalInfo;
+    if (b && ikNu.betaald && k === 'nee') {
+      $('betaal').innerHTML = `<h2>Bijdrage</h2><p style="margin:0">Je hebt al betaald. Het comité ziet dat je er niet bij kunt en neemt contact met je op.</p>`;
+    } else if (b && (k === 'ja' || ikNu.betaald)) {
+      $('betaal').innerHTML = betaalblok(b, ikNu);
+    }
+    $('betaal').hidden = !b || !(k === 'ja' || ikNu.betaald);
+    $('weet-je').hidden = k !== 'misschien';
+    $('agenda-blok').hidden = k === 'nee';
+  }
+  $('erbij').addEventListener('click', async e => {
+    const knop = e.target.closest('button');
+    if (!knop || !ikNu || knop.dataset.v === ikNu.erbij) return;
+    const oud = ikNu.erbij;
+    ikNu = { ...ikNu, erbij: knop.dataset.v };
+    toonErbij();
+    $('erbij-noot').textContent = 'Opslaan…';
+    try {
+      ikNu = await Data.bewaar(ikNu);
+      $('erbij-noot').textContent = 'Opgeslagen. Alleen het comité ziet je keuze.';
+    } catch (err) {
+      ikNu = { ...ikNu, erbij: oud };
+      toonErbij();
+      $('erbij-noot').textContent = 'Opslaan lukte niet: ' + err.message;
+    }
+  });
 
   // Hearts on your own placed stories and photos; nothing when there are none.
   async function leukBlok() {

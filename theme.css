@@ -116,6 +116,8 @@ legend { font-weight: 600; padding: 0 6px; }
 .filters { display: flex; gap: 10px; flex-wrap: wrap; align-items: center; margin-top: 12px; }
 .filters input { max-width: 220px; }
 .filters select { width: auto; }
+.filters .check { font-size: 15px; }
+.lijst select.erbij-kies { width: auto; padding: 4px 30px 4px 8px; font-size: 14px; background-position: right 10px center; }
 .seg { display: inline-flex; border: 1px solid var(--line); border-radius: 999px; overflow: hidden; }
 .seg button { font: inherit; border: 0; background: transparent; color: var(--ink); padding: 7px 14px; cursor: pointer; }
 .seg button.on { background: var(--brand); color: #fff; }
@@ -374,3 +376,16 @@ button.ond { font: inherit; font-size: 12.5px; border: 0; cursor: pointer; }
 .lb-info .hart.aan { background: rgba(240, 102, 94, .2); border-color: #f0665e; color: #ff8a83; }
 .lb-info .hart.eigen .i { color: #ff8a83; }
 .rood { color: var(--red); font-variant-emoji: text; }
+
+/* "Ben je erbij?" on the sign-up form: three big choices */
+.erbij-vraag { border: 0; padding: 0; display: grid; gap: 10px; }
+.erbij-vraag legend { padding: 0; margin-bottom: 6px; font-size: 18px; color: var(--brand); }
+.erbij-vraag .note { margin: 0; }
+.erbij { display: grid; grid-template-columns: repeat(3, 1fr); gap: 10px; }
+.erbij label { position: relative; display: block; cursor: pointer; border: 2px solid var(--line); border-radius: 12px; padding: 12px 14px; background: var(--bg); font-weight: 400; }
+.erbij label b { display: block; font-size: 16px; }
+.erbij label small { color: var(--muted); font-size: 13px; }
+.erbij input { position: absolute; opacity: 0; pointer-events: none; }
+.erbij label:has(input:checked) { border-color: var(--brand); background: var(--card); }
+.erbij label:has(input:focus-visible) { outline: 2px solid var(--accent); outline-offset: 2px; }
+@media (max-width: 600px) { .erbij { grid-template-columns: 1fr; } }

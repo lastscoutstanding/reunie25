@@ -13,7 +13,10 @@
 //     takken: [{ speltak, rol: 'lid' | 'leiding', van, tot }],   tot null = heden
 //     toon: { voornaam, achternaam, bijnaam, leeftijd, takken }, what others may see
 //     sinds,                                                      registration date
+//     erbij: 'ja' | 'misschien' | 'nee', erbij_sinds,             coming? (participant and comité only)
 //     id, betaald }                 betaald: date the comité saw the payment, or null
+//
+// deelnemers() gives { totaal, erbij: { ja, misschien, nee }, personen }: counts only, never who.
 //
 // Story (Herinneringen), as pages get it:
 //   { id, titel, tekst, speltak, jaar, toon_naam, eigen, status, toelichting,
@@ -40,6 +43,7 @@ const Data = (() => {
   const DEMO_KEY = 'reunie25.demo';
   const DEMO_SESSIE = 'reunie25.sessie';
   const DEMO_BETAALD = 'reunie25.demo.betaald';
+  const DEMO_ERBIJ = 'reunie25.demo.erbij';            // { id: { erbij, sinds } } set by the comité
   const DEMO_COMITE = 'reunie25.demo.comite';
   const DEMO_WEG = 'reunie25.demo.weg';                // removed sample participants
   const DEMO_GEBLOKKEERD = 'reunie25.demo.geblokkeerd';
@@ -115,7 +119,6 @@ const Data = (() => {
     ['Pim', 'Aarts', 1991, ['Explorers'], [0, 0, 0, 0]],
   ];
   const weg = () => lees(DEMO_WEG, []);
-  const voorbeeld = () => voorbeeldAlle().filter((_, i) => !weg().includes('voorbeeld-' + i));
   const voorbeeldAlle = () => VOORBEELD.map(([voornaam, achternaam, geboortejaar, leden, [v, a, l, t], leiding = []]) => ({
     voornaam, achternaam, geboortejaar,
     takken: [
@@ -135,7 +138,20 @@ const Data = (() => {
   // Payments in DEMO: { id: date }. Starts with two out of three sample people paid.
   const betaaldLijst = () => lees(DEMO_BETAALD, null)
     ?? Object.fromEntries(VOORBEELD.map((_, i) => ['voorbeeld-' + i, `2027-01-${String(i + 5).padStart(2, '0')}`]).filter((_, i) => i % 3 !== 2));
-  const metBetaald = r => r && { ...r, id: r.id || r.email, betaald: betaaldLijst()[r.id || r.email] || null };
+  // Coming in DEMO: own records keep it themselves, the comité's changes are in DEMO_ERBIJ.
+  // Sample people: mostly ja, a few misschien and nee.
+  const erbijVan = r => {
+    const id = r.id || r.email, i = /^voorbeeld-(\d+)$/.exec(id)?.[1];
+    const basis = { erbij: r.erbij || (i == null ? 'ja' : i % 5 === 3 ? 'misschien' : i % 7 === 6 ? 'nee' : 'ja'), sinds: r.erbij_sinds || r.sinds };
+    const g = lees(DEMO_ERBIJ, {})[id] || basis;
+    return { erbij: g.erbij, erbij_sinds: g.sinds };
+  };
+  const metBetaald = r => r && { ...r, id: r.id || r.email, betaald: betaaldLijst()[r.id || r.email] || null, ...erbijVan(r) };
+  const telErbij = recs => {
+    const n = { ja: 0, misschien: 0, nee: 0 };
+    for (const r of recs) n[erbijVan(r).erbij]++;
+    return n;
+  };
   // Comité in DEMO: whoever is logged in is hoofdbeheerder, plus a few sample members.
   const comiteLijst = () => lees(DEMO_COMITE, null) ?? [
     { email: 'mark.devries@voorbeeld.nl', rol: 'hoofdbeheerder', toegevoegd_door: null, toegevoegd_op: '2026-11-20' },
@@ -207,8 +223,8 @@ const Data = (() => {
 
   const demo = {
     async deelnemers() {
-      const recs = [...voorbeeld(), ...alle()];
-      return { totaal: recs.length, personen: recs.map(publiek).filter(zichtbaar) };
+      const recs = [...voorbeeldVol(), ...alle()];
+      return { totaal: recs.length, erbij: telErbij(recs), personen: recs.map(publiek).filter(zichtbaar) };
     },
     async vraagCode(email, { nieuw = false } = {}) {
       const bekend = alle().some(r => r.email === norm(email));
@@ -231,8 +247,13 @@ const Data = (() => {
       if (!email) throw fout('sessie', MELD.sessie);
       const list = alle();
       const i = list.findIndex(r => r.email === email);
-      const nieuw = { ...rec, email, sinds: i >= 0 ? list[i].sinds : new Date().toLocaleDateString('sv') };  // local YYYY-MM-DD
+      const vandaag = new Date().toLocaleDateString('sv');  // local YYYY-MM-DD
+      const oud = i >= 0 ? metBetaald(list[i]) : null;
+      const erbij = rec.erbij || oud?.erbij || 'ja';
+      const nieuw = { ...rec, email, sinds: oud ? oud.sinds : vandaag, erbij,
+        erbij_sinds: oud && oud.erbij === erbij ? oud.erbij_sinds : vandaag };
       delete nieuw.id; delete nieuw.betaald;
+      const g = lees(DEMO_ERBIJ, {}); delete g[email]; schrijf(DEMO_ERBIJ, g);
       if (i >= 0) list[i] = nieuw; else list.push(nieuw);
       schrijf(DEMO_KEY, list);
       return metBetaald(nieuw);
@@ -468,6 +489,14 @@ const Data = (() => {
       if (!lees(DEMO_SESSIE, null)) throw fout('sessie', MELD.sessie);
       return [...voorbeeldVol(), ...alle()].map(metBetaald);
     },
+    async zetErbij(id, keuze) {
+      const r = (await this.inschrijvingen()).find(x => x.id === id);
+      const g = lees(DEMO_ERBIJ, {});
+      const sinds = r && r.erbij === keuze ? r.erbij_sinds : new Date().toLocaleDateString('sv');
+      g[id] = { erbij: keuze, sinds };
+      schrijf(DEMO_ERBIJ, g);
+      return sinds;
+    },
     async zetBetaald(id, aan) {
       const lijst = betaaldLijst();
       if (aan) lijst[id] ||= new Date().toLocaleDateString('sv'); else delete lijst[id];
@@ -523,11 +552,12 @@ const Data = (() => {
   const naarRecord = r => r && ({
     email: r.email, voornaam: r.voornaam, achternaam: r.achternaam, bijnaam: r.bijnaam || '', geboortejaar: r.geboortejaar,
     takken: r.takken || [], sinds: r.sinds, id: r.id, betaald: r.betaald_op || null,
+    erbij: r.erbij || 'ja', erbij_sinds: r.erbij_sinds || r.sinds,
     toon: { voornaam: r.toon_voornaam, achternaam: r.toon_achternaam, bijnaam: r.toon_bijnaam ?? true, leeftijd: r.toon_leeftijd, takken: r.toon_takken },
   });
   const naarRij = (rec, id) => ({
     id, voornaam: rec.voornaam, achternaam: rec.achternaam || '', bijnaam: rec.bijnaam || '', geboortejaar: rec.geboortejaar,
-    takken: rec.takken || [],
+    takken: rec.takken || [], erbij: rec.erbij || 'ja',
     toon_voornaam: !!rec.toon.voornaam, toon_achternaam: !!rec.toon.achternaam, toon_bijnaam: rec.toon.bijnaam !== false,
     toon_leeftijd: !!rec.toon.leeftijd, toon_takken: !!rec.toon.takken,
   });
@@ -556,11 +586,12 @@ const Data = (() => {
 
   const live = {
     async deelnemers() {
-      const [totaal, personen] = await Promise.all([
+      const [totaal, erbij, personen] = await Promise.all([
         verzoek('/rest/v1/rpc/aantal_deelnemers', { method: 'POST', body: {} }),
+        verzoek('/rest/v1/rpc/aantal_erbij', { method: 'POST', body: {} }).catch(() => null),
         verzoek('/rest/v1/rpc/publieke_deelnemers', { method: 'POST', body: {} }),
       ]);
-      return { totaal, personen };
+      return { totaal, erbij: { ja: 0, misschien: 0, nee: 0, ...(erbij || { ja: totaal }) }, personen };
     },
     // Registering creates the login (create_user); logging in must not.
     async vraagCode(email, { nieuw = false } = {}) {
@@ -837,6 +868,10 @@ const Data = (() => {
       const t = await moetToken();
       const rows = await verzoek('/rest/v1/deelnemers?select=*&order=aangemaakt', { token: t });
       return rows.map(naarRecord);
+    },
+    async zetErbij(id, keuze) {
+      const t = await moetToken();
+      return await verzoek('/rest/v1/rpc/zet_erbij', { method: 'POST', token: t, body: { deelnemer: id, keuze } });
     },
     async zetBetaald(id, aan) {
       const t = await moetToken();

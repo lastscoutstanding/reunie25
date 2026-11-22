@@ -139,7 +139,7 @@
     const [d, ik] = await Promise.all([Data.deelnemers(), Data.ingelogd() ? Data.ik().catch(() => null) : null]);
     isZelf = Reunie.zelf(ik);
     PERSONEN = d.personen;
-    $('totaal').innerHTML = `<b>${d.totaal}</b> ingeschreven · <b>${PERSONEN.length}</b> zichtbaar`;
+    $('totaal').innerHTML = `<b>${d.totaal}</b> ${d.totaal === 1 ? "doet" : "doen"} mee · ${Reunie.erbijTekst(d.erbij)} · <b>${PERSONEN.length}</b> zichtbaar`;
     render(); renderPerJaar();
 
     // From a name on the home page (#p-3): scroll to that card and light it up briefly.

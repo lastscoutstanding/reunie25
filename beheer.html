@@ -22,21 +22,25 @@
     <div class="tegels" id="tegels"></div>
     <div class="filters">
       <input type="search" id="zoek" placeholder="Zoek op naam of e-mail" aria-label="Zoek op naam of e-mail">
-      <select id="filter" aria-label="Filter">
-        <option value="">Iedereen</option><option value="nee">Nog niet betaald</option><option value="ja">Betaald</option><option value="nieuw">Nieuw deze week</option>
+      <select id="f-erbij" aria-label="Erbij?">
+        <option value="">Erbij: iedereen</option><option value="ja">Erbij: ja</option><option value="misschien">Erbij: misschien</option><option value="nee">Erbij: helaas niet</option>
       </select>
+      <select id="f-betaald" aria-label="Betaald">
+        <option value="">Betaald of niet</option><option value="ja">Betaald</option><option value="nee">Nog niet betaald</option>
+      </select>
+      <label class="check"><input type="checkbox" id="f-nieuw"> Nieuw deze week</label>
       <button class="btn ghost" id="kopieer" type="button">Kopieer e-mailadressen</button>
       <button class="btn ghost" id="csv" type="button">Download CSV</button>
     </div>
     <p class="summary" id="telling"></p>
     <div class="scroll">
       <table class="lijst">
-        <thead><tr><th>Naam en e-mail</th><th class="kol-sinds">Ingeschreven</th><th>Betaald</th></tr></thead>
+        <thead><tr><th>Naam en e-mail</th><th class="kol-sinds">Ingeschreven</th><th>Erbij?</th><th>Betaald</th></tr></thead>
         <tbody id="rijen"></tbody>
       </table>
     </div>
-    <p class="muted" style="font-size:14px">Klik op een naam voor alle gegevens, ook wat iemand niet op "Wie doen er mee?" laat zien, en om iemand te verwijderen. E-mailadressen zijn alleen voor berichten van het comité. "Nieuw" = ingeschreven in de afgelopen 7 dagen.<br>
-      Een vinkje bij "Betaald" wordt meteen opgeslagen, met de datum van vandaag. De deelnemer ziet het op Mijn inschrijving.</p>
+    <p class="muted" style="font-size:14px">Klik op een naam voor alle gegevens, ook wat iemand niet op "Wie doen er mee?" laat zien, en om iemand te verwijderen. E-mailadressen zijn alleen voor berichten van het comité. "Nieuw" = ingeschreven in de afgelopen 7 dagen. De filters zijn te combineren: zoeken, kopiëren en de CSV gebruiken de rijen die je ziet.<br>
+      Een andere keuze bij "Erbij?" en een vinkje bij "Betaald" worden meteen opgeslagen. "Sinds" = wanneer de keuze voor het laatst veranderde. Het betaalvinkje staat alleen bij "ja" (en bij wie al betaald heeft). De deelnemer ziet beide op Mijn inschrijving; anderen zien alleen de aantallen.</p>
   </div>
 
   <div id="tab-beoordelen" hidden>
@@ -145,7 +149,7 @@
 
   function details(r) {
     const toont = Object.keys(TOON).filter(k => r.toon[k] && (k !== 'bijnaam' || r.bijnaam) && (k !== 'achternaam' || r.achternaam)).map(k => TOON[k]);
-    return `<tr class="meer"><td colspan="3">
+    return `<tr class="meer"><td colspan="4">
       Geboren in ${r.geboortejaar} (${Reunie.leeftijd(r.geboortejaar)} bij het jubileum in ${Reunie.jubileum()})<br>
       ${r.takken.length ? r.takken.map(t => E(takTekst(t))).join(' · ') : '<span class="muted">geen speltakken ingevuld</span>'}<br>
       <span class="muted">Op "Wie doen er mee?": ${toont.length ? toont.join(', ') : 'niets'}</span>
@@ -159,36 +163,57 @@
     return d >= 0 && d < 7 * 864e5;
   };
 
-  // Rows matching the search box and the filter.
+  // Rows matching the search box and all filters together.
+  const ERBIJ = { ja: 'Ja', misschien: 'Misschien', nee: 'Helaas niet' };
+  const filters = () => ({ q: $('zoek').value.trim().toLowerCase(), erbij: $('f-erbij').value, betaald: $('f-betaald').value, nieuw: $('f-nieuw').checked });
   function gefilterd() {
-    const q = $('zoek').value.trim().toLowerCase();
-    const f = $('filter').value;
-    return lijst.filter(r => (!q || `${volNaam(r)} ${r.email}`.toLowerCase().includes(q))
-      && (!f || (f === 'nieuw' ? isNieuw(r) : (f === 'ja') === !!r.betaald)));
+    const f = filters();
+    return lijst.filter(r => (!f.q || `${volNaam(r)} ${r.email}`.toLowerCase().includes(f.q))
+      && (!f.erbij || r.erbij === f.erbij)
+      && (!f.betaald || (f.betaald === 'ja') === !!r.betaald)
+      && (!f.nieuw || isNieuw(r)));
   }
+  function zetFiltersTerug() { $('zoek').value = ''; $('f-erbij').value = ''; $('f-betaald').value = ''; $('f-nieuw').checked = false; }
 
   function toon() {
-    const q = $('zoek').value.trim(), f = $('filter').value;
+    const f = filters();
     const rijen = gefilterd();
-    $('telling').innerHTML = q || f ? `<b>${rijen.length}</b> van de ${lijst.length} gevonden` : '';
+    $('telling').innerHTML = f.q || f.erbij || f.betaald || f.nieuw ? `<b>${rijen.length}</b> van de ${lijst.length} gevonden` : '';
     $('rijen').innerHTML = rijen.map(r => `<tr>
         <td><button class="linkbtn" data-id="${E(r.id)}" aria-expanded="${open.has(r.id)}">${E(volNaam(r))}</button>${isNieuw(r) ? ' <span class="pill nieuw">nieuw</span>' : ''}<br><small class="muted mail">${E(r.email).replace('@', '@<wbr>')}</small><small class="muted klein-sinds">ingeschreven ${datum(r.sinds)}</small></td>
         <td class="kol-sinds">${datum(r.sinds)}</td>
-        <td><label class="check"><input type="checkbox" data-betaald="${E(r.id)}"${r.betaald ? ' checked' : ''}> ${r.betaald ? datum(r.betaald) : 'nee'}</label></td>
+        <td><select class="erbij-kies" data-erbij="${E(r.id)}" aria-label="Erbij? ${E(volNaam(r))}">${Object.entries(ERBIJ).map(([k, t]) => `<option value="${k}"${r.erbij === k ? ' selected' : ''}>${t}</option>`).join('')}</select>
+          <br><small class="muted">sinds ${datum(r.erbij_sinds)}</small></td>
+        <td>${r.erbij === 'ja' || r.betaald
+          ? `<label class="check"><input type="checkbox" data-betaald="${E(r.id)}"${r.betaald ? ' checked' : ''}> ${r.betaald ? datum(r.betaald) : 'nee'}</label>`
+          : '<span class="muted">–</span>'}</td>
       </tr>${open.has(r.id) ? details(r) : ''}`).join('')
-      || '<tr><td colspan="3" class="muted">Niemand gevonden.</td></tr>';
+      || '<tr><td colspan="4" class="muted">Niemand gevonden.</td></tr>';
   }
 
   function tegels() {
     const betaald = lijst.filter(r => r.betaald).length;
-    $('tegels').innerHTML = `<div><span>Ingeschreven</span><strong>${lijst.length}</strong></div>
+    const n = k => lijst.filter(r => r.erbij === k).length;
+    $('tegels').innerHTML = `<div><span>Doen mee</span><strong>${lijst.length}</strong></div>
+      <div><span>Erbij: ja</span><strong>${n('ja')}</strong></div>
+      <div><span>Misschien</span><strong>${n('misschien')}</strong></div>
+      <div><span>Helaas niet</span><strong>${n('nee')}</strong></div>
       <div><span>Betaald</span><strong>${betaald}</strong></div>
-      <div><span>Nog niet betaald</span><strong>${lijst.length - betaald}</strong></div>
+      <div><span>Ja, nog niet betaald</span><strong>${lijst.filter(r => r.erbij === 'ja' && !r.betaald).length}</strong></div>
       ${betalen ? `<div><span>Ontvangen (± ${Reunie.euro(betalen.bedrag)} p.p.)</span><strong>${Reunie.euro(betaald * betalen.bedrag)}</strong></div>` : ''}`;
   }
 
   $('zoek').addEventListener('input', toon);
-  $('filter').addEventListener('change', toon);
+  ['f-erbij', 'f-betaald', 'f-nieuw'].forEach(id => $(id).addEventListener('change', toon));
+  $('rijen').addEventListener('change', async e => {
+    const id = e.target.dataset.erbij;
+    if (!id) return;
+    const r = lijst.find(x => x.id === id);
+    e.target.disabled = true;
+    try { r.erbij_sinds = await Data.zetErbij(id, e.target.value); r.erbij = e.target.value; }
+    catch (err) { alert('Opslaan lukte niet: ' + err.message); }
+    tegels(); toon();
+  });
   $('rijen').addEventListener('change', async e => {
     const id = e.target.dataset.betaald;
     if (!id) return;
@@ -225,9 +250,9 @@
   // Semicolons and a BOM, so Excel with Dutch settings opens it in columns with the right accents.
   $('csv').addEventListener('click', () => {
     const cel = v => `"${String(v ?? '').replace(/"/g, '""')}"`;
-    const kop = ['Voornaam', 'Achternaam', 'Bijnaam', 'E-mail', 'Geboortejaar', 'Speltakken', 'Ingeschreven', 'Betaald op'];
-    const regels = lijst.map(r => [r.voornaam, r.achternaam, r.bijnaam, r.email, r.geboortejaar,
-      r.takken.map(takTekst).join(', '), r.sinds, r.betaald || '']);
+    const kop = ['Voornaam', 'Achternaam', 'Bijnaam', 'E-mail', 'Geboortejaar', 'Speltakken', 'Ingeschreven', 'Erbij', 'Erbij sinds', 'Betaald op'];
+    const regels = gefilterd().map(r => [r.voornaam, r.achternaam, r.bijnaam, r.email, r.geboortejaar,
+      r.takken.map(takTekst).join(', '), r.sinds, ERBIJ[r.erbij] || r.erbij, r.erbij_sinds || '', r.betaald || '']);
     const csv = '﻿' + [kop, ...regels].map(rij => rij.map(cel).join(';')).join('\r\n');
     const a = document.createElement('a');
     a.href = URL.createObjectURL(new Blob([csv], { type: 'text/csv;charset=utf-8' }));
@@ -588,7 +613,7 @@
     if (s && !s.classList.contains('on')) ovActie(() => Data.zetOverlegStatus(gekozen, s.dataset.status), s);
     if (weg && confirm('Dit bericht verwijderen?')) ovActie(() => Data.verwijderBericht(weg.dataset.wegBericht), weg);
     if (d) {
-      open.clear(); open.add(d.dataset.naarDeelnemer); $('zoek').value = ''; $('filter').value = '';
+      open.clear(); open.add(d.dataset.naarDeelnemer); zetFiltersTerug();
       tab('inschrijvingen'); toon();
       document.querySelector(`button[data-id="${CSS.escape(d.dataset.naarDeelnemer)}"]`)?.scrollIntoView({ block: 'center' });
     }

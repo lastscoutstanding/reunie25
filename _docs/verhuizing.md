@@ -32,7 +32,12 @@ De reüniesite verhuist van `lastscoutstanding.com/reunie25/` naar deze repo `la
 
 ## Fase 2: DNS bij de scouting (kan ruim van tevoren)
 
-Zoek uit wie de DNS van scoutingbrandevoort.nl beheert. Dat is niet per se de WordPress-beheerder: de DNS staat bij de registrar of de hostingpartij van het domein.
+Zoek uit wie de DNS van scoutingbrandevoort.nl beheert. De DNS staat bij **Threvon** (nameservers `ns01`–`ns03.threvon.nl`, `ns04.threvon.eu`), waarschijnlijk de hostingpartij van de WordPress-site; wie daar een account heeft, kan de records zetten.
+
+Nagekeken met `dig` (23 november 2026):
+
+- **Geen CAA-record** op `scoutingbrandevoort.nl` of `reunie`: elke certificaatuitgever mag, dus Let's Encrypt (dat GitHub gebruikt) ook. Na de CNAME gelden de CAA-records van `github.io`, en daar staat Let's Encrypt in. Komt er later toch een CAA-record bij, dan moet daar `0 issue "letsencrypt.org"` naast staan, anders blijft *Enforce HTTPS* grijs.
+- **Wildcard:** elk subdomein, ook `reunie`, wijst nu naar `85.10.155.74` (hetzelfde als de WordPress-site). Een expliciet CNAME-record voor `reunie` gaat voor de wildcard; er hoeft niets weg.
 
 1. GitHub → je profiel → Settings → Pages → *Add a domain* → `reunie.scoutingbrandevoort.nl`. GitHub toont een TXT-record met een code; laat die pagina open.
 2. Stuur de DNS-beheerder deze twee records:
@@ -44,11 +49,11 @@ Zoek uit wie de DNS van scoutingbrandevoort.nl beheert. Dat is niet per se de Wo
 
 Voorbeeldbericht:
 
-> Voor de reüniesite wil ik graag het adres reunie.scoutingbrandevoort.nl gebruiken. De site staat op GitHub Pages; aan de WordPress-site verandert niets. Kun je deze twee DNS-records toevoegen? [records hierboven]. Staat er al iets op `reunie`, of een CAA-record op het domein, laat het me dan even weten. Na de reünie (uiterlijk augustus 2027) vraag ik je de records weer weg te halen.
+> Voor de reüniesite wil ik graag het adres reunie.scoutingbrandevoort.nl gebruiken. De site staat op GitHub Pages; aan de WordPress-site verandert niets. Kun je deze twee DNS-records toevoegen? [records hierboven]. De bestaande wildcard en de andere records kunnen gewoon blijven staan. Na de reünie (uiterlijk augustus 2027) vraag ik je de records weer weg te halen.
 
 3. Zodra de records staan: op dezelfde GitHub-pagina *Verify*.
 
-Tot de overstap geeft `reunie.scoutingbrandevoort.nl` een 404 van GitHub. Dat is onschuldig: door de verificatie kan geen ander account het adres gebruiken. Een CAA-record zonder Let's Encrypt zou het certificaat blokkeren; vraag daar dus naar.
+Tot de overstap geeft `reunie.scoutingbrandevoort.nl` een 404 van GitHub. Dat is onschuldig: door de verificatie kan geen ander account het adres gebruiken.
 
 ## Fase 3: voorbereiden (Claude, op een aparte tak)
 

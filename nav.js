@@ -4,14 +4,14 @@
   const PAGINAS = [
     ['index.html', 'Home'],
     ['programma.html', 'Programma'],
-    ['deelnemers.html', 'Wie komen er?'],
+    ['deelnemers.html', 'Wie doen er mee?'],
     ['herinneringen.html', 'Herinneringen'],
     ['vragen.html', 'Vragen'],
   ];
   const hier = location.pathname.split('/').pop() || 'index.html';
   const ingelogd = Data.ingelogd();
   // Pages in a row (one swipeable row on phones), plus a button on the right that stays put.
-  const links = ingelogd ? PAGINAS : [...PAGINAS, ['inschrijven.html', 'Inschrijven']];
+  const links = ingelogd ? PAGINAS : [...PAGINAS, ['inschrijven.html', 'Doe mee']];
   const [ctaHref, ctaLang, ctaKort] = ingelogd ? ['mijn.html', 'Mijn inschrijving', 'Mijn'] : ['inloggen.html', 'Inloggen', 'Inloggen'];
   const link = (href, tekst, cls = '') =>
     `<a href="${href}" class="${[cls, href === hier ? 'on' : ''].join(' ').trim()}"${href === hier ? ' aria-current="page"' : ''}>${tekst}</a>`;

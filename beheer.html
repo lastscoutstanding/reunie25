@@ -35,7 +35,7 @@
         <tbody id="rijen"></tbody>
       </table>
     </div>
-    <p class="muted" style="font-size:14px">Klik op een naam voor alle gegevens, ook wat iemand niet op "Wie komen er?" laat zien, en om iemand te verwijderen. E-mailadressen zijn alleen voor berichten van het comité. "Nieuw" = ingeschreven in de afgelopen 7 dagen.<br>
+    <p class="muted" style="font-size:14px">Klik op een naam voor alle gegevens, ook wat iemand niet op "Wie doen er mee?" laat zien, en om iemand te verwijderen. E-mailadressen zijn alleen voor berichten van het comité. "Nieuw" = ingeschreven in de afgelopen 7 dagen.<br>
       Een vinkje bij "Betaald" wordt meteen opgeslagen, met de datum van vandaag. De deelnemer ziet het op Mijn inschrijving.</p>
   </div>
 
@@ -96,7 +96,7 @@
       <table class="lijst rechten">
         <thead><tr><th></th><th>Bezoeker</th><th>Deelnemer</th><th>Beheerder</th><th>Hoofd&shy;beheerder</th></tr></thead>
         <tbody>
-          <tr><td>Programma, vragen en "Wie komen er?" bekijken</td><td class="ja">✓</td><td class="ja">✓</td><td class="ja">✓</td><td class="ja">✓</td></tr>
+          <tr><td>Programma, vragen en "Wie doen er mee?" bekijken</td><td class="ja">✓</td><td class="ja">✓</td><td class="ja">✓</td><td class="ja">✓</td></tr>
           <tr><td>Eigen inschrijving aanpassen of uitschrijven</td><td class="nee">–</td><td class="ja">✓</td><td class="ja">✓</td><td class="ja">✓</td></tr>
           <tr><td>Alle inschrijvingen met e-mail, CSV, adressen kopiëren</td><td class="nee">–</td><td class="nee">–</td><td class="ja">✓</td><td class="ja">✓</td></tr>
           <tr><td>Inschrijving verwijderen, adres blokkeren of deblokkeren</td><td class="nee">–</td><td class="nee">–</td><td class="ja">✓</td><td class="ja">✓</td></tr>
@@ -148,7 +148,7 @@
     return `<tr class="meer"><td colspan="3">
       Geboren in ${r.geboortejaar} (${Reunie.leeftijd(r.geboortejaar)} bij het jubileum in ${Reunie.jubileum()})<br>
       ${r.takken.length ? r.takken.map(t => E(takTekst(t))).join(' · ') : '<span class="muted">geen speltakken ingevuld</span>'}<br>
-      <span class="muted">Op "Wie komen er?": ${toont.length ? toont.join(', ') : 'niets'}</span>
+      <span class="muted">Op "Wie doen er mee?": ${toont.length ? toont.join(', ') : 'niets'}</span>
       <div class="acties" style="align-items:center">${Overleg.knop('deelnemer', r.id, volNaam(r), 'Overleg')}<button class="btn danger" type="button" data-verwijder="${E(r.id)}">Verwijderen…</button></div>
     </td></tr>`;
   }

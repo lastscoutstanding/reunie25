@@ -280,7 +280,7 @@ dialog.lightbox::backdrop { background: rgba(0, 0, 0, .8); }
   .strip .kort { display: inline; }
 }
 
-/* Your own card on "Wie komen er?" */
+/* Your own card on "Wie doen er mee?" */
 .person.zelf { border: 2px solid var(--accent); }
 a.person { display: block; color: inherit; text-decoration: none; }
 a.person:hover { background: color-mix(in srgb, var(--accent) 12%, var(--card)); }

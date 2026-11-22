@@ -26,7 +26,7 @@
     </div>
 
     <div id="tab-fotos" hidden>
-      <p style="margin-top:0">Kampvuren, opkomsten, overvliegen, dat ene natte weekend… Deel je foto's van vroeger met de andere oud-leden.</p>
+      <p style="margin-top:0">Kampvuren, opkomsten, overvliegen, dat ene natte weekend… Deel je foto's van vroeger met de rest van de club.</p>
       <p class="note ok" id="f-bedankt" hidden></p>
 
       <div class="kop2">
@@ -51,7 +51,7 @@
           <label><span>Jaar <span class="muted" style="font-weight:400">(optioneel)</span></span><select id="fu-jaar"></select></label>
         </div>
         <label class="check" style="margin-top:10px"><input type="checkbox" id="f-naam" checked> <span>Toon mijn naam bij deze foto's
-          <small class="muted">(uit: "gedeeld door een oud-lid"; het comité weet wel van wie ze zijn)</small></span></label>
+          <small class="muted">(uit: "gedeeld door iemand van de club"; het comité weet wel van wie ze zijn)</small></span></label>
         <p class="note" style="margin-top:12px">Staan er anderen op? Deel alleen foto's waar zij zich prettig bij voelen. Wie erop staat, kan een foto altijd laten weghalen.</p>
         <p class="err" id="f-fout" hidden></p>
         <div id="f-voortgang" hidden style="margin-top:10px"><small class="muted" id="f-voortgang-tekst"></small><div class="balk"><div id="f-balk"></div></div></div>
@@ -66,7 +66,7 @@
     </div>
 
     <div id="tab-verhalen">
-      <p style="margin-top:0">Weet je nog, de RSW waar het tentdoek binnenstebuiten zat? Maar dan wel consequent bij beide patrouilles :) Deel je leukste, gekste of ontroerendste scoutingherinnering met de andere oud-leden.</p>
+      <p style="margin-top:0">Weet je nog, de RSW waar het tentdoek binnenstebuiten zat? Maar dan wel consequent bij beide patrouilles :) Deel je leukste, gekste of ontroerendste scoutingherinnering met de rest van de club.</p>
       <p class="note ok" id="bedankt" hidden></p>
 
       <div class="kop2">
@@ -88,7 +88,7 @@
           <label><span>Jaar <span class="muted" style="font-weight:400">(optioneel)</span></span><select id="v-jaar"></select></label>
         </div>
         <label class="check" style="margin-top:10px"><input type="checkbox" id="v-naam" checked> <span>Toon mijn naam bij dit verhaal
-          <small class="muted">(uit: "gedeeld door een oud-lid"; het comité weet wel van wie het is)</small></span></label>
+          <small class="muted">(uit: "gedeeld door iemand van de club"; het comité weet wel van wie het is)</small></span></label>
         <p class="note" style="margin-top:12px">Noem je anderen bij naam? Houd het vriendelijk: zij lezen het ook.</p>
         <p class="err" id="form-fout" hidden></p>
         <div class="acties">
@@ -187,7 +187,7 @@
 
   // Blank line = new paragraph, single line break kept.
   const alineas = t => t.split(/\n\s*\n/).map(p => `<p>${E(p.trim()).replace(/\n/g, '<br>')}</p>`).join('');
-  const door = v => v.eigen ? 'jou' : (Reunie.naam(v) || 'een oud-lid');
+  const door = v => v.eigen ? 'jou' : (Reunie.naam(v) || 'iemand van de club');
   const LABEL = {
     nieuw: '<span class="pill wacht">wordt binnenkort geplaatst</span>',
     afgewezen: '<span class="pill">niet geplaatst</span>',
@@ -353,7 +353,7 @@
     $('lb-img').src = urls[f.pad + '-klein.jpg'] || '';           // sharp version follows
     $('lb-img').alt = f.titel;
     const chips = [f.speltak, f.jaar].filter(Boolean).map(c => `<span class="chip">${E(c)}</span>`).join('');
-    $('lb-tekst').innerHTML = `${f.titel ? `<b>${E(f.titel)}</b><br>` : ''}${chips} <span class="zacht">gedeeld door ${E(f.eigen ? 'jou' : Reunie.naam(f) || 'een oud-lid')}</span>`
+    $('lb-tekst').innerHTML = `${f.titel ? `<b>${E(f.titel)}</b><br>` : ''}${chips} <span class="zacht">gedeeld door ${E(f.eigen ? 'jou' : Reunie.naam(f) || 'iemand van de club')}</span>`
       + (hart('foto', f) ? `<div class="lb-hart">${hart('foto', f)}</div>` : '');
     $('lb-nr').textContent = `${lbIndex + 1} / ${zichtbaar.length}`;
     const aanpassen = f.eigen || comite ? `<button class="linkbtn" type="button" id="lb-bewerk">Aanpassen</button> ` : '';
@@ -544,9 +544,9 @@
     $('buiten-kop').textContent = delen.length ? `Al ${delen.join(' en ')} gedeeld!` : 'Verhalen en foto\'s van vroeger';
     $('buiten-tekst').textContent = ingelogd
       ? 'Verhalen en foto\'s van vroeger zijn voor deelnemers van de reünie. Maak je inschrijving af om ze te lezen en zelf iets te delen.'
-      : 'Verhalen en foto\'s van vroeger zijn alleen voor deelnemers van de reünie. Schrijf je in of log in om ze te lezen en zelf iets te delen.';
+      : 'Verhalen en foto\'s van vroeger zijn alleen voor deelnemers van de reünie. Doe mee of log in om ze te lezen en zelf iets te delen.';
     $('buiten-knoppen').innerHTML = ingelogd ? '<a class="btn" href="inschrijven.html">Inschrijving afmaken</a>'
-      : '<a class="btn" href="inschrijven.html">Inschrijven</a> <a class="btn ghost" href="inloggen.html">Inloggen</a>';
+      : '<a class="btn" href="inschrijven.html">Doe mee</a> <a class="btn ghost" href="inloggen.html">Inloggen</a>';
     $('buiten').hidden = false;
   }
 

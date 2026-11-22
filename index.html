@@ -4,7 +4,7 @@
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1">
 <title>Reünie 25 jaar Scouting Brandevoort</title>
-<meta name="description" content="Reünie 25 jaar Scouting Brandevoort, zondag 23 mei 2027 van 14:00 tot 19:00 in blokhut de Brandnetel, Helmond. Schrijf je in en zie wie er komen.">
+<meta name="description" content="Reünie 25 jaar Scouting Brandevoort, zondag 23 mei 2027 van 14:00 tot 19:00 in blokhut de Brandnetel, Helmond. Doe mee en zie wie er nog meer meedoen.">
 <link rel="stylesheet" href="theme.css">
 </head>
 <body>
@@ -17,10 +17,10 @@
       <p class="date">Reünie · zondag 23 mei 2027 · 14:00 – 19:00 · blokhut de Brandnetel, Helmond</p>
       <p class="agenda" id="agenda"></p>
       <div class="count" id="count"></div>
-      <p class="muted">Ben jij ooit bever, welp, scout, explorer, roverscout, vuurvogel, plusscout of leiding geweest? Kom terug naar de Brandnetel, schrijf je in en zie wie er nog meer komen.</p>
+      <p class="muted">Ben of was jij bever, welp, scout, explorer, roverscout, vuurvogel, plusscout of leiding? Kom naar de Brandnetel, doe mee en zie wie er nog meer meedoen. Weet je nog niet of je kunt? Doe toch mee en deel je herinneringen.</p>
       <div class="row">
-        <a class="btn" href="inschrijven.html" id="cta">Schrijf je in</a>
-        <a class="btn ghost" href="deelnemers.html">Wie komen er?</a>
+        <a class="btn" href="inschrijven.html" id="cta">Doe mee</a>
+        <a class="btn ghost" href="deelnemers.html">Wie doen er mee?</a>
       </div>
     </div>
     <div class="card">
@@ -36,7 +36,7 @@
   </section>
   <div class="grid3">
     <a class="card" href="programma.html"><h2>Programma</h2><p class="muted" style="margin:0">Tijden en wat je mee moet nemen.</p></a>
-    <a class="card" href="deelnemers.html"><h2>Wie komen er?</h2><p class="muted" style="margin:0">Zoek oud-leden en leiding per speltak en jaar.</p></a>
+    <a class="card" href="deelnemers.html"><h2>Wie doen er mee?</h2><p class="muted" style="margin:0">Zoek leden en leiding van nu en toen, per speltak en jaar.</p></a>
     <a class="card" href="vragen.html"><h2>Vragen</h2><p class="muted" style="margin:0">Kosten, parkeren, introducés en contact.</p></a>
   </div>
 </main>
@@ -56,7 +56,7 @@
     await Reunie.laadSpeltakken();
     const [{ totaal, personen }, ik] = await Promise.all([Data.deelnemers(), Data.ingelogd() ? Data.ik().catch(() => null) : null]);
     const isZelf = Reunie.zelf(ik);
-    if (!totaal) { $('stat').textContent = 'Nog niemand!'; $('stat-sub').textContent = 'Schrijf je in en wees de eerste.'; return; }
+    if (!totaal) { $('stat').textContent = 'Nog niemand!'; $('stat-sub').textContent = 'Doe mee en wees de eerste.'; return; }
     $('stat').innerHTML = `Al <b>${totaal}</b> ${totaal === 1 ? 'inschrijving' : 'inschrijvingen'}!`;
     $('stat-sub').textContent = Data.ingelogd() ? 'En jij bent er ook bij.' : 'Ben jij er ook bij?';
     // 10 names on a phone, 20 on a wider screen: all of them (newest first) while they fit,
@@ -74,7 +74,7 @@
       anderen = anderen.slice(0, plek);
     }
     const rij = [...(mij ? [mij] : []), ...anderen];
-    // Your own name goes to your registration, others to their card on "Wie komen er?".
+    // Your own name goes to your registration, others to their card on "Wie doen er mee?".
     const toon = rij.map(p => {
       const naam = p.voornaam || p.bijnaam || p.achternaam;
       const [href, extra] = p === mij ? ['mijn.html', ' class="zelf" title="Dit ben jij: naar je inschrijving"']
@@ -95,12 +95,12 @@
       const delen = [v && `${v} ${v === 1 ? 'verhaal' : 'verhalen'}`, f && `${f} ${f === 1 ? 'foto' : "foto's"}`].filter(Boolean);
       if (!delen.length) return;
       return blok(`<a class="card" href="herinneringen.html"><h3>Al ${delen.join(' en ')} van vroeger gedeeld!</h3>
-        <p class="kort muted">Herinneringen zijn er voor de deelnemers van de reünie. ${Data.ingelogd() ? 'Maak je inschrijving af' : 'Schrijf je in of log in'} om ze te bekijken.</p>
+        <p class="kort muted">Herinneringen zijn er voor de deelnemers van de reünie. ${Data.ingelogd() ? 'Maak je inschrijving af' : 'Doe mee of log in'} om ze te bekijken.</p>
         <span class="verder">Naar Herinneringen →</span></a>`);
     }
     const [verhalen, fotos] = await Promise.all([Data.verhalen().catch(() => []), Data.fotos().catch(() => [])]);
     const v = verhalen.find(x => x.status === 'geplaatst'), f = fotos.find(x => x.status === 'geplaatst');
-    const door = x => `gedeeld door ${E(x.eigen ? 'jou' : Reunie.naam(x) || 'een oud-lid')}`;
+    const door = x => `gedeeld door ${E(x.eigen ? 'jou' : Reunie.naam(x) || 'iemand van de club')}`;
     const kaarten = [];
     if (v) {
       const tekst = v.tekst.replace(/\s+/g, ' ');

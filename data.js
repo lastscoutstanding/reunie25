@@ -31,6 +31,11 @@
 //     status: 'open' | 'hot' | 'done', auteur_naam, eigen (you started it), aangemaakt, bijgewerkt,
 //     berichten: [{ id, auteur_naam, tekst, systeem, eigen, aangemaakt }] }   oldest message first
 //
+// Seen (comité badges): gezien() gives { 'gesprek:<id>': time of the last message seen,
+// 'beoordelen:': when Te beoordelen was last opened }, on every device. isNieuw(g, gezien)
+// says whether a conversation has something new for you; nieuwVoorMij() gives the counts
+// { overleg, beoordelen_nieuw, beoordelen } for the menu and the tabs.
+//
 // Comité members (beheerders) can also list all registrations and mark payments.
 // Hoofdbeheerders can also add and remove beheerders. Comité member record:
 //   { email, rol: 'beheerder' | 'hoofdbeheerder', toegevoegd_door, toegevoegd_op, naam }
@@ -51,6 +56,7 @@ const Data = (() => {
   const DEMO_FOTOS = 'reunie25.demo.fotos';
   const DEMO_OVERLEG = 'reunie25.demo.overleg';
   const DEMO_HARTJES = 'reunie25.demo.hartjes';
+  const DEMO_GEZIEN = 'reunie25.demo.gezien';
   const MAX_FOTOS = 30;
   const AUTH = 'reunie25.auth';
   const DEMO_CODE = '123456';
@@ -90,6 +96,16 @@ const Data = (() => {
       takken: r.toon.takken && r.takken?.length ? r.takken : null,
     };
   }
+  // Without a "seen" time, the last 7 days count as new (same rule as nieuw_voor_mij() in the database).
+  const NIEUW_DAGEN = 7;
+  const grens = (gezien, sleutel) => gezien[sleutel] ? Date.parse(gezien[sleutel]) : Date.now() - NIEUW_DAGEN * 864e5;
+  // Something new by someone else: a new conversation, or a message (status lines not counted).
+  function isNieuw(g, gezien = {}) {
+    const t = grens(gezien, 'gesprek:' + g.id);
+    return (!g.eigen && Date.parse(g.aangemaakt) > t)
+      || g.berichten.some(b => !b.eigen && !b.systeem && Date.parse(b.aangemaakt) > t);
+  }
+
   const zichtbaar = p => !!(p.voornaam || p.achternaam || p.bijnaam || p.geboortejaar || p.takken?.length);
 
   // ---- DEMO ----------------------------------------------------------------
@@ -334,7 +350,7 @@ const Data = (() => {
       if (!v) return;
       const mij = await this.ik();
       Object.assign(v, { status: 'gemeld', melding: reden.trim() || null, gemeld_door: mij?.voornaam || lees(DEMO_SESSIE, null),
-        gemeld_op: new Date().toLocaleDateString('sv') });
+        gemeld_op: new Date().toLocaleDateString('sv'), bijgewerkt: nu() });
       schrijf(DEMO_VERHALEN, lijst);
     },
     async teBeoordelen() {
@@ -396,7 +412,7 @@ const Data = (() => {
       if (!f) return;
       const mij = await this.ik();
       Object.assign(f, { status: 'gemeld', melding: reden.trim() || null, gemeld_door: mij?.voornaam || lees(DEMO_SESSIE, null),
-        gemeld_op: new Date().toLocaleDateString('sv') });
+        gemeld_op: new Date().toLocaleDateString('sv'), bijgewerkt: nu() });
       schrijf(DEMO_FOTOS, lijst);
     },
     async fotosTeBeoordelen() {
@@ -443,6 +459,26 @@ const Data = (() => {
       if (!lees(DEMO_SESSIE, null)) return 0;
       return verhalenStore().filter(v => ['nieuw', 'gemeld'].includes(v.status)).length
         + fotosStore().filter(f => ['nieuw', 'gemeld'].includes(f.status)).length;
+    },
+    async gezien() { return lees(DEMO_SESSIE, null) ? lees(DEMO_GEZIEN, {}) : {}; },
+    async zetGezien(items) {
+      if (!lees(DEMO_SESSIE, null) || !items.length) return;
+      const z = lees(DEMO_GEZIEN, {});
+      for (const { soort, ref = '', tijd } of items) {
+        const k = `${soort}:${ref}`, t = new Date(Math.min(Date.parse(tijd || nu()), Date.now())).toISOString();
+        if (!z[k] || Date.parse(z[k]) < Date.parse(t)) z[k] = t;
+      }
+      schrijf(DEMO_GEZIEN, z);
+    },
+    async nieuwVoorMij() {
+      if (!lees(DEMO_SESSIE, null)) return { overleg: 0, beoordelen_nieuw: 0, beoordelen: 0 };
+      const z = lees(DEMO_GEZIEN, {}), b = grens(z, 'beoordelen:');
+      const wacht = [...verhalenStore(), ...fotosStore()].filter(x => ['nieuw', 'gemeld'].includes(x.status));
+      return {
+        overleg: (await this.overleg()).filter(g => isNieuw(g, z)).length,
+        beoordelen_nieuw: wacht.filter(x => Date.parse(x.bijgewerkt || x.aangemaakt) > b).length,
+        beoordelen: wacht.length,
+      };
     },
     // ---- overleg ----
     async overleg() {
@@ -807,6 +843,23 @@ const Data = (() => {
       if (!t) return 0;
       return await verzoek('/rest/v1/rpc/aantal_te_beoordelen', { method: 'POST', token: t, body: {} }).catch(() => 0);
     },
+    async gezien() {
+      const t = await token();
+      if (!t) return {};
+      const rows = await verzoek('/rest/v1/rpc/mijn_gezien', { method: 'POST', token: t, body: {} });
+      return Object.fromEntries(rows.map(r => [`${r.soort}:${r.ref}`, r.tijd]));
+    },
+    async zetGezien(items) {
+      if (!items.length) return;
+      const t = await moetToken();
+      await verzoek('/rest/v1/rpc/zet_gezien', { method: 'POST', token: t, body: { items } });
+    },
+    async nieuwVoorMij() {
+      const t = await token();
+      const leeg = { overleg: 0, beoordelen_nieuw: 0, beoordelen: 0 };
+      if (!t) return leeg;
+      return { ...leeg, ...await verzoek('/rest/v1/rpc/nieuw_voor_mij', { method: 'POST', token: t, body: {} }).catch(() => ({})) };
+    },
     // ---- overleg ----
     async overleg() {
       const t = await moetToken(), ik = sessie()?.user?.id;
@@ -879,5 +932,5 @@ const Data = (() => {
     },
   };
 
-  return { DEMO, DEMO_CODE, publiek, ...(DEMO ? demo : live) };
+  return { DEMO, DEMO_CODE, publiek, isNieuw, ...(DEMO ? demo : live) };
 })();

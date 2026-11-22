@@ -12,7 +12,7 @@
 <main>
   <h1>Beheer</h1>
   <div class="seg tabs" id="tabs" hidden>
-    <button type="button" data-tab="inschrijvingen" class="on">Inschrijvingen</button><button type="button" data-tab="beoordelen">Te beoordelen<span id="aantal-beoordelen"></span></button><button type="button" data-tab="overleg">Overleg<span id="aantal-hot"></span></button><button type="button" data-tab="comite">Comité</button>
+    <button type="button" data-tab="inschrijvingen" class="on">Inschrijvingen</button><button type="button" data-tab="beoordelen">Te beoordelen<span id="aantal-beoordelen"></span></button><button type="button" data-tab="overleg">Overleg<span id="aantal-overleg"></span></button><button type="button" data-tab="comite">Comité</button>
   </div>
   <p class="muted" id="laden">Laden…</p>
   <div class="card narrow" id="geen" hidden>
@@ -54,7 +54,7 @@
   </div>
 
   <div id="tab-overleg" hidden>
-    <p style="margin-top:0">Overleg binnen het comité, los of over een deelnemer, verhaal, foto of pagina. Alleen het comité ziet dit. Berichten worden niet gemaild: kijk hier af en toe, of let op het rode bolletje bij <b>hot</b>.</p>
+    <p style="margin-top:0">Overleg binnen het comité, los of over een deelnemer, verhaal, foto of pagina. Alleen het comité ziet dit. Berichten worden niet gemaild. Is er iets nieuws voor jou, dan staat er een geel bolletje bij Beheer in het menu, op elke pagina.</p>
     <div class="filters" style="margin-top:0">
       <div class="seg" id="ov-filter"></div>
       <button class="btn" type="button" id="ov-nieuw" style="padding:7px 16px;font-size:15px">+ Nieuw overleg</button>
@@ -140,6 +140,7 @@
   if (!Data.ingelogd()) location.replace('inloggen.html');
   const E = Reunie.esc;
   let lijst = null, betalen = null, rol = null, comite = null, blokkades = null;
+  let gezien = {}, nieuw = { overleg: 0, beoordelen_nieuw: 0, beoordelen: 0 }, beoordelenGezien = false, overlegKlaar = false;
   const open = new Set();
 
   const volNaam = r => Reunie.naam({ voornaam: r.voornaam, bijnaam: r.bijnaam, achternaam: r.achternaam });
@@ -422,8 +423,8 @@
   }
 
   function toonBeoordelen() {
-    const n = beoordeling.length + fotoBeoordeling.length;
-    $('aantal-beoordelen').innerHTML = n ? `<span class="vlag">${n}</span>` : '';
+    nieuw.beoordelen = beoordeling.length + fotoBeoordeling.length;
+    toonVlaggen();
     $('beoordelen').innerHTML = beoordeling.map(verhaalKaart).join('')
       || '<p class="muted" style="margin:0">Geen verhalen om te beoordelen.</p>';
   }
@@ -477,19 +478,16 @@
 
   // ---- tab Overleg -----------------------------------------------------------
 
-  // Seen per conversation (this browser): { id: time of the last message you saw }.
-  const GEZIEN = 'reunie25.overleg.gezien';
-  const gezien = () => { try { return JSON.parse(localStorage.getItem(GEZIEN)) || {}; } catch { return {}; } };
+  // Seen per conversation, kept in the database (Data.gezien), so it counts on every device.
   const zetGezien = g => {
-    const z = gezien(), t = g.berichten.at(-1)?.aangemaakt || g.aangemaakt;
-    z[g.id] = t;
-    try { localStorage.setItem(GEZIEN, JSON.stringify(z)); } catch {}
+    const t = g.berichten.at(-1)?.aangemaakt || g.aangemaakt, k = 'gesprek:' + g.id;
+    if (gezien[k] && Date.parse(gezien[k]) >= Date.parse(t)) return;
+    gezien[k] = t;
+    Data.zetGezien([{ soort: 'gesprek', ref: g.id, tijd: t }]).catch(() => {});
+    toonVlaggen();
   };
-  // New for you: a message by someone else after the last one you saw.
-  const ongelezen = g => {
-    const z = gezien()[g.id];
-    return g.berichten.some(b => !b.eigen && !b.systeem && (!z || b.aangemaakt > z));
-  };
+  // New for you: a new conversation or a message by someone else since you last opened it.
+  const ongelezen = g => Data.isNieuw(g, gezien);
   const VOLGORDE = { hot: 0, open: 1, done: 2 };
   const FILTERS = [['niet-af', 'Niet af', g => g.status !== 'done'], ['hot', 'Hot', g => g.status === 'hot'],
                    ['done', 'Done', g => g.status === 'done'], ['alles', 'Alles', () => true]];
@@ -508,10 +506,19 @@
   };
   const tijdLang = t => new Date(t).toLocaleString('nl-NL', { day: 'numeric', month: 'short', hour: '2-digit', minute: '2-digit' });
 
-  function toonHot() {
-    const n = Overleg.lijst().filter(g => g.status === 'hot').length;
-    $('aantal-hot').innerHTML = n ? `<span class="vlag hot" title="${n} op hot">${n}</span>` : '';
+  // Badges: yellow = new since you last looked (overleg: conversations with something new;
+  // te beoordelen: arrived since you opened that tab), grey = still waiting, nothing new.
+  // The same count goes on "Beheer" in the menu (nav.js asks this page via eigenVlagBeheer).
+  function toonVlaggen() {
+    const ov = overlegKlaar ? Overleg.lijst().filter(ongelezen).length : nieuw.overleg;
+    const bn = beoordelenGezien ? 0 : nieuw.beoordelen_nieuw;
+    $('aantal-overleg').innerHTML = ov ? `<span class="vlag" title="${ov} met iets nieuws">${ov}</span>` : '';
+    $('aantal-beoordelen').innerHTML = bn ? `<span class="vlag" title="${bn} nieuw sinds je laatst keek">${bn}</span>`
+      : nieuw.beoordelen ? `<span class="vlag grijs" title="${nieuw.beoordelen} wacht nog">${nieuw.beoordelen}</span>` : '';
+    const v = $('vlag-beheer');
+    if (v) { v.textContent = ov + bn; v.hidden = !(ov + bn); v.title = `${ov + bn} nieuw voor jou`; }
   }
+  window.eigenVlagBeheer = toonVlaggen;
 
   // Subject of a conversation, as a link to the item (a participant opens in this page).
   function onderwerpLink(g) {
@@ -529,13 +536,14 @@
     const eerste = alle[0];
     $('ov-over').hidden = !over;
     if (over) $('ov-over').innerHTML = `Alleen over: <span class="ond">${E(Overleg.onderwerp(over.soort, eerste?.ref_naam))}</span> · <button class="linkbtn" type="button" id="ov-over-weg">alles tonen</button>`;
-    toonHot();
+    toonVlaggen();
     $('ov-filter').innerHTML = FILTERS.map(([k, label, f]) =>
       `<button type="button" data-f="${k}" class="${k === ovFilter ? 'on' : ''}">${label} (${alle.filter(f).length})</button>`).join('');
     const rijen = alle.filter(FILTERS.find(f => f[0] === ovFilter)[2])
       .sort((a, b) => VOLGORDE[a.status] - VOLGORDE[b.status] || b.bijgewerkt.localeCompare(a.bijgewerkt));
     if (gekozen && !alle.some(g => g.id === gekozen)) gekozen = null;
-    if (!gekozen && rijen.length && matchMedia('(min-width: 761px)').matches) gekozen = rijen[0].id;
+    // On a computer the first conversation opens by itself (and counts as seen): the first new one, if any.
+    if (!gekozen && rijen.length && matchMedia('(min-width: 761px)').matches) gekozen = (rijen.find(ongelezen) || rijen[0]).id;
     $('ov-lijst').innerHTML = rijen.map(g => {
       const laatst = [...g.berichten].reverse().find(b => !b.systeem);
       return `<button type="button" class="ov-item${g.id === gekozen ? ' on' : ''}" data-g="${E(g.id)}">
@@ -634,6 +642,21 @@
 
   // ---- tabs (remembered in the address: beheer.html#beoordelen, #comite) ----
 
+  // Until 22 November 2026 "seen" lived in this browser only: move it to the database once.
+  async function bewaarOudGezien() {
+    let oud = null;
+    try { oud = JSON.parse(localStorage.getItem('reunie25.overleg.gezien')); } catch {}
+    if (!oud || typeof oud !== 'object') return;
+    const items = Object.entries(oud).filter(([id, t]) => t && !(gezien['gesprek:' + id] && Date.parse(gezien['gesprek:' + id]) >= Date.parse(t)))
+      .map(([id, t]) => ({ soort: 'gesprek', ref: id, tijd: t }));
+    try {
+      await Data.zetGezien(items);
+      for (const x of items) gezien['gesprek:' + x.ref] = x.tijd;
+      if (items.length) nieuw = await Data.nieuwVoorMij();
+      localStorage.removeItem('reunie25.overleg.gezien');
+    } catch {}
+  }
+
   let huidig = 'inschrijvingen';
   function tab(naam) {
     huidig = naam;
@@ -646,7 +669,14 @@
     history.replaceState(null, '', naam === 'inschrijvingen' ? location.pathname
       : naam === 'overleg' && gekozen ? '#overleg-' + gekozen : '#' + naam);
     if (naam === 'comite' && (!comite || !blokkades)) laadComite();
-    if (naam === 'beoordelen') laadBeoordelen();
+    if (naam === 'beoordelen') {
+      laadBeoordelen();
+      if (!beoordelenGezien) {
+        beoordelenGezien = true;
+        Data.zetGezien([{ soort: 'beoordelen', ref: '', tijd: new Date().toISOString() }]).catch(() => {});
+        toonVlaggen();
+      }
+    }
     if (naam === 'overleg') laadOverleg();
   }
   $('tabs').addEventListener('click', e => { const b = e.target.closest('button[data-tab]'); if (b) tab(b.dataset.tab); });
@@ -656,7 +686,10 @@
     rol = await Data.rol();
     if (!rol) { $('laden').hidden = true; $('geen').hidden = false; return; }
     $('tabs').hidden = false;
-    Overleg.klaar.then(() => { toonHot(); if (lijst) toon(); });   // buttons in the details
+    [gezien, nieuw] = await Promise.all([Data.gezien().catch(() => ({})), Data.nieuwVoorMij()]);
+    await bewaarOudGezien();
+    toonVlaggen();
+    Overleg.klaar.then(() => { overlegKlaar = true; toonVlaggen(); if (lijst) toon(); });   // buttons in the details
     const m = location.hash.match(/^#overleg-([\w-]+)$/);
     if (m) { gekozen = m[1]; tab('overleg'); }
     else if (['#beoordelen', '#comite', '#overleg'].includes(location.hash)) tab(location.hash.slice(1));

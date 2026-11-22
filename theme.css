@@ -85,6 +85,10 @@ legend { font-weight: 600; padding: 0 6px; }
 .yrs input { width: 78px; padding: 6px 8px; text-align: center; }
 .yrs input:disabled { opacity: .45; }
 .tak.off .yrs { opacity: .6; }
+/* "Heette toen" under a ticked speltak with old names */
+.tak .toen { grid-column: 1 / -1; display: flex; gap: 8px; align-items: center; flex-wrap: wrap; font-size: 14px; color: var(--muted); padding-left: 26px; margin-top: -2px; }
+.tak .toen select { width: auto; padding: 5px 30px 5px 10px; font-size: 14px; }
+.tak .toen input { width: 190px; padding: 5px 10px; font-size: 14px; }
 
 /* home */
 .hero { display: grid; grid-template-columns: 1.3fr 1fr; gap: 20px; align-items: stretch; }

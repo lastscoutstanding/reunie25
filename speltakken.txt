@@ -11,16 +11,24 @@
 # Een regel zonder "= leeftijd" is een rol zonder speltak, zoals bestuur.
 # Die staat alleen bij "Als leiding", met zelf ingevulde jaren.
 #
+# Speltakken met dezelfde leeftijd lopen naast elkaar (Vuurvogels en Plusscouts horen
+# allebei bij de Stam): je zit er tot de leeftijd van de eerstvolgende hogere speltak.
+#
+# Oude of andere namen komen achter een |, gescheiden door komma's. Op het formulier
+# kiest iemand dan bij "Heette toen" de naam van zijn tijd (of typt een andere); op
+# het kaartje staat die naam. Zoeken en filteren gaat via de huidige naam.
+# Zet de namen die het meest gebruikt zijn vooraan.
+#
 # Regels die met # beginnen worden overgeslagen.
 
 opgericht = 2001
 
 Bevers = 5
-Welpen = 7
-Scouts = 11
-Explorers = 15
-Roverscouts = 18
-Vuurvogels = 21
-Plusscouts = 23
+Welpen = 7 | Kabouters, Esta's, Dolfijnen
+Scouts = 11 | Verkenners, Gidsen, Padvinders, Padvindsters, Zeeverkenners, Watergidsen, Luchtverkenners
+Explorers = 15 | Rowans, Sherpa's, Pioniers, Wilde Vaart, Astronauten
+Roverscouts = 18 | Pivo's, Voortrekkers, Jongerentak, Loodsen
+Vuurvogels = 21 | Stam, Loodsenstam, Oud-scouts, Vriendenkring
+Plusscouts = 21 | Stam, Loodsenstam, Oud-scouts, Vriendenkring
 
 Bestuur / vrijwilliger

@@ -24,16 +24,20 @@ const Reunie = (() => {
   let cfg = { opgericht: 2001, takken: [] };
 
   // speltakken.txt: "Naam = leeftijd" per line, "opgericht = jaar", a line without
-  // "= leeftijd" is a role without speltak (bestuur). # starts a comment.
+  // "= leeftijd" is a role without speltak (bestuur). Old names after a |, comma-separated.
+  // # starts a comment.
   function parse(txt) {
     const c = { opgericht: 2001, takken: [] };
     for (let line of txt.split('\n')) {
       line = line.trim();
       if (!line || line.startsWith('#')) continue;
+      const i = line.indexOf('|');
+      const oud = i < 0 ? [] : line.slice(i + 1).split(',').map(s => s.trim()).filter(Boolean);
+      if (i >= 0) line = line.slice(0, i).trim();
       const m = line.match(/^(.+?)\s*=\s*(\d+)$/);
       if (m && m[1].toLowerCase() === 'opgericht') c.opgericht = +m[2];
-      else if (m) c.takken.push({ naam: m[1], vanaf: +m[2] });
-      else c.takken.push({ naam: line, vanaf: null });
+      else if (m) c.takken.push({ naam: m[1], vanaf: +m[2], oud });
+      else c.takken.push({ naam: line, vanaf: null, oud });
     }
     return c;
   }
@@ -66,6 +70,13 @@ const Reunie = (() => {
   const takken = () => cfg.takken;
   const opgericht = () => cfg.opgericht;
   const isRol = naam => { const t = cfg.takken.find(t => t.naam === naam); return !t || t.vanaf == null; };
+  // Old names of a speltak from speltakken.txt ("Verkenners", ...), and the name a takken row
+  // shows: what the person chose under "Heette toen", else the current name.
+  const oudeNamen = naam => cfg.takken.find(t => t.naam === naam)?.oud || [];
+  const takNaam = r => r.naam || r.speltak;
+  // Search text: matches the start of a word in a chosen name, the speltak or its old names.
+  const takPast = (r, q) => [r.naam, r.speltak, ...oudeNamen(r.speltak)].filter(Boolean)
+    .some(n => n.toLowerCase().split(/[\s/'-]+/).some(w => w.startsWith(q)) || n.toLowerCase().startsWith(q));
 
   // Years someone was a youth member of a speltak, from birth year; never before opgericht.
   // tot = null means "heden" (still in it), so it stays right in later years.
@@ -74,7 +85,8 @@ const Reunie = (() => {
     const i = cfg.takken.findIndex(t => t.naam === naam);
     const tak = cfg.takken[i];
     if (!tak || tak.vanaf == null || !geboortejaar) return null;
-    const volgende = cfg.takken.slice(i + 1).find(t => t.vanaf != null);
+    // Until the next older speltak; one with the same age runs alongside (Vuurvogels, Plusscouts).
+    const volgende = cfg.takken.slice(i + 1).find(t => t.vanaf != null && t.vanaf > tak.vanaf);
     const van = Math.max(geboortejaar + tak.vanaf, cfg.opgericht);
     const tot = volgende ? geboortejaar + volgende.vanaf - 1 : Infinity;
     if (van > NU || van > tot) return null;
@@ -130,8 +142,9 @@ const Reunie = (() => {
     const rows = p.takken ? [...p.takken.filter(r => r.rol === 'lid'), ...p.takken.filter(r => r.rol !== 'lid')] : [];
     const chips = rows.map(r => {
       const cls = [r.rol === 'leiding' ? 'ld' : '', hit && hit(r) ? 'hit' : ''].join(' ').trim();
-      const label = r.rol === 'leiding' && !isRol(r.speltak) ? `<b>Leiding</b> ${esc(r.speltak)}` : esc(r.speltak);
-      return `<span class="${cls}">${label} ${periode(r.van, r.tot)}</span>`;
+      const label = r.rol === 'leiding' && !isRol(r.speltak) ? `<b>Leiding</b> ${esc(takNaam(r))}` : esc(takNaam(r));
+      const nu = r.naam && r.naam !== r.speltak ? ` title="nu ${esc(r.speltak)}"` : '';
+      return `<span class="${cls}"${nu}>${label} ${periode(r.van, r.tot)}</span>`;
     }).join('');
     if (!naamTekst && !age && !chips) {
       return '<div class="person anon"><div class="name">Je bent niet zichtbaar in “Wie doen er mee?”</div><div class="meta">Je telt wel mee in het aantal.</div></div>';
@@ -143,9 +156,10 @@ const Reunie = (() => {
 
   // Year fields (class "yr" with min/max): arrow up from empty starts at min (opgericht),
   // arrow down from empty at max (this year). Native number inputs would start at 0.
+  // data-start: where arrow up from empty begins, when min lies further back (years before 2001).
   function stapJaar(el, d) {
-    const min = +el.min, max = +el.max;
-    el.value = el.value === '' ? (d > 0 ? min : max) : Math.min(max, Math.max(min, +el.value + d));
+    const min = +el.min, max = +el.max, start = +(el.dataset.start || el.min);
+    el.value = el.value === '' ? (d > 0 ? start : max) : Math.min(max, Math.max(min, +el.value + d));
     el.dispatchEvent(new Event('input', { bubbles: true }));
   }
   document.addEventListener('keydown', e => {
@@ -163,7 +177,7 @@ const Reunie = (() => {
     stapJaar(el, e.clientY < r.top + r.height / 2 ? 1 : -1);
   });
 
-  return { DATUM, TIJD, agenda, erbijTekst, NU, laadSpeltakken, laadBetalen, euro, takken, opgericht, isRol, berekenJaren, jubileum, leeftijd, leeftijdTekst, knipoog, periode, esc, matcher, naam, kaart, zelf };
+  return { DATUM, TIJD, agenda, erbijTekst, NU, laadSpeltakken, laadBetalen, euro, takken, opgericht, isRol, oudeNamen, takNaam, takPast, berekenJaren, jubileum, leeftijd, leeftijdTekst, knipoog, periode, esc, matcher, naam, kaart, zelf };
 })();
 
 const $ = id => document.getElementById(id);

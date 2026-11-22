@@ -111,16 +111,16 @@ const Data = (() => {
   // ---- DEMO ----------------------------------------------------------------
 
   // Fictional sample participants (DEMO only):
-  // [voornaam, achternaam, geboortejaar, speltakken als jeugdlid, toon v/a/l/t, leiding [[speltak, van, tot]]]
+  // [voornaam, achternaam, geboortejaar, speltakken als jeugdlid, toon v/a/l/t, leiding [[speltak, van, tot, naam toen?]]]
   const VOORBEELD = [
     ['Joris', 'Bakker', 1990, ['Explorers', 'Roverscouts'], [1, 0, 0, 1], [['Explorers', 2010, 2016]]],
-    ['Mark', 'de Vries', 1975, [], [1, 1, 0, 1], [['Scouts', 2001, 2012], ['Bestuur / vrijwilliger', 2012, null]]],
+    ['Mark', 'de Vries', 1975, [], [1, 1, 0, 1], [['Scouts', 2001, 2012, 'Verkenners'], ['Bestuur / vrijwilliger', 2012, null]]],
     ['Lotte', 'Smits', 2000, ['Welpen', 'Scouts'], [1, 0, 1, 1]],
     ['Femke', 'van Dijk', 1992, ['Scouts', 'Explorers'], [1, 0, 1, 1]],
     ['Tim', 'Hendriks', 1998, ['Bevers', 'Welpen', 'Scouts'], [1, 0, 1, 1]],
     ['Bram', 'Peters', 1994, ['Welpen', 'Scouts', 'Explorers'], [1, 1, 1, 1], [['Welpen', 2013, null]]],
     ['Eva', 'Mulder', 2003, ['Bevers', 'Welpen'], [1, 0, 1, 0]],
-    ['Ruud', 'Willems', 1970, [], [1, 1, 1, 1], [['Welpen', 2001, 2009], ['Bevers', 2010, 2014]]],
+    ['Ruud', 'Willems', 1970, [], [1, 1, 1, 1], [['Welpen', 1996, 2009, "Esta's"], ['Bevers', 2010, 2014]]],
     ['Noor', 'Claassen', 2005, ['Welpen', 'Scouts', 'Explorers', 'Roverscouts'], [1, 0, 1, 1]],
     ['Daan', 'Verhoeven', 1999, ['Welpen', 'Scouts', 'Explorers', 'Roverscouts', 'Vuurvogels'], [1, 0, 0, 1]],
     ['Iris', 'Kuijpers', 1997, ['Welpen'], [1, 1, 0, 1]],
@@ -140,7 +140,7 @@ const Data = (() => {
     takken: [
       ...leden.map(s => [s, Reunie.berekenJaren(geboortejaar, s)]).filter(([, j]) => j)
         .map(([speltak, [van, tot]]) => ({ speltak, rol: 'lid', van, tot })),
-      ...leiding.map(([speltak, van, tot]) => ({ speltak, rol: 'leiding', van, tot })),
+      ...leiding.map(([speltak, van, tot, naam]) => ({ speltak, rol: 'leiding', van, tot, ...(naam ? { naam } : {}) })),
     ],
     toon: { voornaam: !!v, achternaam: !!a, leeftijd: !!l, takken: !!t },
   }));

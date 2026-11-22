@@ -145,7 +145,7 @@
 
   const volNaam = r => Reunie.naam({ voornaam: r.voornaam, bijnaam: r.bijnaam, achternaam: r.achternaam });
   const datum = d => d ? new Date(d + 'T12:00').toLocaleDateString('nl-NL', { day: 'numeric', month: 'short', year: 'numeric' }) : '';
-  const takTekst = t => `${t.rol === 'leiding' && !Reunie.isRol(t.speltak) ? 'leiding ' : ''}${t.speltak} ${Reunie.periode(t.van, t.tot)}`;
+  const takTekst = t => `${t.rol === 'leiding' && !Reunie.isRol(t.speltak) ? 'leiding ' : ''}${t.naam && t.naam !== t.speltak ? `${t.naam} (${t.speltak})` : t.speltak} ${Reunie.periode(t.van, t.tot)}`;
   const TOON = { voornaam: 'voornaam', achternaam: 'achternaam', bijnaam: 'bijnaam', leeftijd: 'leeftijd', takken: 'speltakken' };
 
   function details(r) {

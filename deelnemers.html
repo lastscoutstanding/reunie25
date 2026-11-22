@@ -13,7 +13,7 @@
   <p class="muted" style="margin:0" id="totaal"></p>
   <div class="filters">
     <div class="seg"><button id="v-lijst" class="on">Lijst</button><button id="v-jaar">Per jaar</button></div>
-    <input id="q" type="search" placeholder="Zoek op (bij)naam" aria-label="Zoek op naam of bijnaam">
+    <input id="q" type="search" placeholder="Zoek op naam of speltak" aria-label="Zoek op naam, bijnaam of speltak (ook oude namen)">
     <select id="speltak" aria-label="Speltak"></select>
     <select id="jaar" aria-label="Jaar"></select>
   </div>
@@ -50,7 +50,8 @@
   function render() {
     const q = $('q').value.trim().toLowerCase(), t = $('speltak').value, j = +$('jaar').value;
     const hit = t || j ? Reunie.matcher(t, j) : null;
-    const opNaam = p => !q || naamVan(p).includes(q);
+    // Name, nickname, or a speltak by any of its names ("verkenners" also finds the Scouts).
+    const opNaam = p => !q || naamVan(p).includes(q) || !!p.takken?.some(r => Reunie.takPast(r, q));
     const lijst = PERSONEN.filter(p => !hit || p.takken?.some(hit)).filter(opNaam);
 
     if (hit) {
@@ -127,7 +128,8 @@
   (async () => {
     await Reunie.laadSpeltakken();
     $('speltak').innerHTML = '<option value="">Alle speltakken</option>' +
-      Reunie.takken().map(t => `<option>${Reunie.esc(t.naam)}</option>`).join('');
+      Reunie.takken().map(t => `<option value="${Reunie.esc(t.naam)}">${Reunie.esc(t.naam)}${t.oud.length
+        ? ` (${Reunie.esc(t.oud.slice(0, 2).join(', '))}${t.oud.length > 2 ? ', …' : ''})` : ''}</option>`).join('');
     let jaren = '<option value="">Alle jaren</option>';
     for (let j = NU; j >= Reunie.opgericht(); j--) jaren += `<option>${j}</option>`;
     $('jaar').innerHTML = jaren;

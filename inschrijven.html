@@ -78,10 +78,14 @@
   const NU = Reunie.NU;
   $('f-jaar').max = NU - 4;
 
-  // keuze['lid:Welpen'] / keuze['leiding:Welpen'] = { on, van, tot, eigen }
+  // keuze['lid:Welpen'] / keuze['leiding:Welpen'] = { on, van, tot, eigen, naam, anders }
   // eigen = years set by hand (or loaded), so a birth-year change leaves them alone
+  // naam = what it was called then ("Kabouters"), '' = the current name; anders = typed by hand
   const keuze = {};
-  const K = (rol, naam) => keuze[rol + ':' + naam] ||= { on: false, van: '', tot: '', eigen: false };
+  const K = (rol, naam) => keuze[rol + ':' + naam] ||= { on: false, van: '', tot: '', eigen: false, naam: '', anders: false };
+  // Years before 2001 can be typed or reached with the arrows (older members); arrow up
+  // from an empty field still starts at opgericht.
+  const MIN_JAAR = 1930;
   let bewerken = false, afmaken = false;   // afmaken: logged in without a registration yet
 
   function takRij(rol, t) {
@@ -97,11 +101,20 @@
     }
     const naam = Reunie.esc(t.naam);
     const data = `data-rol="${rol}" data-naam="${naam}"`;
-    const yr = `type="number" inputmode="numeric" class="yr" min="${Reunie.opgericht()}" max="${NU}" ${k.on ? '' : 'disabled'} ${data}`;
+    const yr = `type="number" inputmode="numeric" class="yr" min="${MIN_JAAR}" data-start="${Reunie.opgericht()}" max="${NU}" ${k.on ? '' : 'disabled'} ${data}`;
+    // "Heette toen": only under a ticked speltak that has old names in speltakken.txt.
+    const oud = Reunie.oudeNamen(t.naam);
+    const toen = k.on && oud.length ? `<div class="toen">Heette toen
+        <select ${data} data-toen aria-label="${naam}: hoe heette het toen?"><option value="">${naam}</option>
+          ${oud.map(o => `<option${!k.anders && o === k.naam ? ' selected' : ''}>${Reunie.esc(o)}</option>`).join('')}
+          <option value="__anders"${k.anders ? ' selected' : ''}>andere naam…</option></select>
+        ${k.anders ? `<input ${data} data-eigen maxlength="30" value="${Reunie.esc(k.naam)}" placeholder="zoals het toen heette" aria-label="${naam}: andere naam">` : ''}
+      </div>` : '';
     return `<div class="tak ${k.on ? '' : 'off'}">
       <label class="check"><input type="checkbox" ${k.on ? 'checked' : ''} ${data}> ${naam} ${extra}</label>
       <span class="yrs"><input ${yr} data-veld="van" value="${k.van}" aria-label="${naam} van">
         – <input ${yr} data-veld="tot" value="${k.tot}" placeholder="heden" aria-label="${naam} tot"></span>
+      ${toen}
     </div>`;
   }
   function renderTakken() {
@@ -114,10 +127,18 @@
   document.addEventListener('change', e => {
     const d = e.target.dataset;
     if (e.target.type === 'checkbox' && d.rol) { K(d.rol, d.naam).on = e.target.checked; renderTakken(); preview(); }
+    if ('toen' in d) {
+      const k = K(d.rol, d.naam);
+      k.anders = e.target.value === '__anders';
+      k.naam = k.anders ? '' : e.target.value;
+      renderTakken(); preview();
+      if (k.anders) document.querySelector(`input[data-eigen][data-rol="${d.rol}"][data-naam="${CSS.escape(d.naam)}"]`)?.focus();
+    }
   });
   document.addEventListener('input', e => {
     const d = e.target.dataset;
     if (d.veld) { const k = K(d.rol, d.naam); k[d.veld] = +e.target.value || ''; k.eigen = true; preview(); }
+    if ('eigen' in d) { K(d.rol, d.naam).naam = e.target.value.trim().slice(0, 30); preview(); }
   });
   $('f-jaar').addEventListener('input', () => { renderTakken(); preview(); });
   $('f-leiding').addEventListener('change', () => { $('blok-leiding').hidden = !$('f-leiding').checked; preview(); });
@@ -137,7 +158,7 @@
   function leesForm() {
     const rows = rol => Reunie.takken().filter(t => keuze[rol + ':' + t.naam]?.on).map(t => {
       const k = keuze[rol + ':' + t.naam];
-      return { speltak: t.naam, rol, van: k.van || null, tot: k.tot || null };
+      return { speltak: t.naam, rol, van: k.van || null, tot: k.tot || null, ...(k.naam && k.naam !== t.naam ? { naam: k.naam } : {}) };
     });
     return {
       voornaam: $('f-voor').value.trim(), achternaam: $('f-achter').value.trim(), bijnaam: $('f-bijnaam').value.trim(),
@@ -161,6 +182,7 @@
       const wat = (x.rol === 'leiding' && !Reunie.isRol(x.speltak) ? 'Leiding ' : '') + x.speltak;
       if (!x.van) return `Vul bij ${wat} het eerste jaar in, of haal het vinkje weg.`;
       if (x.tot && x.tot < x.van) return `Bij ${wat} ligt het tweede jaar vóór het eerste.`;
+      if (x.van < MIN_JAAR || x.van > NU || (x.tot && x.tot > NU)) return `Vul bij ${wat} jaren in tussen ${MIN_JAAR} en ${NU}.`;
     }
     if (!$('akkoord-rij').hidden && !$('f-akkoord').checked) return 'Ga akkoord met de privacyverklaring om je in te schrijven.';
     return '';
@@ -199,7 +221,8 @@
   function vul(r) {
     $('f-voor').value = r.voornaam || ''; $('f-achter').value = r.achternaam || ''; $('f-bijnaam').value = r.bijnaam || '';
     $('f-email').value = r.email || ''; $('f-jaar').value = r.geboortejaar || '';
-    for (const x of r.takken || []) Object.assign(K(x.rol, x.speltak), { on: true, van: x.van, tot: x.tot ?? '', eigen: true });
+    for (const x of r.takken || []) Object.assign(K(x.rol, x.speltak), { on: true, van: x.van, tot: x.tot ?? '', eigen: true,
+      naam: x.naam || '', anders: !!x.naam && !Reunie.oudeNamen(x.speltak).includes(x.naam) });
     $('f-leiding').checked = (r.takken || []).some(x => x.rol === 'leiding');
     $('blok-leiding').hidden = !$('f-leiding').checked;
     $('s-voor').checked = r.toon.voornaam; $('s-achter').checked = r.toon.achternaam; $('s-bijnaam').checked = r.toon.bijnaam !== false;

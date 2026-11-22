@@ -29,7 +29,7 @@ Scouts = 11 | Verkenners, Gidsen, Padvinders, Padvindsters, Zeeverkenners, Water
 Explorers = 15 | Rowans, Sherpa's, Pioniers, Wilde Vaart, Astronauten
 Roverscouts = 18 | Pivo's, Voortrekkers, Jongerentak, Loodsen
 Vuurvogels = 21 | Stam, Loodsenstam, Oud-scouts, Vriendenkring
-Pionierss = 21 | Stam, Loodsenstam, Oud-scouts, Vriendenkring
+Pioniers = 21 | Stam, Loodsenstam, Oud-scouts, Vriendenkring
 Plusscouts = 21 | Stam, Loodsenstam, Oud-scouts, Vriendenkring
 
 Bestuur / vrijwilliger

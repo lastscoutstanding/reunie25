@@ -1,0 +1,23 @@
+# Keeps the free Supabase project awake. Supabase pauses a free project after a week
+# without activity; this asks the database for the number of registrations every three days.
+# The key is the publishable ("anon") key, which is public by design (also in reunie25/data.js).
+# Remove this file once the reunion data has been wiped (after 23 August 2027).
+name: Supabase keep-alive
+
+on:
+  schedule:
+    - cron: '17 6 */3 * *'   # 06:17 UTC on day 1, 4, 7, ... of each month
+  workflow_dispatch:          # "Run workflow" button on the Actions tab
+
+jobs:
+  ping:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Ask the database for the number of registrations
+        run: |
+          curl --fail --silent --show-error --max-time 30 \
+            -X POST 'https://glvrsppggmfksimpfckp.supabase.co/rest/v1/rpc/aantal_deelnemers' \
+            -H 'apikey: sb_publishable_drDndhRXZy_Hql9f9G5ROA_I5FW7pML' \
+            -H 'Content-Type: application/json' \
+            -d '{}'
+          echo

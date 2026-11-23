@@ -2,12 +2,14 @@
 // Uitsnijden.kies(titel) opens the file chooser (call it from a click), then a dialog where you
 // drag the photo and zoom (slider, mouse wheel or two fingers) until your face fits the circle.
 // Resolves with a 200 x 200 JPEG blob, or null when cancelled. Only that circle is ever sent;
-// the original photo stays on the device.
+// the original photo stays on the device. "Andere foto" opens the file chooser again from the
+// dialog; cancelling that chooser keeps the photo that was there.
 const Uitsnijden = (() => {
   const UIT = 200;            // output size in px
   const V = 560, R = 240;     // canvas size and circle radius (canvas px; shown at half size)
   const C = V / 2;
-  let dlg, cv, ctx, zoom, img, w, h, s, min, ox, oy, klaar;
+  const MAX = 2000;           // big photos are scaled down to this on reading (less memory on phones)
+  let dlg, cv, ctx, zoom, kiezer, img, w, h, s, min, ox, oy, klaar, mislukt;
 
   function bouw() {
     dlg = document.createElement('dialog');
@@ -15,15 +17,40 @@ const Uitsnijden = (() => {
     dlg.innerHTML = `<form method="dialog">
         <h3 style="margin:0 0 8px" class="u-titel"></h3>
         <canvas width="${V}" height="${V}" aria-label="Sleep de foto zodat je gezicht in het rondje past"></canvas>
-        <p class="muted" style="margin:8px 0;font-size:14px">Sleep de foto en zoom tot je gezicht in het rondje past.</p>
+        <p class="muted" style="margin:8px 0;font-size:14px">Sleep de foto en zoom tot je gezicht in het rondje past.
+          Niet de goede? <button class="linkbtn u-ander" type="button">Kies een andere foto</button></p>
         <label class="u-zoom"><span>Zoom</span><input type="range" min="1" max="5" step="0.01" value="1"></label>
+        <p class="err u-fout" hidden></p>
         <div class="acties">
           <button class="btn ghost" value="nee" type="submit">Annuleren</button>
           <button class="btn" value="ja" type="submit">Gebruiken</button>
         </div>
       </form>`;
     document.body.append(dlg);
-    cv = dlg.querySelector('canvas'); ctx = cv.getContext('2d'); zoom = dlg.querySelector('input');
+    cv = dlg.querySelector('canvas'); ctx = cv.getContext('2d'); zoom = dlg.querySelector('input[type=range]');
+
+    // One file input that stays in the page: iOS Safari sometimes drops a detached one while the
+    // photo picker is open, and then the chosen photo never arrives.
+    kiezer = document.createElement('input');
+    kiezer.type = 'file'; kiezer.accept = 'image/*'; kiezer.tabIndex = -1;
+    kiezer.setAttribute('aria-hidden', 'true');
+    kiezer.style.cssText = 'position:fixed;left:-100px;top:0;width:1px;height:1px;opacity:0';
+    document.body.append(kiezer);
+    kiezer.addEventListener('change', async () => {
+      const bestand = kiezer.files[0];
+      kiezer.value = '';
+      if (!bestand) return;
+      const fout = dlg.querySelector('.u-fout');
+      try { await laad(bestand); fout.hidden = true; }
+      catch {
+        const tekst = 'Deze foto kunnen we niet openen. Probeer een andere, of een JPG of PNG.';
+        if (dlg.open) { fout.textContent = tekst; fout.hidden = false; }
+        else { const m = mislukt; klaar = mislukt = null; m?.(new Error(tekst)); }
+        return;
+      }
+      if (!dlg.open) { dlg.returnValue = ''; dlg.showModal(); }
+    });
+    dlg.querySelector('.u-ander').addEventListener('click', () => kiezer.click());
 
     zoom.addEventListener('input', () => zoomNaar(min * +zoom.value));
     cv.addEventListener('wheel', e => {
@@ -64,7 +91,7 @@ const Uitsnijden = (() => {
 
     dlg.addEventListener('close', async () => {
       const ja = dlg.returnValue === 'ja';
-      const k = klaar; klaar = null;
+      const k = klaar; klaar = mislukt = null;
       k?.(ja ? await uitsnede() : null);
     });
   }
@@ -101,32 +128,32 @@ const Uitsnijden = (() => {
       const i = new Image();
       i.src = url;
       await i.decode();
-      img = i; w = i.naturalWidth; h = i.naturalHeight;
-    } finally { setTimeout(() => URL.revokeObjectURL(url), 1000); }
+      const f = Math.min(1, MAX / Math.max(i.naturalWidth, i.naturalHeight));
+      w = Math.round(i.naturalWidth * f); h = Math.round(i.naturalHeight * f);
+      if (f < 1) {
+        const c = document.createElement('canvas');
+        c.width = w; c.height = h;
+        c.getContext('2d').drawImage(i, 0, 0, w, h);
+        img = c;
+      } else img = i;
+    } finally { URL.revokeObjectURL(url); }
     min = 2 * R / Math.min(w, h); s = min;
     ox = C - w * s / 2; oy = C - h * s / 2;
     zoom.value = 1;
     klem(); teken();
   }
 
-  // Call from a click: opens the file chooser, then the dialog.
+  // Call from a click: opens the file chooser, then the dialog. Cancelling the chooser leaves
+  // the promise open; the next call settles it with null.
   function kies(titel = 'Snijd jezelf uit') {
     if (!dlg) bouw();
+    klaar?.(null);
     return new Promise((ok, mis) => {
-      const input = document.createElement('input');
-      input.type = 'file'; input.accept = 'image/*';
-      input.addEventListener('change', async () => {
-        const bestand = input.files[0];
-        if (!bestand) return ok(null);
-        try { await laad(bestand); }
-        catch { return mis(new Error('Deze foto kunnen we niet openen. Probeer een JPG of PNG.')); }
-        dlg.querySelector('.u-titel').textContent = titel;
-        klaar = ok;
-        dlg.returnValue = '';
-        dlg.showModal();
-      });
-      input.addEventListener('cancel', () => ok(null));
-      input.click();
+      klaar = ok; mislukt = mis;
+      dlg.querySelector('.u-titel').textContent = titel;
+      dlg.querySelector('.u-fout').hidden = true;
+      kiezer.value = '';
+      kiezer.click();
     });
   }
 

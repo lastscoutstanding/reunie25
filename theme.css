@@ -116,15 +116,11 @@ legend { font-weight: 600; padding: 0 6px; }
 .person .tk span.hit { background: var(--accent); color: #1d2433; border-color: var(--accent); }
 .person.anon .name { color: var(--muted); font-style: italic; font-weight: 400; }
 /* Profile photos (toen en nu) */
-.met-gezicht { display: flex; gap: 12px; align-items: center; }
-.gezicht { position: relative; display: block; flex: none; width: 52px; height: 52px; padding: 0; border: 0; background: none; border-radius: 50%; }
-.gezicht.twee { width: 80px; }
+.gezicht { display: flex; gap: 10px; margin: 0 0 8px; padding: 0; border: 0; background: none; font: inherit; color: inherit; }
 button.gezicht { cursor: zoom-in; }
-.gezicht img { position: absolute; border-radius: 50%; object-fit: cover; background: var(--chip); border: 2px solid var(--card); }
-.gezicht .g-een, .gezicht .g-nu { width: 52px; height: 52px; top: 0; }
-.gezicht .g-een { left: 0; }
-.gezicht .g-nu { right: 0; }
-.gezicht .g-toen { width: 44px; height: 44px; left: 0; top: 4px; }
+.gezicht .g { display: flex; flex-direction: column; align-items: center; }
+.gezicht img { width: 52px; height: 52px; border-radius: 50%; object-fit: cover; background: var(--chip); }
+.gezicht small { font-size: 11px; color: var(--muted); line-height: 1.4; }
 .faces a .mini { width: 22px; height: 22px; border-radius: 50%; object-fit: cover; vertical-align: middle; margin: -2px 6px 0 -6px; }
 dialog.uitsnijden canvas { display: block; width: 280px; height: 280px; max-width: 100%; margin: 0 auto; border-radius: 8px; touch-action: none; cursor: grab; }
 .u-zoom { display: flex; align-items: center; gap: 10px; font-weight: 400; }

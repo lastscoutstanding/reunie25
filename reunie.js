@@ -136,15 +136,16 @@ const Reunie = (() => {
   // Person card from a public row {voornaam, achternaam, bijnaam, geboortejaar, takken}:
   // fields the person chose to hide are null. jij = your own card, with an accent and a
   // link to your registration. id = anchor, so the home page can link to this card.
-  // Round profile photos: g = { toen: url, nu: url }, either may be missing. Both: toen small
-  // behind nu. As a button (knop) it opens the big view on "Wie doen er mee?".
+  // Round profile photos above the name: g = { toen: url, nu: url }, either may be missing,
+  // side by side with "toen" / "nu" under them. As a button (knop) it opens the big view on
+  // "Wie doen er mee?".
   function gezicht(g, knop = false) {
-    if (!g || !(g.toen || g.nu)) return '';
-    const img = (soort, cls) => `<img class="${cls}" src="${esc(g[soort])}" alt="">`;
-    const binnen = g.toen && g.nu ? img('toen', 'g-toen') + img('nu', 'g-nu') : img(g.toen ? 'toen' : 'nu', 'g-een');
-    const wat = g.toen && g.nu ? 'Foto van toen en nu' : g.toen ? 'Foto van toen' : 'Foto van nu';
-    return knop ? `<button type="button" class="gezicht${g.toen && g.nu ? ' twee' : ''}" data-gezicht aria-label="${wat}, groot bekijken">${binnen}</button>`
-      : `<span class="gezicht${g.toen && g.nu ? ' twee' : ''}" role="img" aria-label="${wat}">${binnen}</span>`;
+    const soorten = ['toen', 'nu'].filter(s => g?.[s]);
+    if (!soorten.length) return '';
+    const binnen = soorten.map(s => `<span class="g"><img src="${esc(g[s])}" alt=""><small>${s}</small></span>`).join('');
+    const wat = soorten.length === 2 ? 'Foto van toen en nu' : `Foto van ${soorten[0]}`;
+    return knop ? `<button type="button" class="gezicht" data-gezicht aria-label="${wat}, groot bekijken">${binnen}</button>`
+      : `<span class="gezicht" role="img" aria-label="${wat}">${binnen}</span>`;
   }
 
   // p.gezicht (optional): { toen, nu } URLs of the profile photos, see gezicht(); klik = the
@@ -166,7 +167,7 @@ const Reunie = (() => {
     const kop = `<div class="name">${naamTekst || '<span class="muted">Anoniem</span>'}${jij ? ' <span class="pill jij">jij</span>' : ''}</div>
       <div class="meta">${age || '&nbsp;'}</div>`;
     const g = gezicht(p.gezicht, klik && !jij);
-    return `<${tag} class="person${jij ? ' zelf' : ''}"${id ? ` id="${id}"` : ''}${extra}>${g ? `<div class="met-gezicht">${g}<div>${kop}</div></div>` : kop}${chips ? `<div class="tk">${chips}</div>` : ''}${jij ? '<div class="naar">Mijn inschrijving →</div>' : ''}</${tag}>`;
+    return `<${tag} class="person${jij ? ' zelf' : ''}"${id ? ` id="${id}"` : ''}${extra}>${g}${kop}${chips ? `<div class="tk">${chips}</div>` : ''}${jij ? '<div class="naar">Mijn inschrijving →</div>' : ''}</${tag}>`;
   }
 
   // Year fields (class "yr" with min/max): arrow up from empty starts at min (opgericht),

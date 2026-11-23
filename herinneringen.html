@@ -28,6 +28,7 @@
     <div id="tab-fotos" hidden>
       <p style="margin-top:0">Kampvuren, opkomsten, overvliegen, dat ene natte weekend… Deel je foto's van vroeger met de rest van de club.</p>
       <p class="note ok" id="f-bedankt" hidden></p>
+      <div class="card" id="f-afgewezen" hidden></div>
 
       <div class="kop2">
         <div class="filters" style="margin:0">
@@ -338,12 +339,32 @@
   }
 
   async function laadFotos() {
+    let af = [];
     try {
-      [fotos] = await Promise.all([Data.fotos(), laadHartjes()]);
-      Object.assign(urls, await Data.fotoUrls(fotos.map(f => f.pad + '-klein.jpg')));
+      [fotos, af] = await Promise.all([Data.fotos(), Data.afgewezenFotos().catch(() => []), laadHartjes()]);
+      Object.assign(urls, await Data.fotoUrls([...fotos, ...af].map(f => f.pad + '-klein.jpg')));
     } catch (err) { $('f-telling').textContent = err.message; return; }
     toonFotos();
+    toonAfgewezen(af);
   }
+
+  // Your own rejected photos: thumbnail plus the comité's note, until you click them away.
+  function toonAfgewezen(af) {
+    $('f-afgewezen').hidden = !af.length;
+    $('f-afgewezen').innerHTML = af.length ? `<h2 style="margin:0 0 10px">Niet geplaatst</h2>` + af.map(f => `<div class="afgewezen" data-id="${E(f.id)}">
+        <img src="${E(urls[f.pad + '-klein.jpg'] || '')}" alt="${E(f.titel)}">
+        <div><b>${f.titel ? E(f.titel) : '<span class="muted" style="font-weight:400">(geen titel)</span>'}</b><br>
+          ${f.toelichting ? `<span class="muted">Het comité schreef:</span> “${E(f.toelichting)}”` : '<span class="muted">Deze foto heeft het comité niet geplaatst.</span>'}
+          <div class="acties" style="margin-top:6px"><button class="btn ghost" type="button" data-weg="${E(f.id)}">Oké, weghalen</button></div></div>
+      </div>`).join('') : '';
+  }
+  $('f-afgewezen').addEventListener('click', async e => {
+    const b = e.target.closest('button[data-weg]');
+    if (!b) return;
+    b.disabled = true;
+    try { await Data.verwijderFoto(b.dataset.weg); await laadFotos(); }
+    catch (err) { alert('Weghalen lukte niet: ' + err.message); b.disabled = false; }
+  });
   ['ff-speltak', 'ff-jaar'].forEach(id => $(id).addEventListener('input', toonFotos));
 
   // ---- big view (lightbox): arrows, swipe, Esc ----

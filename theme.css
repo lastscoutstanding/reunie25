@@ -241,6 +241,10 @@ textarea { font: inherit; padding: 10px 12px; border-radius: 10px; border: 1px s
 .tegel .label { position: absolute; top: 6px; left: 6px; }
 .tegel.eigen { border-style: dashed; }
 .tegel.eigen img { opacity: .8; }
+.afgewezen { display: flex; gap: 12px; align-items: flex-start; font-size: 14px; }
+.afgewezen + .afgewezen { margin-top: 12px; padding-top: 12px; border-top: 1px solid var(--line); }
+.afgewezen img { width: 96px; aspect-ratio: 4 / 3; object-fit: cover; border-radius: 8px; background: var(--chip); flex: none; }
+.afgewezen .acties { justify-content: flex-start; }
 .drop { display: grid; justify-items: center; gap: 4px; border: 2px dashed var(--line); border-radius: 12px; padding: 22px; text-align: center; font-weight: 400; cursor: pointer; }
 .drop.over { border-color: var(--brand); background: var(--chip); }
 .keuze { display: grid; grid-template-columns: 72px 1fr auto; gap: 10px; align-items: center; padding: 8px 0; border-top: 1px solid var(--line); }

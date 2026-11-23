@@ -25,6 +25,8 @@
 //
 // Photo, as pages get it (files: pad + '.jpg' and pad + '-klein.jpg', see fotoUrls):
 //   { id, pad, titel, speltak, jaar, eigen, status, voornaam, bijnaam, achternaam, aangemaakt }
+//   Rejected photos are not in that list: afgewezenFotos() gives your own as
+//   { id, pad, titel, toelichting }; only the thumbnail ('-klein.jpg') still exists.
 //
 // Overleg (comité only), as pages get it, newest activity first:
 //   { id, titel, soort: 'vrij' | 'deelnemer' | 'verhaal' | 'foto' | 'pagina', ref, ref_naam,
@@ -372,7 +374,7 @@ const Data = (() => {
     async fotos() {
       const ik = lees(DEMO_SESSIE, null);
       if (!ik) throw fout('sessie', MELD.sessie);
-      return fotosStore().filter(f => f.status === 'geplaatst' || f.auteur === ik)
+      return fotosStore().filter(f => f.status === 'geplaatst' || (f.auteur === ik && f.status !== 'afgewezen'))
         .sort((a, b) => b.aangemaakt.localeCompare(a.aangemaakt))
         .map(f => {
           const p = f.toon_naam && demoPersoon(f.auteur);
@@ -388,7 +390,7 @@ const Data = (() => {
       const groep = 'demo-g' + Date.now();
       for (const [i, it] of items.entries()) {
         const lijst = fotosStore();
-        if (lijst.filter(f => f.auteur === ik).length >= MAX_FOTOS) throw fout('max', MELD.max);
+        if (lijst.filter(f => f.auteur === ik && f.status !== 'afgewezen').length >= MAX_FOTOS) throw fout('max', MELD.max);
         voortgang(i);
         const id = 'demo-' + Date.now() + '-' + i, pad = `demo/${id}`;
         demoBestanden.set(pad + '.jpg', URL.createObjectURL(it.groot));
@@ -397,6 +399,12 @@ const Data = (() => {
         schrijf(DEMO_FOTOS, lijst);
       }
       voortgang(items.length);
+    },
+    async afgewezenFotos() {
+      const ik = lees(DEMO_SESSIE, null);
+      if (!ik) throw fout('sessie', MELD.sessie);
+      return fotosStore().filter(f => f.auteur === ik && f.status === 'afgewezen')
+        .map(f => ({ id: f.id, pad: f.pad, titel: f.titel, toelichting: f.toelichting || null }));
     },
     async verwijderFoto(id) {
       schrijf(DEMO_FOTOS, fotosStore().filter(f => !(f.id === id && f.auteur === lees(DEMO_SESSIE, null))));
@@ -420,9 +428,14 @@ const Data = (() => {
         .sort((a, b) => a.aangemaakt.localeCompare(b.aangemaakt))
         .map(f => ({ ...f, auteur_naam: demoNaam(f.auteur) || f.auteur }));
     },
-    async beoordeelFoto(id, actie) {
+    async beoordeelFoto(id, actie, notitie = '') {
       let lijst = fotosStore();
       if (actie === 'plaatsen') lijst.filter(f => f.id === id).forEach(f => Object.assign(f, { status: 'geplaatst', melding: null, gemeld_door: null, gemeld_op: null }));
+      else if (actie === 'afwijzen') lijst.filter(f => f.id === id && ['nieuw', 'gemeld'].includes(f.status)).forEach(f => {
+        Object.assign(f, { status: 'afgewezen', toelichting: notitie.trim().slice(0, 500) || null, melding: null, gemeld_door: null, gemeld_op: null, bijgewerkt: nu() });
+        demoBestanden.delete(f.pad + '.jpg');
+        schrijf(DEMO_HARTJES, hartjesStore().filter(h => !(h.soort === 'foto' && h.ref === id)));
+      });
       else if (actie === 'verwijderen') lijst = lijst.filter(f => f.id !== id);
       schrijf(DEMO_FOTOS, lijst);
     },
@@ -801,6 +814,10 @@ const Data = (() => {
       }
       voortgang(items.length);
     },
+    async afgewezenFotos() {
+      const t = await moetToken();
+      return await verzoek('/rest/v1/fotos?status=eq.afgewezen&select=id,pad,titel,toelichting&order=bijgewerkt.desc', { token: t });
+    },
     async verwijderFoto(id) {
       const t = await moetToken();
       const rows = await verzoek(`/rest/v1/fotos?id=eq.${encodeURIComponent(id)}&select=pad`, { method: 'DELETE', token: t, headers: { Prefer: 'return=representation' } });
@@ -827,10 +844,14 @@ const Data = (() => {
       const t = await moetToken();
       return await verzoek('/rest/v1/rpc/fotos_te_beoordelen', { method: 'POST', token: t, body: {} });
     },
-    async beoordeelFoto(id, actie) {
+    // afwijzen deletes only the big file; the thumbnail stays for the uploader.
+    async beoordeelFoto(id, actie, notitie = '') {
       const t = await moetToken();
-      const pad = await verzoek('/rest/v1/rpc/beoordeel_foto', { method: 'POST', token: t, body: { foto: id, actie } });
-      if (pad) await wisBestanden([pad], t);
+      const pad = await verzoek('/rest/v1/rpc/beoordeel_foto', { method: 'POST', token: t, body: { foto: id, actie, notitie: notitie || null } });
+      if (pad && actie === 'afwijzen') {
+        await opslag('/fotos', { method: 'DELETE', token: t, type: 'application/json', body: JSON.stringify({ prefixes: [pad + '.jpg'] }) }).catch(() => {});
+        urlCache.delete(pad + '.jpg');
+      } else if (pad) await wisBestanden([pad], t);
     },
     async fotoOpslag() {
       const t = await moetToken();

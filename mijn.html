@@ -45,6 +45,7 @@
         <p style="margin:0 0 8px">Zondag 23 mei 2027, vrije inloop van 14:00 tot 19:00 in blokhut de Brandnetel.</p>
         <p style="margin:0" id="agenda"></p>
       </div>
+      <div class="card" id="afgewezen" hidden></div>
       <div class="card" id="leuk" hidden></div>
     </div>
   </div>
@@ -119,6 +120,7 @@
     toonErbij();
     $('inhoud').hidden = false;
     leukBlok();
+    afgewezenBlok();
   })();
 
   // Coming? The payment block only for "ja" (or when already paid), "Weet je het al?" for
@@ -159,6 +161,15 @@
       $('erbij-noot').textContent = 'Opslaan lukte niet: ' + err.message;
     }
   });
+
+  // Your rejected photos wait on the Foto's tab with the comité's note.
+  async function afgewezenBlok() {
+    const n = (await Data.afgewezenFotos().catch(() => [])).length;
+    if (!n) return;
+    $('afgewezen').innerHTML = `<h2>Jouw foto's</h2><p style="margin:0">${n === 1 ? '1 foto is' : `${n} foto's zijn`} niet geplaatst. `
+      + `<a href="herinneringen.html#fotos">Bekijk ${n === 1 ? 'hem' : 'ze'}</a></p>`;
+    $('afgewezen').hidden = false;
+  }
 
   // Hearts on your own placed stories and photos; nothing when there are none.
   async function leukBlok() {

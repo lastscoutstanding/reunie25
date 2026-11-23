@@ -106,7 +106,7 @@
           <tr><td>Inschrijving verwijderen, adres blokkeren of deblokkeren</td><td class="nee">–</td><td class="nee">–</td><td class="ja">✓</td><td class="ja">✓</td></tr>
           <tr><td>Verhalen bij Herinneringen lezen en delen</td><td class="nee">–</td><td class="ja">✓</td><td class="ja">✓</td><td class="ja">✓</td></tr>
           <tr><td>Foto's bekijken en delen (max. 30 per persoon)</td><td class="nee">–</td><td class="ja">✓</td><td class="ja">✓</td><td class="ja">✓</td></tr>
-          <tr><td>Foto's plaatsen of verwijderen</td><td class="nee">–</td><td class="nee">–</td><td class="ja">✓</td><td class="ja">✓</td></tr>
+          <tr><td>Foto's plaatsen of afwijzen (met toelichting)</td><td class="nee">–</td><td class="nee">–</td><td class="ja">✓</td><td class="ja">✓</td></tr>
           <tr><td>Verhalen plaatsen, afwijzen, aanpassen of verwijderen</td><td class="nee">–</td><td class="nee">–</td><td class="ja">✓</td><td class="ja">✓</td></tr>
           <tr><td>Overleg binnen het comité</td><td class="nee">–</td><td class="nee">–</td><td class="ja">✓</td><td class="ja">✓</td></tr>
           <tr><td>Betalingen afvinken</td><td class="nee">–</td><td class="nee">–</td><td class="ja">✓</td><td class="ja">✓</td></tr>
@@ -128,6 +128,22 @@
     <div class="acties">
       <button class="btn ghost" value="nee" type="submit" formnovalidate>Annuleren</button>
       <button class="btn danger" value="ja" type="submit" id="dlg-ok">Verwijderen</button>
+    </div>
+  </form>
+</dialog>
+<dialog id="fdlg" class="card dialoog">
+  <form method="dialog" id="fdlg-form">
+    <h3 id="fdlg-titel" style="margin:0 0 8px"></h3>
+    <div style="display:flex;gap:12px;align-items:flex-start">
+      <img id="fdlg-img" alt="" style="width:96px;aspect-ratio:4/3;object-fit:cover;border-radius:8px;background:var(--chip);flex:none">
+      <p id="fdlg-tekst" style="margin:0"></p>
+    </div>
+    <label style="margin-top:10px"><span>Korte toelichting voor de deler <span class="muted" style="font-weight:400">(optioneel, alleen de deler ziet dit)</span></span>
+      <textarea id="fdlg-notitie" maxlength="500" style="min-height:80px"></textarea></label>
+    <p class="err" id="fdlg-fout" hidden></p>
+    <div class="acties">
+      <button class="btn ghost" value="nee" type="submit" formnovalidate>Annuleren</button>
+      <button class="btn danger" value="ja" type="submit" id="fdlg-ok">Afwijzen</button>
     </div>
   </form>
 </dialog>
@@ -399,8 +415,8 @@
       <a href="${E(urls[f.pad + '.jpg'] || '#')}" target="_blank" rel="noopener"><img src="${E(urls[f.pad + '-klein.jpg'] || '')}" alt="${E(f.titel)}" loading="lazy"></a>
       <span class="onder"><b>${f.titel ? E(f.titel) : '<span class="muted" style="font-weight:400">(geen titel)</span>'}</b></span>
       <span class="knoppen">${f.status === 'gemeld'
-        ? '<button class="btn ghost" type="button" data-factie="plaatsen">Weer tonen</button><button class="btn danger" type="button" data-factie="verwijderen">Verwijderen</button>'
-        : '<button class="btn" type="button" data-factie="plaatsen">Plaatsen</button><button class="btn danger" type="button" data-factie="verwijderen">Afwijzen</button>'}${Overleg.knop('foto', f.id, f.titel || 'zonder titel')}</span>
+        ? '<button class="btn ghost" type="button" data-factie="plaatsen">Weer tonen</button><button class="btn danger" type="button" data-factie="afwijs">Verwijderen…</button>'
+        : '<button class="btn" type="button" data-factie="plaatsen">Plaatsen</button><button class="btn danger" type="button" data-factie="afwijs">Afwijzen…</button>'}${Overleg.knop('foto', f.id, f.titel || 'zonder titel')}</span>
     </div>`;
 
   // New photos grouped per upload; reported photos one by one with the reason.
@@ -450,10 +466,36 @@
     const ids = b.dataset.alle ? b.dataset.alle.split(',') : [b.closest('[data-foto]')?.dataset.foto];
     const actie = b.dataset.alle ? 'plaatsen' : b.dataset.factie;
     if (!ids[0] || !actie) return;
-    if (actie === 'verwijderen' && !confirm('Deze foto verwijderen? De foto wordt definitief gewist.')) return;
+    if (actie === 'afwijs') return fotoAfwijzen(fotoBeoordeling.find(f => f.id === ids[0]), b.closest('.tegel').querySelector('img').src);
     b.disabled = true;
     try { for (const id of ids) await Data.beoordeelFoto(id, actie); await laadBeoordelen(); }
     catch (err) { alert('Dat lukte niet: ' + err.message); b.disabled = false; }
+  });
+
+  // Reject (or remove a reported) photo with a note: the big file is wiped at once, the uploader
+  // keeps the thumbnail with the note until they click it away.
+  let afTeWijzen = null;
+  function fotoAfwijzen(f, img) {
+    afTeWijzen = f;
+    const gemeld = f.status === 'gemeld';
+    $('fdlg-titel').textContent = gemeld ? 'Gemelde foto verwijderen?' : 'Foto afwijzen?';
+    $('fdlg-img').src = img;
+    $('fdlg-tekst').textContent = `${f.titel ? `“${f.titel}” van ` : 'Foto van '}${f.auteur_naam || 'onbekend'}. De foto wordt meteen gewist. `
+      + `De deler ziet alleen een miniatuur met je toelichting${gemeld ? '; noem daarin niet wie hem gemeld heeft' : ''}.`;
+    $('fdlg-ok').textContent = gemeld ? 'Verwijderen' : 'Afwijzen';
+    $('fdlg-notitie').value = ''; $('fdlg-fout').hidden = true;
+    $('fdlg').showModal();
+  }
+  $('fdlg-form').addEventListener('submit', async e => {
+    if (e.submitter?.value !== 'ja') return;          // Annuleren closes the dialog
+    e.preventDefault();
+    $('fdlg-ok').disabled = true; $('fdlg-fout').hidden = true;
+    try {
+      await Data.beoordeelFoto(afTeWijzen.id, 'afwijzen', $('fdlg-notitie').value);
+      $('fdlg').close();
+      await laadBeoordelen();
+    } catch (err) { $('fdlg-fout').textContent = err.message; $('fdlg-fout').hidden = false; }
+    $('fdlg-ok').disabled = false;
   });
 
   $('beoordelen').addEventListener('click', async e => {

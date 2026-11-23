@@ -313,9 +313,9 @@ dialog.lightbox::backdrop { background: rgba(0, 0, 0, .8); }
   .strip .kort { display: inline; }
 }
 
-/* Your own card on "Wie doen er mee?": a light yellow tint and the "jij" label; the bright
+/* Your own card on "Wie doen er mee?": a thin yellowish border and the "jij" label; the bright
    yellow ring is for the card you jumped to from the home page (.gevonden). */
-.person.zelf { background: color-mix(in srgb, var(--accent) 10%, var(--card)); border-color: color-mix(in srgb, var(--accent) 40%, var(--line)); }
+.person.zelf { border-color: color-mix(in srgb, var(--accent) 40%, var(--line)); }
 a.person { display: block; color: inherit; text-decoration: none; }
 a.person:hover { background: color-mix(in srgb, var(--accent) 18%, var(--card)); }
 .person .naar { margin-top: 8px; font-size: 14px; font-weight: 600; color: var(--brand); }

@@ -21,8 +21,11 @@
   </div>
 
   <div id="binnen" hidden>
-    <div class="seg tabs" id="tabs">
-      <button type="button" data-tab="verhalen" class="on">Verhalen</button><button type="button" data-tab="fotos">Foto's</button>
+    <div class="deuren" id="tabs" role="tablist" aria-label="Verhalen of foto's">
+      <button type="button" data-tab="verhalen" class="on" role="tab" aria-selected="true">
+        <span class="aantal" id="d-verhalen-n">&nbsp;</span><b>Verhalen</b><span class="voor" id="d-verhalen-voor"></span></button>
+      <button type="button" data-tab="fotos" role="tab" aria-selected="false">
+        <span class="aantal" id="d-fotos-n">&nbsp;</span><b>Foto's</b><span class="voor mini3" id="d-fotos-voor"></span></button>
     </div>
 
     <div id="tab-fotos" hidden>
@@ -216,6 +219,7 @@
     const rijen = verhalen.filter(v => (!q || `${v.titel} ${v.tekst} ${door(v)}`.toLowerCase().includes(q))
       && (!t || v.speltak === t) && (!j || v.jaar === j));
     const geplaatst = verhalen.filter(v => v.status === 'geplaatst').length;
+    deurVerhalen();
     $('telling').innerHTML = q || t || j ? `<b>${rijen.length}</b> van de ${verhalen.length} verhalen`
       : geplaatst ? `Al <b>${geplaatst}</b> ${geplaatst === 1 ? 'verhaal' : 'verhalen'} gedeeld!` : '';
     $('lijst').innerHTML = rijen.map(kaart).join('')
@@ -323,7 +327,23 @@
   if (Data.ingelogd()) Data.beheerder().then(ja => { comite = ja; }).catch(() => {});
   const fotoLabel = { nieuw: 'binnenkort', gemeld: 'tijdelijk verborgen' };
 
+  // ---- the two "doors" at the top: count plus a taste of what's behind ----
+  function deurVerhalen() {
+    const g = verhalen.filter(v => v.status === 'geplaatst');
+    const nieuwste = g.reduce((a, v) => !a || v.aangemaakt > a.aangemaakt ? v : a, null);
+    $('d-verhalen-n').textContent = g.length;
+    $('d-verhalen-voor').textContent = nieuwste ? 'Nieuwste: ' + nieuwste.titel : 'Schrijf jij het eerste?';
+  }
+  function deurFotos() {
+    const g = fotos.filter(f => f.status === 'geplaatst');     // newest first
+    $('d-fotos-n').textContent = g.length;
+    $('d-fotos-voor').innerHTML = g.length
+      ? g.slice(0, 3).map(f => `<img src="${E(urls[f.pad + '-klein.jpg'] || '')}" alt="">`).join('')
+      : 'Deel jij de eerste?';
+  }
+
   function toonFotos() {
+    deurFotos();
     const t = $('ff-speltak').value, j = +$('ff-jaar').value;
     zichtbaar = fotos.filter(f => (!t || f.speltak === t) && (!j || f.jaar === j));
     const geplaatst = fotos.filter(f => f.status === 'geplaatst').length;
@@ -552,7 +572,10 @@
 
   function tab(naam) {
     $('tab-verhalen').hidden = naam !== 'verhalen'; $('tab-fotos').hidden = naam !== 'fotos';
-    document.querySelectorAll('#tabs button').forEach(b => b.classList.toggle('on', b.dataset.tab === naam));
+    document.querySelectorAll('#tabs button').forEach(b => {
+      b.classList.toggle('on', b.dataset.tab === naam);
+      b.setAttribute('aria-selected', b.dataset.tab === naam);
+    });
     history.replaceState(null, '', naam === 'fotos' ? '#fotos' : location.pathname);
     if (naam === 'fotos' && !fotos) laadFotos();
   }
@@ -613,6 +636,7 @@
         await laad();
         $('binnen').hidden = false;
         if (location.hash === '#fotos') tab('fotos');
+        else if (!DOEL.startsWith('foto-')) laadFotos();     // for the count and thumbnails on the Foto's door
       }
     } catch (err) { $('laden').textContent = err.message; return; }
     $('laden').hidden = true;

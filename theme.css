@@ -209,6 +209,17 @@ footer a { color: inherit; }
 
 /* Beheer: tabs, comité list and the rights table */
 .tabs { margin: 0 0 16px; }
+/* Herinneringen: two big "doors" (Verhalen / Foto's) with a count and a preview */
+.deuren { display: grid; grid-template-columns: 1fr 1fr; gap: 12px; margin: 0 0 18px; }
+.deuren button { display: flex; flex-direction: column; align-items: flex-start; gap: 2px; min-width: 0; text-align: left; font: inherit; color: var(--ink);
+  background: var(--card); border: 1px solid var(--line); border-radius: var(--radius); padding: 12px 14px; cursor: pointer; }
+.deuren button:hover { border-color: var(--brand); }
+.deuren button.on { border: 2px solid var(--brand); padding: 11px 13px; }
+.deuren .aantal { font-size: 26px; font-weight: 700; line-height: 1.1; color: var(--brand); }
+.deuren b { font-size: 17px; }
+.deuren .voor { font-size: 13px; color: var(--muted); max-width: 100%; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.deuren .mini3 { display: flex; gap: 4px; margin-top: 4px; }
+.deuren .mini3 img { width: 34px; height: 34px; border-radius: 6px; object-fit: cover; background: var(--chip); }
 /* Phones: segmented buttons a bit smaller and on one line; tabs in rows of two, so all
    of them are visible and the page never scrolls sideways */
 @media (max-width: 600px) {

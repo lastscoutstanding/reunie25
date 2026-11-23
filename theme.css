@@ -115,6 +115,29 @@ legend { font-weight: 600; padding: 0 6px; }
 .person .tk span.ld { background: transparent; border-color: var(--brand); color: var(--brand); }
 .person .tk span.hit { background: var(--accent); color: #1d2433; border-color: var(--accent); }
 .person.anon .name { color: var(--muted); font-style: italic; font-weight: 400; }
+/* Profile photos (toen en nu) */
+.met-gezicht { display: flex; gap: 12px; align-items: center; }
+.gezicht { position: relative; display: block; flex: none; width: 52px; height: 52px; padding: 0; border: 0; background: none; border-radius: 50%; }
+.gezicht.twee { width: 80px; }
+button.gezicht { cursor: zoom-in; }
+.gezicht img { position: absolute; border-radius: 50%; object-fit: cover; background: var(--chip); border: 2px solid var(--card); }
+.gezicht .g-een, .gezicht .g-nu { width: 52px; height: 52px; top: 0; }
+.gezicht .g-een { left: 0; }
+.gezicht .g-nu { right: 0; }
+.gezicht .g-toen { width: 44px; height: 44px; left: 0; top: 4px; }
+.faces a .mini { width: 22px; height: 22px; border-radius: 50%; object-fit: cover; vertical-align: middle; margin: -2px 6px 0 -6px; }
+dialog.uitsnijden canvas { display: block; width: 280px; height: 280px; max-width: 100%; margin: 0 auto; border-radius: 8px; touch-action: none; cursor: grab; }
+.u-zoom { display: flex; align-items: center; gap: 10px; font-weight: 400; }
+.u-zoom input { flex: 1; }
+.gezichten { display: flex; gap: 16px; justify-content: center; flex-wrap: wrap; }
+.gezichten figure { margin: 0; text-align: center; }
+.gezichten img { width: 160px; height: 160px; border-radius: 50%; object-fit: cover; background: var(--chip); }
+.gezichten figcaption { color: var(--muted); font-size: 14px; }
+.fotoslot { display: flex; gap: 24px; flex-wrap: wrap; margin-top: 8px; }
+.fotoslot > div { text-align: center; min-width: 110px; }
+.fotoslot .rond { width: 80px; height: 80px; border-radius: 50%; margin: 0 auto 4px; display: flex; align-items: center; justify-content: center; border: 2px dashed var(--line); color: var(--muted); font-size: 14px; background: var(--chip); padding: 0; cursor: pointer; overflow: hidden; }
+.fotoslot .rond img { width: 100%; height: 100%; object-fit: cover; }
+.fotoslot .rond.vol { border-style: solid; border-color: var(--card); }
 
 /* participants page */
 .filters { display: flex; gap: 10px; flex-wrap: wrap; align-items: center; margin-top: 12px; }
@@ -272,6 +295,10 @@ dialog.lightbox::backdrop { background: rgba(0, 0, 0, .8); }
 .fotogrid.beoordeel .tegel { cursor: default; }
 .fotogrid.beoordeel .knoppen { display: flex; gap: 6px; flex-wrap: wrap; padding: 0 8px 8px; }
 .fotogrid.beoordeel .btn, .groepkop .btn { padding: 5px 10px; font-size: 13px; }
+.gemeld-profiel { display: flex; gap: 12px; align-items: center; margin-bottom: 12px; }
+.gemeld-profiel img { width: 72px; height: 72px; border-radius: 50%; object-fit: cover; background: var(--chip); flex: none; }
+.gemeld-profiel .knoppen { display: flex; gap: 6px; flex-wrap: wrap; margin-top: 6px; }
+.gemeld-profiel .btn { padding: 5px 10px; font-size: 13px; }
 .groepkop { margin: 12px 0 0; font-size: 14px; display: flex; gap: 10px; align-items: center; flex-wrap: wrap; }
 
 /* Menu on narrow screens: one row to swipe, the button on the right stays put */

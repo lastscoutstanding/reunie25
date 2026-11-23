@@ -23,6 +23,7 @@
       <p class="muted" style="font-size:14px;margin:8px 0 20px" id="erbij-noot">Alleen het comité ziet je keuze. Je kunt hem altijd aanpassen.</p>
       <p>Op "Wie doen er mee?" sta je zo:</p>
       <div id="kaart"></div>
+      <p class="muted" style="font-size:14px;margin-bottom:0" id="gezicht-noot" hidden></p>
       <p class="muted" style="font-size:14px" id="samen"></p>
       <div class="row" style="margin-top:16px">
         <a class="btn" href="inschrijven.html">Gegevens aanpassen</a>
@@ -104,6 +105,7 @@
     $('bestond').hidden = location.hash !== '#bestond';
     $('sinds').textContent = 'sinds ' + new Date(ik.sinds + 'T12:00').toLocaleDateString('nl-NL', { day: 'numeric', month: 'long', year: 'numeric' });
     $('kaart').innerHTML = Reunie.kaart(Data.publiek(ik));
+    toonGezicht(ik);
     $('gegevens').innerHTML = `${E(ik.voornaam)} ${E(ik.achternaam)}${ik.bijnaam ? `<br>bijnaam: ${E(ik.bijnaam)}` : ''}<br>${E(ik.email)}<br>geboren in ${ik.geboortejaar}<br>${Reunie.leeftijd(ik.geboortejaar)} bij het jubileum in ${Reunie.jubileum()}, ${Reunie.knipoog(ik.geboortejaar)}`;
 
     // Links to the participants page, filtered on the first year in each speltak
@@ -161,6 +163,22 @@
       $('erbij-noot').textContent = 'Opslaan lukte niet: ' + err.message;
     }
   });
+
+  // Your profile photos on your card (also a reported one, with a note); none yet: an invitation.
+  async function toonGezicht(ik) {
+    const mijn = await Data.mijnProfielfotos().catch(() => null);
+    if (!mijn) return;
+    const soorten = ['toen', 'nu'].filter(s => mijn[s]);
+    const urls = soorten.length ? await Data.fotoUrls(soorten.map(s => mijn[s].pad + '.jpg')).catch(() => ({})) : {};
+    const p = Data.publiek(ik);
+    p.gezicht = soorten.length ? Object.fromEntries(soorten.map(s => [s, urls[mijn[s].pad + '.jpg']])) : null;
+    $('kaart').innerHTML = Reunie.kaart(p);
+    const gemeld = soorten.filter(s => mijn[s].status === 'gemeld');
+    $('gezicht-noot').innerHTML = gemeld.length
+      ? `Je foto van ${gemeld.join(' en ')} is gemeld en staat even niet op "Wie doen er mee?". Het comité kijkt ernaar.`
+      : soorten.length < 2 ? `Leuk voor herkenning: <a href="inschrijven.html#fotos">${soorten.length ? 'voeg ook een foto van ' + (mijn.toen ? 'nu' : 'toen') + ' toe' : "voeg een foto van toen en nu toe"}</a>.` : '';
+    $('gezicht-noot').hidden = !$('gezicht-noot').innerHTML;
+  }
 
   // Your rejected photos wait on the Foto's tab with the comité's note.
   async function afgewezenBlok() {

@@ -49,6 +49,7 @@
     <p class="muted" id="beoordelen-laden">Laden…</p>
     <h2 style="margin:18px 0 6px">Foto's</h2>
     <div id="foto-beoordelen"></div>
+    <div id="profiel-beoordelen" hidden></div>
     <h2 style="margin:22px 0 6px">Verhalen</h2>
     <div class="verhalen" id="beoordelen"></div>
   </div>
@@ -106,6 +107,8 @@
           <tr><td>Inschrijving verwijderen, adres blokkeren of deblokkeren</td><td class="nee">–</td><td class="nee">–</td><td class="ja">✓</td><td class="ja">✓</td></tr>
           <tr><td>Verhalen bij Herinneringen lezen en delen</td><td class="nee">–</td><td class="ja">✓</td><td class="ja">✓</td><td class="ja">✓</td></tr>
           <tr><td>Foto's bekijken en delen (max. 30 per persoon)</td><td class="nee">–</td><td class="ja">✓</td><td class="ja">✓</td><td class="ja">✓</td></tr>
+          <tr><td>Profielfoto's (toen en nu) zien, eigen foto's kiezen, een foto melden</td><td class="nee">–</td><td class="ja">✓</td><td class="ja">✓</td><td class="ja">✓</td></tr>
+          <tr><td>Profielfoto's weghalen of na een melding weer tonen</td><td class="nee">–</td><td class="nee">–</td><td class="ja">✓</td><td class="ja">✓</td></tr>
           <tr><td>Foto's plaatsen of afwijzen (met toelichting)</td><td class="nee">–</td><td class="nee">–</td><td class="ja">✓</td><td class="ja">✓</td></tr>
           <tr><td>Verhalen plaatsen, afwijzen, aanpassen of verwijderen</td><td class="nee">–</td><td class="nee">–</td><td class="ja">✓</td><td class="ja">✓</td></tr>
           <tr><td>Overleg binnen het comité</td><td class="nee">–</td><td class="nee">–</td><td class="ja">✓</td><td class="ja">✓</td></tr>
@@ -380,7 +383,7 @@
 
   // ---- tab Te beoordelen (stories) ----------------------------------------
 
-  let beoordeling = null, fotoBeoordeling = [];
+  let beoordeling = null, fotoBeoordeling = [], profielBeoordeling = [];
   const alineas = t => t.split(/\n\s*\n/).map(p => `<p>${E(p.trim()).replace(/\n/g, '<br>')}</p>`).join('');
 
   function verhaalKaart(v) {
@@ -438,8 +441,29 @@
     $('foto-beoordelen').innerHTML = nieuw + gemeld || '<p class="muted" style="margin:0">Geen foto\'s om te beoordelen.</p>';
   }
 
+  // Reported profile photos (toen en nu on "Wie doen er mee?"): show again, or remove.
+  function toonProfielBeoordelen(urls) {
+    $('profiel-beoordelen').hidden = !profielBeoordeling.length;
+    $('profiel-beoordelen').innerHTML = profielBeoordeling.length ? '<h3 class="sub" style="margin:16px 0 6px">Profielfoto\'s</h3>'
+      + profielBeoordeling.map(f => `<div class="gemeld-profiel" data-pad="${E(f.pad)}">
+        <img src="${E(urls[f.pad + '.jpg'] || '')}" alt="">
+        <div><p class="muted groepkop" style="margin:0"><span class="pill wacht">gemeld</span> door ${E(f.gemeld_door || 'iemand')} op ${datum(f.gemeld_op)}${f.melding ? `: “${E(f.melding)}”` : ''}
+          · foto van ${f.soort} van ${E(f.auteur_naam || 'onbekend')} · nu niet zichtbaar</p>
+          <span class="knoppen"><button class="btn ghost" type="button" data-pactie="tonen">Weer tonen</button><button class="btn danger" type="button" data-pactie="weghalen">Weghalen…</button></span></div>
+      </div>`).join('') : '';
+  }
+  $('profiel-beoordelen').addEventListener('click', async e => {
+    const b = e.target.closest('button[data-pactie]');
+    if (!b) return;
+    const actie = b.dataset.pactie, pad = b.closest('[data-pad]').dataset.pad;
+    if (actie === 'weghalen' && !confirm('Deze profielfoto weghalen? Hij wordt meteen gewist.')) return;
+    b.disabled = true;
+    try { await Data.beoordeelProfielfoto(pad, actie); await laadBeoordelen(); }
+    catch (err) { alert('Dat lukte niet: ' + err.message); b.disabled = false; }
+  });
+
   function toonBeoordelen() {
-    nieuw.beoordelen = beoordeling.length + fotoBeoordeling.length;
+    nieuw.beoordelen = beoordeling.length + fotoBeoordeling.length + profielBeoordeling.length;
     toonVlaggen();
     $('beoordelen').innerHTML = beoordeling.map(verhaalKaart).join('')
       || '<p class="muted" style="margin:0">Geen verhalen om te beoordelen.</p>';
@@ -448,11 +472,14 @@
   async function laadBeoordelen() {
     await Overleg.klaar;            // the overleg buttons on the cards
     try {
-      [beoordeling, fotoBeoordeling] = await Promise.all([Data.teBeoordelen(), Data.fotosTeBeoordelen()]);
+      [beoordeling, fotoBeoordeling, profielBeoordeling] = await Promise.all([Data.teBeoordelen(), Data.fotosTeBeoordelen(),
+        Data.profielfotosTeBeoordelen().catch(() => [])]);
       toonBeoordelen();
       const [urls, opslag] = await Promise.all([
-        Data.fotoUrls(fotoBeoordeling.flatMap(f => [f.pad + '-klein.jpg', f.pad + '.jpg'])), Data.fotoOpslag()]);
+        Data.fotoUrls([...fotoBeoordeling.flatMap(f => [f.pad + '-klein.jpg', f.pad + '.jpg']), ...profielBeoordeling.map(f => f.pad + '.jpg')]),
+        Data.fotoOpslag()]);
       toonFotoBeoordelen(urls);
+      toonProfielBeoordelen(urls);
       const mb = opslag.bytes / 1048576;
       $('foto-tegels').innerHTML = `<div><span>Foto's geplaatst</span><strong>${opslag.geplaatst}</strong></div>
         <div><span>Opslag foto's</span><strong>${mb < 10 ? mb.toFixed(1) : Math.round(mb)} MB</strong><span>van 1 GB (± 2.500 foto's)</span></div>`;

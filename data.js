@@ -25,6 +25,12 @@
 //
 // Photo, as pages get it (files: pad + '.jpg' and pad + '-klein.jpg', see fotoUrls):
 //   { id, pad, titel, speltak, jaar, eigen, status, voornaam, bijnaam, achternaam, aangemaakt }
+//
+// Public participant rows also have foto_toen / foto_nu: the path of a profile photo (file
+// pad + '.jpg', see fotoUrls), only for logged-in participants and the comité, else null.
+// mijnProfielfotos() gives your own as { toen: { pad, status } | null, nu: … }, status
+// 'zichtbaar' | 'gemeld'.
+//
 //   Rejected photos are not in that list: afgewezenFotos() gives your own as
 //   { id, pad, titel, toelichting }; only the thumbnail ('-klein.jpg') still exists.
 //
@@ -59,6 +65,7 @@ const Data = (() => {
   const DEMO_OVERLEG = 'reunie25.demo.overleg';
   const DEMO_HARTJES = 'reunie25.demo.hartjes';
   const DEMO_GEZIEN = 'reunie25.demo.gezien';
+  const DEMO_PROFIEL = 'reunie25.demo.profiel';
   const MAX_FOTOS = 30;
   const AUTH = 'reunie25.auth';
   const DEMO_CODE = '123456';
@@ -85,6 +92,7 @@ const Data = (() => {
     comitelid: 'Dit adres hoort bij het comité en kan niet geblokkeerd worden. Haal het eerst weg uit het comité.',
     max: 'Je hebt het maximum van 30 foto\'s bereikt. Wil je een andere delen? Verwijder dan eerst een van je eigen foto\'s.',
     upload: 'Het versturen van een foto lukte niet. Probeer het later opnieuw.',
+    profielmax: 'Het opslaan van je foto lukte niet. Probeer het later opnieuw.',
   };
 
   // What others may see of a record: hidden fields become null.
@@ -207,6 +215,24 @@ const Data = (() => {
   const hartjesStore = () => lees(DEMO_HARTJES, null)
     ?? [['verhaal', 'demo-v1', 4], ['verhaal', 'demo-v2', 7], ['foto', 'demo-f0', 3], ['foto', 'demo-f1', 12], ['foto', 'demo-f3', 1]]
       .flatMap(([soort, ref, n]) => Array.from({ length: n }, (_, i) => ({ soort, ref, auteur: `voorbeeld-${i}` })));
+  // Profile photos in DEMO: rows with the image as a data URL in localStorage (they are small).
+  // Some made-up participants have sample faces (drawn, not real photos).
+  function gezichtje(i, toen) {
+    const [bg, shirt] = KLEUREN[i % KLEUREN.length], huid = ['#f1c9a5', '#e0b08a', '#d9a77c', '#f3d1b3'][i % 4];
+    const haar = ['#5a3a1a', '#e8c25a', '#2b1a0e', '#8a5a2a', '#b0b0b0'][(i + (toen ? 0 : 2)) % 5];
+    const das = toen ? '<path d="M70 150 L130 150 L100 185 Z" fill="#ffe400"/>' : '';
+    const k = toen ? 34 : 40;
+    return 'data:image/svg+xml,' + encodeURIComponent(`<svg xmlns="http://www.w3.org/2000/svg" width="200" height="200"><rect width="200" height="200" fill="${bg}"/><ellipse cx="100" cy="215" rx="70" ry="70" fill="${shirt}"/>${das}<circle cx="100" cy="95" r="${k}" fill="${huid}"/><path d="M${100 - k} 92 a${k} ${k} 0 0 1 ${2 * k} 0 Z" fill="${haar}"/><circle cx="${100 - k / 3}" cy="100" r="3.5" fill="#222"/><circle cx="${100 + k / 3}" cy="100" r="3.5" fill="#222"/><path d="M${100 - k / 3} 113 q${k / 3} ${k / 4} ${2 * k / 3} 0" stroke="#222" stroke-width="2.5" fill="none"/></svg>`);
+  }
+  const profielStore = () => lees(DEMO_PROFIEL, null) ?? [
+    ['lotte.smits@voorbeeld.nl', 0, ['toen', 'nu']], ['mark.devries@voorbeeld.nl', 1, ['nu']], ['tim.hendriks@voorbeeld.nl', 2, ['toen', 'nu']],
+    ['bram.peters@voorbeeld.nl', 3, ['toen']], ['noor.claassen@voorbeeld.nl', 4, ['nu']], ['ruud.willems@voorbeeld.nl', 5, ['toen', 'nu']],
+  ].flatMap(([auteur, i, soorten]) => soorten.map(soort => ({
+    pad: `profiel/demo-${i}-${soort}`, auteur, soort, status: 'zichtbaar', aangemaakt: '2026-11-20T12:00:00Z', bijgewerkt: '2026-11-20T12:00:00Z',
+    data: gezichtje(i, soort === 'toen'),
+  })));
+  const profielPad = (lijst, email, soort) => lijst.filter(x => x.auteur === email && x.soort === soort && x.status === 'zichtbaar').at(-1)?.pad || null;
+  const naarDataUrl = blob => new Promise((ok, mis) => { const r = new FileReader(); r.onload = () => ok(r.result); r.onerror = mis; r.readAsDataURL(blob); });
   const KLEUREN = [['#7fb069', '#3d6b35'], ['#f4a259', '#bc4b51'], ['#5b8e7d', '#2c4696'], ['#f2b705', '#c9772b'], ['#8e7dbe', '#2c4696'], ['#6c9a8b', '#e8c547']];
   function plaatje(pad) {
     const f = fotosStore().find(x => pad.startsWith(x.pad)) || {};
@@ -242,7 +268,9 @@ const Data = (() => {
   const demo = {
     async deelnemers() {
       const recs = [...voorbeeldVol(), ...alle()];
-      return { totaal: recs.length, erbij: telErbij(recs), personen: recs.map(publiek).filter(zichtbaar) };
+      const pf = lees(DEMO_SESSIE, null) ? profielStore() : [];     // faces only for logged-in users
+      const personen = recs.map(r => ({ ...publiek(r), foto_toen: profielPad(pf, r.email, 'toen'), foto_nu: profielPad(pf, r.email, 'nu') }));
+      return { totaal: recs.length, erbij: telErbij(recs), personen: personen.filter(zichtbaar) };
     },
     async vraagCode(email, { nieuw = false } = {}) {
       const bekend = alle().some(r => r.email === norm(email));
@@ -279,6 +307,7 @@ const Data = (() => {
     async uitschrijven() {
       const email = lees(DEMO_SESSIE, null);
       schrijf(DEMO_KEY, alle().filter(r => r.email !== email));
+      schrijf(DEMO_PROFIEL, profielStore().filter(x => x.auteur !== email));
       schrijf(DEMO_SESSIE, null);
     },
     async uitloggen() { schrijf(DEMO_SESSIE, null); },
@@ -315,6 +344,7 @@ const Data = (() => {
       }
       if (id.startsWith('voorbeeld-')) schrijf(DEMO_WEG, [...weg(), id]);
       else schrijf(DEMO_KEY, alle().filter(x => x.email !== r.email));
+      schrijf(DEMO_PROFIEL, profielStore().filter(x => x.auteur !== r.email));
     },
     async geblokkeerde() { return lees(DEMO_GEBLOKKEERD, []); },
     async deblokkeer(email) { schrijf(DEMO_GEBLOKKEERD, lees(DEMO_GEBLOKKEERD, []).filter(g => g.email !== norm(email))); },
@@ -383,7 +413,47 @@ const Data = (() => {
             voornaam: n.voornaam || null, bijnaam: n.bijnaam || null, achternaam: n.achternaam || null, aangemaakt: f.aangemaakt };
         });
     },
-    async fotoUrls(paden) { return Object.fromEntries(paden.map(p => [p, demoBestanden.get(p) || plaatje(p)])); },
+    async fotoUrls(paden) {
+      const pf = profielStore();
+      return Object.fromEntries(paden.map(p => [p, pf.find(x => x.pad + '.jpg' === p)?.data || demoBestanden.get(p) || plaatje(p)]));
+    },
+    // ---- profile photos (toen en nu) ----
+    async mijnProfielfotos() {
+      const ik = lees(DEMO_SESSIE, null);
+      if (!ik) throw fout('sessie', MELD.sessie);
+      const uit = { toen: null, nu: null };
+      for (const x of profielStore().filter(x => x.auteur === ik)) uit[x.soort] = { pad: x.pad, status: x.status };
+      return uit;
+    },
+    async zetProfielfoto(soort, blob) {
+      const ik = lees(DEMO_SESSIE, null);
+      if (!ik) throw fout('sessie', MELD.sessie);
+      const data = await naarDataUrl(blob);
+      schrijf(DEMO_PROFIEL, [...profielStore().filter(x => !(x.auteur === ik && x.soort === soort)),
+        { pad: `profiel/demo-${Date.now()}`, auteur: ik, soort, status: 'zichtbaar', aangemaakt: nu(), bijgewerkt: nu(), data }]);
+    },
+    async wisProfielfoto(soort) {
+      const ik = lees(DEMO_SESSIE, null);
+      schrijf(DEMO_PROFIEL, profielStore().filter(x => !(x.auteur === ik && x.soort === soort)));
+    },
+    async meldProfielfoto(pad, reden = '') {
+      const lijst = profielStore(), x = lijst.find(x => x.pad === pad && x.status === 'zichtbaar');
+      if (!x) return;
+      const mij = await this.ik();
+      Object.assign(x, { status: 'gemeld', melding: reden.trim().slice(0, 500) || null, gemeld_door: mij?.voornaam || lees(DEMO_SESSIE, null),
+        gemeld_op: new Date().toLocaleDateString('sv'), bijgewerkt: nu() });
+      schrijf(DEMO_PROFIEL, lijst);
+    },
+    async profielfotosTeBeoordelen() {
+      return profielStore().filter(x => x.status === 'gemeld').sort((a, b) => a.bijgewerkt.localeCompare(b.bijgewerkt))
+        .map(({ data, auteur, ...x }) => ({ ...x, auteur_naam: demoNaam(auteur) || auteur }));
+    },
+    async beoordeelProfielfoto(pad, actie) {
+      let lijst = profielStore();
+      if (actie === 'tonen') lijst.filter(x => x.pad === pad).forEach(x => Object.assign(x, { status: 'zichtbaar', melding: null, gemeld_door: null, gemeld_op: null }));
+      else if (actie === 'weghalen') lijst = lijst.filter(x => x.pad !== pad);
+      schrijf(DEMO_PROFIEL, lijst);
+    },
     async stuurFotos(items, { speltak = null, jaar = null, toon_naam = true } = {}, voortgang = () => {}) {
       const ik = lees(DEMO_SESSIE, null);
       if (!ik) throw fout('sessie', MELD.sessie);
@@ -471,7 +541,8 @@ const Data = (() => {
     async aantalTeBeoordelen() {
       if (!lees(DEMO_SESSIE, null)) return 0;
       return verhalenStore().filter(v => ['nieuw', 'gemeld'].includes(v.status)).length
-        + fotosStore().filter(f => ['nieuw', 'gemeld'].includes(f.status)).length;
+        + fotosStore().filter(f => ['nieuw', 'gemeld'].includes(f.status)).length
+        + profielStore().filter(x => x.status === 'gemeld').length;
     },
     async gezien() { return lees(DEMO_SESSIE, null) ? lees(DEMO_GEZIEN, {}) : {}; },
     async zetGezien(items) {
@@ -486,7 +557,7 @@ const Data = (() => {
     async nieuwVoorMij() {
       if (!lees(DEMO_SESSIE, null)) return { overleg: 0, beoordelen_nieuw: 0, beoordelen: 0 };
       const z = lees(DEMO_GEZIEN, {}), b = grens(z, 'beoordelen:');
-      const wacht = [...verhalenStore(), ...fotosStore()].filter(x => ['nieuw', 'gemeld'].includes(x.status));
+      const wacht = [...verhalenStore(), ...fotosStore(), ...profielStore()].filter(x => ['nieuw', 'gemeld'].includes(x.status));
       return {
         overleg: (await this.overleg()).filter(g => isNieuw(g, z)).length,
         beoordelen_nieuw: wacht.filter(x => Date.parse(x.bijgewerkt || x.aangemaakt) > b).length,
@@ -630,6 +701,12 @@ const Data = (() => {
     if (!paden.length) return;
     await opslag('/fotos', { method: 'DELETE', token: t, type: 'application/json', body: JSON.stringify({ prefixes: bestanden(paden) }) }).catch(() => {});
   }
+  // Own profile photos: the file first (the storage rule needs the row), then the row.
+  async function wisProfiel(paden, t) {
+    if (!paden.length) return;
+    await opslag('/fotos', { method: 'DELETE', token: t, type: 'application/json', body: JSON.stringify({ prefixes: paden.map(p => p + '.jpg') }) }).catch(() => {});
+    for (const p of paden) await verzoek(`/rest/v1/profielfotos?pad=eq.${encodeURIComponent(p)}`, { method: 'DELETE', token: t }).catch(() => {});
+  }
   const urlCache = new Map();          // file path -> { url, tot }
   let beheerderVraag = null;
 
@@ -638,7 +715,8 @@ const Data = (() => {
       const [totaal, erbij, personen] = await Promise.all([
         verzoek('/rest/v1/rpc/aantal_deelnemers', { method: 'POST', body: {} }),
         verzoek('/rest/v1/rpc/aantal_erbij', { method: 'POST', body: {} }).catch(() => null),
-        verzoek('/rest/v1/rpc/publieke_deelnemers', { method: 'POST', body: {} }),
+        // With your token (when logged in) the rows include the paths of the profile photos.
+        token().then(t => verzoek('/rest/v1/rpc/publieke_deelnemers', { method: 'POST', token: t, body: {} })),
       ]);
       return { totaal, erbij: { ja: 0, misschien: 0, nee: 0, ...(erbij || { ja: totaal }) }, personen };
     },
@@ -700,6 +778,8 @@ const Data = (() => {
       const t = await moetToken();
       const eigen = await verzoek('/rest/v1/fotos?select=pad', { token: t }).catch(() => []);
       await wisBestanden(eigen.map(r => r.pad), t);
+      const profiel = await verzoek('/rest/v1/profielfotos?select=pad', { token: t }).catch(() => []);
+      await wisProfiel(profiel.map(r => r.pad), t);
       await verzoek('/rest/v1/rpc/verwijder_mij', { method: 'POST', token: t, body: {} });
       bewaarSessie(null);
     },
@@ -771,6 +851,45 @@ const Data = (() => {
     },
 
     // ---- photos ----
+    // ---- profile photos (toen en nu) ----
+    async mijnProfielfotos() {
+      const t = await moetToken(), uit = { toen: null, nu: null };
+      const rows = await verzoek('/rest/v1/profielfotos?select=pad,soort,status&order=aangemaakt.asc', { token: t });
+      for (const r of rows) uit[r.soort] = { pad: r.pad, status: r.status };     // newest wins
+      return uit;
+    },
+    // Row first (the storage rule checks it), then the file; afterwards the older photo of
+    // this soort goes. A failed upload removes the new row again.
+    async zetProfielfoto(soort, blob) {
+      const t = await moetToken(), pad = 'profiel/' + crypto.randomUUID();
+      await verzoek('/rest/v1/profielfotos', { method: 'POST', token: t, headers: { Prefer: 'return=minimal' },
+        body: { pad, auteur: sessie().user.id, soort } }).catch(e => { throw e.message === 'max' ? fout('profielmax', MELD.profielmax) : e; });
+      try { await opslag(`/fotos/${pad}.jpg`, { method: 'POST', token: t, type: 'image/jpeg', body: blob }); }
+      catch {
+        await verzoek(`/rest/v1/profielfotos?pad=eq.${encodeURIComponent(pad)}`, { method: 'DELETE', token: t }).catch(() => {});
+        throw fout('upload', MELD.upload);
+      }
+      const oud = await verzoek(`/rest/v1/profielfotos?select=pad&soort=eq.${soort}&pad=neq.${encodeURIComponent(pad)}`, { token: t }).catch(() => []);
+      await wisProfiel(oud.map(r => r.pad), t);
+    },
+    async wisProfielfoto(soort) {
+      const t = await moetToken();
+      const rows = await verzoek(`/rest/v1/profielfotos?select=pad&soort=eq.${soort}`, { token: t });
+      await wisProfiel(rows.map(r => r.pad), t);
+    },
+    async meldProfielfoto(pad, reden = '') {
+      const t = await moetToken();
+      await verzoek('/rest/v1/rpc/meld_profielfoto', { method: 'POST', token: t, body: { foto: pad, reden: reden || null } });
+    },
+    async profielfotosTeBeoordelen() {
+      const t = await moetToken();
+      return await verzoek('/rest/v1/rpc/profielfotos_te_beoordelen', { method: 'POST', token: t, body: {} });
+    },
+    async beoordeelProfielfoto(pad, actie) {
+      const t = await moetToken();
+      const weg = await verzoek('/rest/v1/rpc/beoordeel_profielfoto', { method: 'POST', token: t, body: { foto: pad, actie } });
+      if (weg) await opslag('/fotos', { method: 'DELETE', token: t, type: 'application/json', body: JSON.stringify({ prefixes: [weg + '.jpg'] }) }).catch(() => {});
+    },
     async aantalFotos() {
       return await verzoek('/rest/v1/rpc/aantal_fotos', { method: 'POST', body: {} });
     },

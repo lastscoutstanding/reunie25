@@ -74,12 +74,17 @@
       anderen = anderen.slice(0, plek);
     }
     const rij = [...(mij ? [mij] : []), ...anderen];
+    // Logged in: a small round photo in the name (nu, otherwise toen).
+    const pad = p => p.foto_nu || p.foto_toen;
+    const paden = rij.map(pad).filter(Boolean).map(x => x + '.jpg');
+    const urls = paden.length ? await Data.fotoUrls(paden).catch(() => ({})) : {};
+    const mini = p => pad(p) && urls[pad(p) + '.jpg'] ? `<img class="mini" src="${Reunie.esc(urls[pad(p) + '.jpg'])}" alt="">` : '';
     // Your own name goes to your registration, others to their card on "Wie doen er mee?".
     const toon = rij.map(p => {
       const naam = p.voornaam || p.bijnaam || p.achternaam;
       const [href, extra] = p === mij ? ['mijn.html', ' class="zelf" title="Dit ben jij: naar je inschrijving"']
         : [`deelnemers.html#p-${personen.indexOf(p)}`, ''];
-      return `<a href="${href}"${extra}>${Reunie.esc(naam)}${p.geboortejaar ? ', ' + Reunie.leeftijd(p.geboortejaar) : ''}</a>`;
+      return `<a href="${href}"${extra}>${mini(p)}${Reunie.esc(naam)}${p.geboortejaar ? ', ' + Reunie.leeftijd(p.geboortejaar) : ''}</a>`;
     });
     if (totaal > toon.length) toon.push(`<a href="deelnemers.html">+ ${totaal - toon.length}</a>`);
     $('faces').innerHTML = toon.join('');

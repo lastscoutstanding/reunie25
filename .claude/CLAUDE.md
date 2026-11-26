@@ -184,5 +184,6 @@ Besloten op 18 en 19 november 2026, na mockups:
 - [x] Jaarvelden-pijltjes werken in Safari (getest door Bas, 20 november 2026). Keuzelijsten hebben een eigen stijl (`appearance: none`), in Safari nog nakijken.
 - [x] `README.md` toegevoegd (26 november 2026).
 - [x] Verhuisd naar reunie.scoutingbrandevoort.nl (26 november 2026): eigen repo, DNS bij de scouting, oude links sturen door, Supabase Site URL aangepast, testrecord bij Webreus weg.
-- [ ] Schema opnieuw draaien (Kampvuur/Kletsen: tabel `reacties` en functies) vóór de push; het SQL is niet lokaal getest (geen Postgres hier). Daarna Kletsen live testen: bericht, antwoord, reactie bij verhaal en foto, melden, verwijderen, Beheer → Kletsen, geel getal in het menu.
+- [x] Schema opnieuw gedraaid (Kampvuur/Kletsen: tabel `reacties` en functies), 26 november 2026; live gecontroleerd (`aantal_reacties`, `reacties_lijst` geweigerd voor bezoekers).
+- [ ] Kletsen live testen: bericht, antwoord, reactie bij verhaal en foto, melden, verwijderen, Beheer → Kletsen, geel getal in het menu.
 - [ ] Na de reünie: de scouting vragen de twee DNS-records weg te halen (zie `_docs/verhuizing.md`, afbouw).

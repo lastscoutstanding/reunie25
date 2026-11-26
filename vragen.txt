@@ -6,7 +6,7 @@
 # Regels die met # beginnen worden overgeslagen.
 
 V: Wie mogen er komen?
-A: Iedereen die jeugdlid, leiding, bestuurslid of vrijwilliger is of was bij Scouting Brandevoort, van nu en van toen.
+A: Iedereen die (jeugd)lid, leiding, bestuurslid of vrijwilliger is of was bij Scouting Brandevoort, van toen en van nu.
 
 V: Hoe laat moet ik er zijn?
 A: De receptie is van 14:00 tot 19:00. Kom wanneer het je uitkomt.

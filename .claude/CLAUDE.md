@@ -1,16 +1,15 @@
 # reunie25
 
 Site voor de reünie van 25 jaar Scouting Brandevoort (Helmond), beheerd door Bas. De site staat in de root van deze repo.
-Repo: github.com/lastscoutstanding/reunie25, gehost op GitHub Pages. Testadres: reunie.lastscoutstanding.com; einddoel: reunie.scoutingbrandevoort.nl (zie "Verhuizing").
+Repo: github.com/lastscoutstanding/reunie25, gehost op GitHub Pages op https://reunie.scoutingbrandevoort.nl (via `CNAME`).
 Afgesplitst uit `lastscoutstanding.com/reunie25/` met de geschiedenis erbij (22 november 2026).
-Stand: 26 november 2026.
+Stand: 26 november 2026 (na de verhuizing).
 
-## Verhuizing (bezig)
+## Verhuisd (26 november 2026)
 
-- Parallel: tot de overstap draait de live site nog vanuit de repo `lastscoutstanding.com` (map ``), en deze repo is de kopie die op het testadres draait. Beide praten met dezelfde Supabase (echte data).
-- Siteveranderingen tot de overstap in `lastscoutstanding.com` doen en hier binnenhalen:
-  `cd ~/Websites/lastscoutstanding.com && git pull && git subtree split --prefix=reunie25 -b reunie25-split`, dan hier `git pull ../lastscoutstanding.com reunie25-split`.
-- Stappen en status: `_docs/verhuizing.md`.
+- Live op https://reunie.scoutingbrandevoort.nl. DNS bij de scouting (Threvon): CNAME `reunie` → `lastscoutstanding.github.io.` en de TXT-verificatie; zie `_docs/beheer.md`.
+- `lastscoutstanding.com/reunie25/` bevat alleen doorstuurpagina's (in die repo); oude links en het oude agendabestand komen hier uit. Werk aan de reünie gebeurt alleen nog in deze repo.
+- Verloop en draaiboek: `_docs/verhuizing.md`.
 
 ## Werkwijze in Claude Code
 
@@ -44,7 +43,7 @@ Vanilla HTML/CSS/JS, geen build-stap. Alleen relatieve paden, zodat de site op e
 | `data.js` | Datalaag: de enige plek die met opslag praat. `SUPABASE_KEY` leeg = DEMO (localStorage), ingevuld = Supabase via `fetch` (geen bibliotheek) |
 | `.github/workflows/supabase-keep-alive.yml` | Houdt Supabase wakker: elke 3 dagen één aanroep van `aantal_deelnemers` |
 | `_docs/beheer.md` | Beheerhandleiding: alle instellingen bij GitHub, Webreus (DNS), Resend en Supabase. Bijwerken bij elke wijziging daar |
-| `_docs/verhuizing.md` | Stappenplan en status van de verhuizing naar deze repo op reunie.scoutingbrandevoort.nl (parallel, met testadres) |
+| `_docs/verhuizing.md` | Verloop van de verhuizing (afgerond 26 november 2026), draaiboek en afbouw in 2027 |
 | `_supabase/schema.sql` | Tabellen, row level security en functies voor Supabase; één keer draaien in de SQL-editor. Map met `_`, dus niet gepubliceerd |
 | `nav.js` | Kop (blauwe band met logo, titel en datum) + lichte menubalk eronder (sticky, actieve pagina geel onderstreept, "Mijn inschrijving →" / "Inloggen →" vast rechts; onder 760 px één veegbare regel met vervaagde randen en "Mijn →"), footer, testversie-balk bij DEMO |
 | `logo.svg`, `logo-wit.svg` | Logo als vector, zie "Reünie" |
@@ -169,7 +168,6 @@ Besloten op 18 en 19 november 2026, na mockups:
 - [ ] Hartjes live testen (geven, weghalen, eigen item, blok op Mijn inschrijving).
 - [ ] Programma en vragen verder invullen (`programma.txt`, `vragen.txt`); tijden 14:00–19:00 staan erin (22 november 2026).
 - [x] Jaarvelden-pijltjes werken in Safari (getest door Bas, 20 november 2026). Keuzelijsten hebben een eigen stijl (`appearance: none`), in Safari nog nakijken.
-- [ ] `README.md` toevoegen (kort: wat deze repo is).
-- [x] Repo afgesplitst met geschiedenis (22 november 2026); testadres reunie.lastscoutstanding.com met HTTPS.
-- [x] DNS-records bij de scouting (Threvon) staan: CNAME `reunie` en de TXT-verificatie (gecontroleerd 26 november 2026).
-- [ ] Verder verhuizen volgens `_docs/verhuizing.md`: voorbereiden (fase 3) en overstap (fase 4), vóór de aankondiging.
+- [x] `README.md` toegevoegd (26 november 2026).
+- [x] Verhuisd naar reunie.scoutingbrandevoort.nl (26 november 2026): eigen repo, DNS bij de scouting, oude links sturen door, Supabase Site URL aangepast, testrecord bij Webreus weg.
+- [ ] Na de reünie: de scouting vragen de twee DNS-records weg te halen (zie `_docs/verhuizing.md`, afbouw).

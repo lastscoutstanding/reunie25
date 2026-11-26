@@ -32,7 +32,7 @@ De reüniesite verhuist van `lastscoutstanding.com/reunie25/` naar deze repo `la
 
 ## Fase 2: DNS bij de scouting (kan ruim van tevoren)
 
-**Status 26 november 2026:** beide records staan bij Threvon (gecontroleerd met `dig`, ook rechtstreeks bij `ns01.threvon.nl`). Nog nagaan: staat het domein onder je profiel → Settings → Pages op *Verified*?
+**Klaar (26 november 2026):** beide records staan bij Threvon (gecontroleerd met `dig`, ook rechtstreeks bij `ns01.threvon.nl`) en het domein staat onder je profiel → Settings → Pages op *Verified*. Het hangt nog niet aan de repo; dat is fase 4.
 
 Zoek uit wie de DNS van scoutingbrandevoort.nl beheert. De DNS staat bij **Threvon** (nameservers `ns01`–`ns03.threvon.nl`, `ns04.threvon.eu`), waarschijnlijk de hostingpartij van de WordPress-site; wie daar een account heeft, kan de records zetten.
 
@@ -57,39 +57,35 @@ Voorbeeldbericht:
 
 Tot de overstap geeft `reunie.scoutingbrandevoort.nl` een 404 van GitHub. Dat is onschuldig: door de verificatie kan geen ander account het adres gebruiken.
 
-## Fase 3: voorbereiden (Claude, op een aparte tak)
+## Fase 3: voorbereiden (klaar, 26 november 2026)
 
-Klaarzetten zodat de overstap zelf alleen nog pushen is:
+Klaargezet op een tak `overstap` in beide repo's, lokaal (niet gepusht). Niets daarvan staat live.
 
-- In deze repo: `reunie.ics` (`DESCRIPTION` en `URL`) naar `https://reunie.scoutingbrandevoort.nl/`. Het agendabestand is de enige plek met het volledige adres. Niet eerder pushen, anders wijst de agendalink naar een adres dat nog niet werkt.
-- In `lastscoutstanding.com`: de doorstuurpagina's (zie fase 4, stap 4), root-`index.html` naar het nieuwe adres, keep-alive-workflow weg, `CLAUDE.md` bijgewerkt.
-- Vlak voor de overstap: de laatste wijzigingen uit `lastscoutstanding.com` binnenhalen (zie "Code op één plek wijzigen").
+- `reunie25`, tak `overstap`: `reunie.ics` wijst naar `https://reunie.scoutingbrandevoort.nl/` (`DESCRIPTION`, `URL`, nieuwe `DTSTAMP`; de `UID` blijft gelijk, zodat agenda's het als dezelfde afspraak herkennen).
+- `lastscoutstanding.com`, tak `overstap`, vier commits:
+  1. De elf pagina's in `reunie25/` zijn doorstuurpagina's (nemen paginanaam, `?…` en `#…` mee); alle andere bestanden in `reunie25/` zijn weg; de root-`index.html` wijst naar het nieuwe adres.
+  2. Keep-alive-workflow weg.
+  3. `_docs/` en `_supabase/` weg (staan in deze repo).
+  4. `.claude/CLAUDE.md` kort herschreven: de reünie is verhuisd.
+- Getest: de pagina's worden lokaal geserveerd, de oude bestanden geven 404, en de root stuurde de browser door naar het nieuwe adres (dat toen nog geen certificaat had). De doorstuurregel zelf is dezelfde als in het eerdere plan; de echte proef is de testlijst na fase 4.
+
+Wordt er vóór de overstap nog iets aan de site veranderd in `lastscoutstanding.com`, dan moeten beide takken bij: zie stap 1 hieronder.
 
 ## Fase 4: de overstap (een uur, in één keer)
 
-Voorwaarde: fase 2 is klaar (domein geverifieerd, records staan), het liefst vóór de aankondiging.
+Voorwaarde: fase 2 en 3 klaar, het liefst vóór de aankondiging. Kies een rustig moment; tussen stap 3 en 5 kan het nieuwe adres een kwartier tot een uur een certificaatfout geven, terwijl de oude site gewoon blijft werken.
 
-1. Laatste wijzigingen binnenhalen en de `reunie.ics`-commit pushen.
-2. Repo `reunie25` → Settings → Pages → Custom domain → `reunie.scoutingbrandevoort.nl` → Save. GitHub past het bestand `CNAME` zelf aan: daarna lokaal `git pull`.
-3. Wachten tot de DNS-check groen is en het certificaat er is (meestal binnen een uur), dan *Enforce HTTPS*.
-4. Pas als HTTPS werkt: in `lastscoutstanding.com` de doorstuurpagina's pushen. Daarvoor blijven in `reunie25/` alleen de elf `.html`-pagina's over (index, inschrijven, inloggen, mijn, deelnemers, herinneringen, programma, vragen, beheer, privacy, over), elk met deze inhoud, die paginanaam, `?speltak=` en `#code` meeneemt:
+1. **Claude: laatste wijzigingen binnenhalen.** In `lastscoutstanding.com` `git pull`, dan `git subtree split --prefix=reunie25 -b reunie25-split`; in `reunie25` `git pull ../lastscoutstanding.com reunie25-split` op `main`. Daarna beide takken `overstap` bijwerken met `main` (`git rebase main`). Lokaal testen.
+2. **Claude: in `reunie25` de tak `overstap` in `main` zetten en pushen** (het agendabestand). Het testadres toont dan al het nieuwe adres in de agenda; dat is geen probleem.
+3. **Bas: domein koppelen.** Repo `reunie25` → Settings → Pages → Custom domain → `reunie.scoutingbrandevoort.nl` → Save. GitHub schrijft zelf een commit in `CNAME`. Vanaf nu werkt het testadres niet meer.
+4. **Bas: wachten op het certificaat** (DNS-check groen, meestal binnen een uur), dan *Enforce HTTPS* aanvinken.
+5. **Claude: controleren** dat `https://reunie.scoutingbrandevoort.nl` werkt met slotje en dat `http://` doorstuurt. Pas dan verder.
+6. **Claude: in `lastscoutstanding.com` de tak `overstap` in `main` zetten en pushen.** Vanaf nu sturen alle oude links door.
+7. **Bas: Supabase** → Authentication → URL Configuration → Site URL `https://reunie.scoutingbrandevoort.nl` (netjes, niet strikt nodig), en in de mailtemplates *Magic Link* en *Confirm signup* kijken of lastscoutstanding.com erin staat.
+8. **Bas: Webreus** → het CNAME-record `reunie` weghalen (testadres; nergens gedeeld, dus doorsturen is niet nodig).
+9. **Claude: testlijst hieronder doorlopen en documentatie bijwerken** (`.claude/CLAUDE.md`, `_docs/beheer.md` met een sectie "DNS bij de scouting", deze lijst afvinken). Lokale `git pull` in `reunie25` voor de `CNAME`-commit.
 
-```html
-<!DOCTYPE html>
-<meta charset="utf-8">
-<title>Reünie 25 jaar Scouting Brandevoort</title>
-<link rel="canonical" href="https://reunie.scoutingbrandevoort.nl/">
-<meta http-equiv="refresh" content="0; url=https://reunie.scoutingbrandevoort.nl/">
-<script>
-  location.replace("https://reunie.scoutingbrandevoort.nl" +
-    location.pathname.replace(/^\/reunie25/, "") + location.search + location.hash);
-</script>
-<p><a href="https://reunie.scoutingbrandevoort.nl/">De reünie is verhuisd naar reunie.scoutingbrandevoort.nl</a></p>
-```
-
-5. Supabase → Authentication → URL Configuration → Site URL: `https://reunie.scoutingbrandevoort.nl` (netjes, niet strikt nodig). Kijk in de mailtemplates *Magic Link* en *Confirm signup* of lastscoutstanding.com erin staat.
-6. Webreus: het CNAME-record `reunie` weghalen. Het testadres werkt dan niet meer; het is nergens gedeeld, dus doorsturen is niet nodig.
-7. Documentatie bijwerken: `.claude/CLAUDE.md` en `_docs/beheer.md` hier (adres, DNS bij de scouting, wie die beheert), en deze lijst afvinken.
+Wie op het oude adres of het testadres was ingelogd, moet op het nieuwe adres één keer opnieuw inloggen; gegevens blijven gewoon bewaard.
 
 Resend en de afzender noreply@lastscoutstanding.com blijven zoals ze zijn. Een afzender @scoutingbrandevoort.nl kan later, met drie of vier extra DNS-records bij de scouting; niet nodig voor de verhuizing.
 
@@ -109,7 +105,7 @@ Eerst op het testadres (fase 1), daarna nog eens op het echte adres (fase 4).
 
 ## Terugdraaien en afbouw in 2027
 
-**Terugdraaien:** tot en met fase 4 stap 3 draait de oude site gewoon door. Na stap 4 zet je met `git revert` de doorstuurpagina's in `lastscoutstanding.com` terug.
+**Terugdraaien:** tot en met fase 4 stap 5 draait de oude site gewoon door; zet zo nodig het domein in de repo terug op `reunie.lastscoutstanding.com`. Na stap 6 zet je met `git revert` de vier commits in `lastscoutstanding.com` terug.
 
 **Afbouw na de reünie** (gegevens uiterlijk 23 augustus 2027 gewist):
 

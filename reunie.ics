@@ -22,13 +22,13 @@ END:STANDARD
 END:VTIMEZONE
 BEGIN:VEVENT
 UID:reunie25-20270523@lastscoutstanding.com
-DTSTAMP:20261122T120000Z
+DTSTAMP:20261126T120000Z
 DTSTART;TZID=Europe/Amsterdam:20270523T140000
 DTEND;TZID=Europe/Amsterdam:20270523T190000
 SUMMARY:Reünie 25 jaar Scouting Brandevoort
 LOCATION:Blokhut de Brandnetel\, Brandevoort 13-A\, 5706 KA Helmond
 DESCRIPTION:Vrije inloop tussen 14:00 en 19:00. Programma en meer: https://
- lastscoutstanding.com/reunie25/
-URL:https://lastscoutstanding.com/reunie25/
+ reunie.scoutingbrandevoort.nl/
+URL:https://reunie.scoutingbrandevoort.nl/
 END:VEVENT
 END:VCALENDAR

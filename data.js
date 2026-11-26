@@ -34,6 +34,12 @@
 //   Rejected photos are not in that list: afgewezenFotos() gives your own as
 //   { id, pad, titel, toelichting }; only the thumbnail ('-klein.jpg') still exists.
 //
+// Kampvuur message (tab Kletsen, and reactions under stories and photos), oldest first:
+//   { id, soort: 'los' | 'antwoord' | 'verhaal' | 'foto', ref, tekst, eigen, schrijver,
+//     voornaam, bijnaam, achternaam, gezicht, aangemaakt }
+//   ref: the loose message (antwoord) or the story/photo; schrijver: by the author of that item
+//   (name hidden when the item was shared without one); gezicht: profile photo path or null.
+//
 // Overleg (comité only), as pages get it, newest activity first:
 //   { id, titel, soort: 'vrij' | 'deelnemer' | 'verhaal' | 'foto' | 'pagina', ref, ref_naam,
 //     status: 'open' | 'hot' | 'done', auteur_naam, eigen (you started it), aangemaakt, bijgewerkt,
@@ -66,6 +72,7 @@ const Data = (() => {
   const DEMO_HARTJES = 'reunie25.demo.hartjes';
   const DEMO_GEZIEN = 'reunie25.demo.gezien';
   const DEMO_PROFIEL = 'reunie25.demo.profiel';
+  const DEMO_REACTIES = 'reunie25.demo.reacties';
   const MAX_FOTOS = 30;
   const AUTH = 'reunie25.auth';
   const DEMO_CODE = '123456';
@@ -93,6 +100,9 @@ const Data = (() => {
     max: 'Je hebt het maximum van 30 foto\'s bereikt. Wil je een andere delen? Verwijder dan eerst een van je eigen foto\'s.',
     upload: 'Het versturen van een foto lukte niet. Probeer het later opnieuw.',
     profielmax: 'Het opslaan van je foto lukte niet. Probeer het later opnieuw.',
+    te_snel: 'Je hebt het afgelopen uur al veel berichten geplaatst. Probeer het straks nog eens.',
+    weg: 'Dit bericht, verhaal of deze foto is er niet meer.',
+    lengte: 'Een bericht is maximaal 500 tekens.',
   };
 
   // What others may see of a record: hidden fields become null.
@@ -256,6 +266,26 @@ const Data = (() => {
         { id: 'demo-b4', auteur: 'mark.devries@voorbeeld.nl', auteur_naam: 'Mark', tekst: 'zette de status op hot', systeem: true, aangemaakt: '2026-11-19T09:05:00Z' },
       ] },
   ];
+  // Kampvuur messages in DEMO: { id, auteur (e-mail), verhaal, foto, ouder, tekst, status, ... }.
+  // The samples are dated relative to the first visit, so they look recent.
+  const geleden = uren => new Date(Date.now() - uren * 36e5).toISOString();
+  const reactiesStore = () => lees(DEMO_REACTIES, null) ?? (() => {
+    const r = (id, auteur, tekst, uren, doel = {}) => ({ id, auteur, verhaal: null, foto: null, ouder: null, ...doel, tekst,
+      status: 'zichtbaar', aangemaakt: geleden(uren), bijgewerkt: geleden(uren) });
+    const lijst = [
+      r('demo-r1', 'femke.vandijk@voorbeeld.nl', 'Iemand nog contact met de Explorers van rond 2008? Ik zoek Koen en Anouk, ze staan nog niet bij "Wie doen er mee?".', 70),
+      r('demo-r2', 'bram.peters@voorbeeld.nl', 'Anouk zit op Facebook, ik stuur haar de link 👍', 52, { ouder: 'demo-r1' }),
+      r('demo-r3', 'tim.hendriks@voorbeeld.nl', 'Haha, ik was erbij! Mijn sokken zijn nooit meer droog geworden.', 30, { verhaal: 'demo-v1' }),
+      r('demo-r4', 'lotte.smits@voorbeeld.nl', 'Tim! Jij had toch die kaart in je broekzak gestopt?', 29, { verhaal: 'demo-v1' }),
+      r('demo-r5', 'noor.claassen@voorbeeld.nl', 'Wat een mooie foto. Staat die grote pan daar nog steeds?', 20, { foto: 'demo-f0' }),
+      r('demo-r6', 'mark.devries@voorbeeld.nl', 'Wie heeft die grote groene patrouilletent nog? Ik denk dat hij ergens in 2009 op zolder van iemand is beland 😄 Zou mooi zijn om hem op de reünie neer te zetten.', 6),
+      r('demo-r7', 'lotte.smits@voorbeeld.nl', 'Volgens mij heeft Ruud hem! Hij had alles van de materiaalcommissie.', 4, { ouder: 'demo-r6' }),
+      r('demo-r8', 'ruud.willems@voorbeeld.nl', 'Klopt, ligt in mijn schuur. Wel met een gat erin van dat ene kampvuur…', 2, { ouder: 'demo-r6' }),
+    ];
+    schrijf(DEMO_REACTIES, lijst);
+    return lijst;
+  })();
+
   const nu = () => new Date().toISOString();
   const demoId = soort => `demo-${soort}${Date.now()}${Math.floor(Math.random() * 1000)}`;
 
@@ -308,6 +338,7 @@ const Data = (() => {
       const email = lees(DEMO_SESSIE, null);
       schrijf(DEMO_KEY, alle().filter(r => r.email !== email));
       schrijf(DEMO_PROFIEL, profielStore().filter(x => x.auteur !== email));
+      schrijf(DEMO_REACTIES, reactiesStore().filter(x => x.auteur !== email));
       schrijf(DEMO_SESSIE, null);
     },
     async uitloggen() { schrijf(DEMO_SESSIE, null); },
@@ -345,6 +376,7 @@ const Data = (() => {
       if (id.startsWith('voorbeeld-')) schrijf(DEMO_WEG, [...weg(), id]);
       else schrijf(DEMO_KEY, alle().filter(x => x.email !== r.email));
       schrijf(DEMO_PROFIEL, profielStore().filter(x => x.auteur !== r.email));
+      schrijf(DEMO_REACTIES, reactiesStore().filter(x => x.auteur !== r.email));
     },
     async geblokkeerde() { return lees(DEMO_GEBLOKKEERD, []); },
     async deblokkeer(email) { schrijf(DEMO_GEBLOKKEERD, lees(DEMO_GEBLOKKEERD, []).filter(g => g.email !== norm(email))); },
@@ -542,7 +574,8 @@ const Data = (() => {
       if (!lees(DEMO_SESSIE, null)) return 0;
       return verhalenStore().filter(v => ['nieuw', 'gemeld'].includes(v.status)).length
         + fotosStore().filter(f => ['nieuw', 'gemeld'].includes(f.status)).length
-        + profielStore().filter(x => x.status === 'gemeld').length;
+        + profielStore().filter(x => x.status === 'gemeld').length
+        + reactiesStore().filter(x => x.status === 'gemeld').length;
     },
     async gezien() { return lees(DEMO_SESSIE, null) ? lees(DEMO_GEZIEN, {}) : {}; },
     async zetGezien(items) {
@@ -557,7 +590,7 @@ const Data = (() => {
     async nieuwVoorMij() {
       if (!lees(DEMO_SESSIE, null)) return { overleg: 0, beoordelen_nieuw: 0, beoordelen: 0 };
       const z = lees(DEMO_GEZIEN, {}), b = grens(z, 'beoordelen:');
-      const wacht = [...verhalenStore(), ...fotosStore(), ...profielStore()].filter(x => ['nieuw', 'gemeld'].includes(x.status));
+      const wacht = [...verhalenStore(), ...fotosStore(), ...profielStore(), ...reactiesStore()].filter(x => ['nieuw', 'gemeld'].includes(x.status));
       return {
         overleg: (await this.overleg()).filter(g => isNieuw(g, z)).length,
         beoordelen_nieuw: wacht.filter(x => Date.parse(x.bijgewerkt || x.aangemaakt) > b).length,
@@ -604,6 +637,76 @@ const Data = (() => {
       const ik = lees(DEMO_SESSIE, null), lijst = overlegStore();
       for (const g of lijst) g.berichten = g.berichten.filter(b => !(b.id === id && b.auteur === ik && !b.systeem));
       schrijf(DEMO_OVERLEG, lijst);
+    },
+    // ---- Kampvuur: kletsen and reactions ----
+    async aantalReacties() { return reactiesStore().filter(r => r.status === 'zichtbaar').length; },
+    async reacties() {
+      const ik = lees(DEMO_SESSIE, null);
+      if (!ik) throw fout('sessie', MELD.sessie);
+      const lijst = reactiesStore(), v = verhalenStore(), f = fotosStore(), pf = profielStore();
+      return lijst.filter(r => r.status === 'zichtbaar'
+          && (!r.verhaal || v.some(x => x.id === r.verhaal && x.status === 'geplaatst'))
+          && (!r.foto || f.some(x => x.id === r.foto && x.status === 'geplaatst'))
+          && (!r.ouder || lijst.some(x => x.id === r.ouder && x.status === 'zichtbaar')))
+        .sort((a, b) => a.aangemaakt.localeCompare(b.aangemaakt))
+        .map(r => {
+          const item = r.verhaal ? v.find(x => x.id === r.verhaal) : r.foto ? f.find(x => x.id === r.foto) : null;
+          const schrijver = !!item && item.auteur === r.auteur, anoniem = schrijver && !item.toon_naam;
+          const p = !anoniem && demoPersoon(r.auteur), n = p ? publiek(p) : {};
+          const toont = !!(n.voornaam || n.bijnaam || n.achternaam);
+          return { id: r.id, soort: r.verhaal ? 'verhaal' : r.foto ? 'foto' : r.ouder ? 'antwoord' : 'los',
+            ref: r.verhaal || r.foto || r.ouder || null, tekst: r.tekst, eigen: r.auteur === ik, schrijver,
+            voornaam: n.voornaam || null, bijnaam: n.bijnaam || null, achternaam: n.achternaam || null,
+            gezicht: toont ? profielPad(pf, r.auteur, 'nu') || profielPad(pf, r.auteur, 'toen') : null, aangemaakt: r.aangemaakt };
+        });
+    },
+    async nieuweReacties(sinds) {
+      if (!lees(DEMO_SESSIE, null)) return 0;
+      return (await this.reacties()).filter(r => !r.eigen && Date.parse(r.aangemaakt) > Date.parse(sinds)).length;
+    },
+    async plaatsReactie(tekst, { verhaal = null, foto = null, ouder = null } = {}) {
+      const ik = lees(DEMO_SESSIE, null);
+      if (!ik) throw fout('sessie', MELD.sessie);
+      const t = String(tekst || '').trim();
+      if (!t || t.length > 500) throw fout('lengte', MELD.lengte);
+      const lijst = reactiesStore();
+      const bestaat = verhaal ? verhalenStore().some(x => x.id === verhaal && x.status === 'geplaatst')
+        : foto ? fotosStore().some(x => x.id === foto && x.status === 'geplaatst')
+        : ouder ? lijst.some(x => x.id === ouder && x.status === 'zichtbaar' && !x.verhaal && !x.foto && !x.ouder) : true;
+      if (!bestaat) throw fout('weg', MELD.weg);
+      if (lijst.filter(r => r.auteur === ik && Date.parse(r.aangemaakt) > Date.now() - 36e5).length >= 30) throw fout('te_snel', MELD.te_snel);
+      const id = demoId('r');
+      lijst.push({ id, auteur: ik, verhaal, foto, ouder, tekst: t, status: 'zichtbaar', aangemaakt: nu(), bijgewerkt: nu() });
+      schrijf(DEMO_REACTIES, lijst);
+      return id;
+    },
+    // Your own, or any: in DEMO the logged-in user is on the comité. Answers go with a loose message.
+    async verwijderReactie(id) {
+      if (!lees(DEMO_SESSIE, null)) return;
+      schrijf(DEMO_REACTIES, reactiesStore().filter(r => r.id !== id && r.ouder !== id));
+    },
+    async meldReactie(id, reden = '') {
+      const lijst = reactiesStore(), r = lijst.find(x => x.id === id && x.status === 'zichtbaar');
+      if (!r) return;
+      const mij = await this.ik();
+      Object.assign(r, { status: 'gemeld', melding: reden.trim().slice(0, 500) || null, gemeld_door: mij?.voornaam || lees(DEMO_SESSIE, null),
+        gemeld_op: new Date().toLocaleDateString('sv'), bijgewerkt: nu() });
+      schrijf(DEMO_REACTIES, lijst);
+    },
+    async reactiesTeBeoordelen() {
+      const lijst = reactiesStore(), v = verhalenStore(), f = fotosStore();
+      return lijst.filter(r => r.status === 'gemeld').sort((a, b) => a.bijgewerkt.localeCompare(b.bijgewerkt))
+        .map(r => ({ id: r.id, soort: r.verhaal ? 'verhaal' : r.foto ? 'foto' : r.ouder ? 'antwoord' : 'los', ref: r.verhaal || r.foto || r.ouder || null,
+          ref_naam: r.verhaal ? v.find(x => x.id === r.verhaal)?.titel : r.foto ? f.find(x => x.id === r.foto)?.titel || null
+            : r.ouder ? lijst.find(x => x.id === r.ouder)?.tekst.slice(0, 60) : null,
+          tekst: r.tekst, melding: r.melding || null, gemeld_door: r.gemeld_door, gemeld_op: r.gemeld_op,
+          auteur_naam: demoNaam(r.auteur) || r.auteur, aangemaakt: r.aangemaakt, bijgewerkt: r.bijgewerkt }));
+    },
+    async beoordeelReactie(id, actie) {
+      let lijst = reactiesStore();
+      if (actie === 'tonen') lijst.filter(r => r.id === id).forEach(r => Object.assign(r, { status: 'zichtbaar', melding: null, gemeld_door: null, gemeld_op: null, bijgewerkt: nu() }));
+      else if (actie === 'weghalen') lijst = lijst.filter(r => r.id !== id && r.ouder !== id);
+      schrijf(DEMO_REACTIES, lijst);
     },
     async inschrijvingen() {
       if (!lees(DEMO_SESSIE, null)) throw fout('sessie', MELD.sessie);
@@ -1065,6 +1168,40 @@ const Data = (() => {
     async zetErbij(id, keuze) {
       const t = await moetToken();
       return await verzoek('/rest/v1/rpc/zet_erbij', { method: 'POST', token: t, body: { deelnemer: id, keuze } });
+    },
+    // ---- Kampvuur: kletsen and reactions ----
+    async aantalReacties() {
+      return await verzoek('/rest/v1/rpc/aantal_reacties', { method: 'POST', body: {} });
+    },
+    async reacties() {
+      const t = await moetToken();
+      return await verzoek('/rest/v1/rpc/reacties_lijst', { method: 'POST', token: t, body: {} });
+    },
+    async nieuweReacties(sinds) {
+      const t = await token();
+      if (!t) return 0;
+      return await verzoek('/rest/v1/rpc/nieuwe_reacties', { method: 'POST', token: t, body: { sinds } }).catch(() => 0);
+    },
+    async plaatsReactie(tekst, { verhaal = null, foto = null, ouder = null } = {}) {
+      const t = await moetToken();
+      return await verzoek('/rest/v1/rpc/plaats_reactie', { method: 'POST', token: t, body: { tekst, verhaal, foto, ouder } })
+        .catch(e => { throw MELD[e.message] ? fout(e.message, MELD[e.message]) : e; });     // te_snel, weg, lengte
+    },
+    async verwijderReactie(id) {
+      const t = await moetToken();
+      await verzoek('/rest/v1/rpc/verwijder_reactie', { method: 'POST', token: t, body: { reactie: id } });
+    },
+    async meldReactie(id, reden = '') {
+      const t = await moetToken();
+      await verzoek('/rest/v1/rpc/meld_reactie', { method: 'POST', token: t, body: { reactie: id, reden: reden || null } });
+    },
+    async reactiesTeBeoordelen() {
+      const t = await moetToken();
+      return await verzoek('/rest/v1/rpc/reacties_te_beoordelen', { method: 'POST', token: t, body: {} });
+    },
+    async beoordeelReactie(id, actie) {
+      const t = await moetToken();
+      await verzoek('/rest/v1/rpc/beoordeel_reactie', { method: 'POST', token: t, body: { reactie: id, actie } });
     },
     async zetBetaald(id, aan) {
       const t = await moetToken();

@@ -32,7 +32,7 @@
     </div>
   </div>
   <section class="nieuwst" id="nieuwst" hidden>
-    <h2>Nieuw bij Herinneringen</h2>
+    <h2>Nieuw bij het kampvuur 🔥</h2>
     <div id="nieuwst-in"></div>
   </section>
   <div class="grid3">
@@ -91,38 +91,53 @@
     $('faces').innerHTML = toon.join('');
   })();
 
-  // The newest story and photo. Memories are for participants only; others get a teaser.
+  // The newest story and photo, and the last messages at Kletsen. The Kampvuur is for participants
+  // only; others get a teaser with the numbers.
   (async () => {
     const E = Reunie.esc;
     const blok = html => { $('nieuwst-in').innerHTML = html; $('nieuwst').hidden = false; };
     const mag = Data.ingelogd() && await Data.magVerhalen().catch(() => false);
     if (!mag) {
-      const [v, f] = await Promise.all([Data.aantalVerhalen().catch(() => 0), Data.aantalFotos().catch(() => 0)]);
-      const delen = [v && `${v} ${v === 1 ? 'verhaal' : 'verhalen'}`, f && `${f} ${f === 1 ? 'foto' : "foto's"}`].filter(Boolean);
+      const [v, f, r] = await Promise.all([Data.aantalVerhalen().catch(() => 0), Data.aantalFotos().catch(() => 0), Data.aantalReacties().catch(() => 0)]);
+      const delen = [v && `${v} ${v === 1 ? 'verhaal' : 'verhalen'}`, f && `${f} ${f === 1 ? 'foto' : "foto's"}`, r && `${r} ${r === 1 ? 'bericht' : 'berichten'}`].filter(Boolean);
       if (!delen.length) return;
-      return blok(`<a class="card" href="herinneringen.html"><h3>Al ${delen.join(' en ')} van vroeger gedeeld!</h3>
-        <p class="kort muted">Herinneringen zijn er voor de deelnemers van de reünie. ${Data.ingelogd() ? 'Maak je inschrijving af' : 'Doe mee of log in'} om ze te bekijken.</p>
-        <span class="verder">Naar Herinneringen →</span></a>`);
+      const lijst = delen.length > 1 ? delen.slice(0, -1).join(', ') + ' en ' + delen.at(-1) : delen[0];
+      return blok(`<a class="card" href="kampvuur.html"><h3>Al ${lijst} rond het kampvuur!</h3>
+        <p class="kort muted">Het kampvuur is er voor wie meedoet aan de reünie. ${Data.ingelogd() ? 'Maak je inschrijving af' : 'Doe mee of log in'} om verhalen en foto's te bekijken en mee te kletsen.</p>
+        <span class="verder">Naar het kampvuur →</span></a>`);
     }
-    const [verhalen, fotos] = await Promise.all([Data.verhalen().catch(() => []), Data.fotos().catch(() => [])]);
+    const [verhalen, fotos, reacties] = await Promise.all([Data.verhalen().catch(() => []), Data.fotos().catch(() => []), Data.reacties().catch(() => [])]);
     const v = verhalen.find(x => x.status === 'geplaatst'), f = fotos.find(x => x.status === 'geplaatst');
     const door = x => `gedeeld door ${E(x.eigen ? 'jou' : Reunie.naam(x) || 'iemand van de club')}`;
     const kaarten = [];
     if (v) {
       const tekst = v.tekst.replace(/\s+/g, ' ');
       const kort = tekst.length > 200 ? tekst.slice(0, 180).replace(/\s+\S*$/, '') + '…' : tekst;
-      kaarten.push(`<a class="card" href="herinneringen.html#verhaal-${E(v.id)}"><p class="soort">Verhaal</p>
+      kaarten.push(`<a class="card" href="kampvuur.html#verhaal-${E(v.id)}"><p class="soort">Verhaal</p>
         <h3>${E(v.titel)}</h3><p class="door">${door(v)}</p><p class="kort">${E(kort)}</p><span class="verder">Lees het verhaal →</span></a>`);
     }
     if (f) {
       const klein = f.pad + '-klein.jpg';
       const url = (await Data.fotoUrls([klein]).catch(() => ({})))[klein] || '';
-      kaarten.push(`<a class="card" href="herinneringen.html#foto-${E(f.id)}"><p class="soort">Foto</p><div class="foto">
+      kaarten.push(`<a class="card" href="kampvuur.html#foto-${E(f.id)}"><p class="soort">Foto</p><div class="foto">
         <img src="${E(url)}" alt="${E(f.titel)}"><div>${f.titel ? `<h3>${E(f.titel)}</h3>` : ''}
         <p class="door">${E([f.speltak, f.jaar].filter(Boolean).join(' · '))}${f.speltak || f.jaar ? '<br>' : ''}${door(f)}</p>
         <span class="verder">Bekijk de foto →</span></div></div></a>`);
     }
-    if (kaarten.length) blok(`<div class="${kaarten.length > 1 ? 'two' : ''}">${kaarten.join('')}</div>`);
+    // Kletsen: the last three messages, each linking to where it was said.
+    if (reacties.length) {
+      const wie = r => r.eigen ? 'Jij' : r.voornaam || r.bijnaam || (r.schrijver ? 'De schrijver' : 'Iemand');
+      const waar = { verhaal: ' bij een verhaal', foto: ' bij een foto', antwoord: '', los: '' };
+      const wanneer = iso => {
+        const d = new Date(iso);
+        return d.toDateString() === new Date().toDateString() ? d.toLocaleTimeString('nl-NL', { hour: '2-digit', minute: '2-digit' })
+          : d.toLocaleDateString('nl-NL', { day: 'numeric', month: 'short' });
+      };
+      const regels = reacties.slice(-3).reverse().map(r => `<a href="kampvuur.html#bericht-${E(r.id)}"><span class="t"><b>${E(wie(r))}</b>${waar[r.soort]}: ${E(r.tekst.replace(/\s+/g, ' '))}</span>
+        <span class="wanneer">${E(wanneer(r.aangemaakt))}</span></a>`).join('');
+      kaarten.push(`<div class="card kletsen"><p class="soort">Kletsen</p><div class="laatst">${regels}</div><a class="verder" href="kampvuur.html">Praat mee →</a></div>`);
+    }
+    if (kaarten.length) blok(`<div class="${kaarten.length > 1 ? 'kaarten' : ''}">${kaarten.join('')}</div>`);
   })();
 </script>
 </body>

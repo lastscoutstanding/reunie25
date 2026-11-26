@@ -122,8 +122,8 @@ Bij veel aanmeldingen op één dag (aankondiging): na 100 mails krijgen mensen p
 | tabel `deelnemers` | één rij per persoon, gekoppeld aan de login; alleen eigen rij lezen/wijzigen/verwijderen (row level security). Comité leest alle rijen. Kolom `betaald_op`: datum waarop het comité de betaling zag, alleen te wijzigen door het comité. Kolom `erbij` (`ja`/`misschien`/`nee`) met `erbij_sinds`: de deelnemer en het comité passen hem aan |
 | tabel `beheerders` | comité: `email`, `rol` (`beheerder` of `hoofdbeheerder`), `toegevoegd_door`, `toegevoegd_op`. Niet direct leesbaar via de site. Gewone beheerders voegt een hoofdbeheerder toe op Beheer → Comité. Hoofdbeheerders alleen in de SQL Editor: `insert into public.beheerders (email, rol) values ('naam@example.com', 'hoofdbeheerder') on conflict (email) do update set rol = 'hoofdbeheerder';` |
 | tabel `geblokkeerd` | adressen die het comité verwijderde en blokkeerde (`email`, `reden`, `door`, `op`). Zo'n adres krijgt geen code meer bij inschrijven en de trigger weigert een nieuwe rij. Deblokkeren op Beheer → Comité |
-| tabel `verhalen` | verhalen bij Herinneringen; alleen eigen verhalen direct leesbaar, de rest via functies. Status `nieuw` → comité plaatst of wijst af; `gemeld` = verborgen na een melding |
-| tabel `fotos` + bucket `fotos` (Storage) | foto's bij Herinneringen. Bucket is privé, alleen JPEG tot 1 MB; regels op `storage.objects`: uploaden in je eigen map, bekijken als `foto_zichtbaar()`, verwijderen eigen map of comité. Max. 30 per persoon. Verbruik: Storage in het dashboard, of de tegel op Beheer → Te beoordelen |
+| tabel `verhalen` | verhalen bij het Kampvuur (vroeger Herinneringen); alleen eigen verhalen direct leesbaar, de rest via functies. Status `nieuw` → comité plaatst of wijst af; `gemeld` = verborgen na een melding |
+| tabel `fotos` + bucket `fotos` (Storage) | foto's bij het Kampvuur. Bucket is privé, alleen JPEG tot 1 MB; regels op `storage.objects`: uploaden in je eigen map, bekijken als `foto_zichtbaar()`, verwijderen eigen map of comité. Max. 30 per persoon. Verbruik: Storage in het dashboard, of de tegel op Beheer → Te beoordelen |
 | `publieke_deelnemers()` | lijst voor "Wie doen er mee?", verborgen velden zijn leeg; e-mail komt nooit mee (en `erbij` ook niet) |
 | `aantal_deelnemers()` | totaal aantal inschrijvingen (ook gebruikt door de keep-alive) |
 | `aantal_erbij()` | aantallen ja/misschien/nee voor de tellers op de home en "Wie doen er mee?"; nooit wie |
@@ -139,6 +139,7 @@ Bij veel aanmeldingen op één dag (aankondiging): na 100 mails krijgen mensen p
 | `te_beoordelen()`, `beoordeel_verhaal()` | comité: tabblad Te beoordelen (plaatsen, afwijzen, aanpassen, verwijderen) |
 | `fotos_lijst()`, `aantal_fotos()`, `meld_foto()`, `fotos_te_beoordelen()`, `beoordeel_foto()`, `foto_opslag()`, `fotos_van()` | foto's: lijst voor deelnemers, aantal, melden, beoordelen (plaatsen/wissen), opslaggebruik, opruimen bij verwijderen |
 | `is_comite_adres()` | inlogpagina: een comitélid zonder inschrijving krijgt toch een code (de login wordt dan aangemaakt). Verraadt alleen óf een adres in het comité zit |
+| tabel `reacties` + `reacties_lijst()`, `aantal_reacties()`, `nieuwe_reacties()`, `plaats_reactie()`, `verwijder_reactie()`, `meld_reactie()`, `reacties_te_beoordelen()`, `beoordeel_reactie()` | Kampvuur → Kletsen: losse berichten, antwoorden en reacties bij verhalen en foto's (max. 500 tekens, 30 per uur per persoon). Geen controle vooraf; `gemeld` = verborgen tot het comité beslist. Geen directe toegang. "Gezien" voor deelnemers staat in de browser (localStorage), niet in de database |
 | tabel `gezien` + `mijn_gezien()`, `zet_gezien()`, `nieuw_voor_mij()` | comité: wat iemand in Overleg en Te beoordelen al gezien heeft, voor de gele bolletjes (op elk apparaat). Geen directe toegang. `fotos.bijgewerkt` = wanneer een foto binnenkwam of gemeld werd |
 | trigger `deelnemers_stempel` | vult e-mail en datums zelf in (ook `erbij_sinds` bij een andere keuze); een deelnemer kan `betaald_op` niet zelf veranderen. Wijzigingen in de Table Editor of SQL Editor laat hij met rust |
 
@@ -169,7 +170,7 @@ Bij veel aanmeldingen op één dag (aankondiging): na 100 mails krijgen mensen p
 - [x] Rate limit mails in Supabase opgehoogd naar 100 per uur.
 - [ ] Aankondiging eventueel spreiden vanwege max. 100 mails per dag bij Resend.
 - [ ] Overige comité-adressen toevoegen via Beheer → Comité (Bas staat erin).
-- [ ] Bij het wissen na de reünie ook de tabellen `beheerders`, `geblokkeerd`, `verhalen` en `fotos` leegmaken, en de bucket `fotos` legen (Storage → fotos → alles selecteren → Delete).
+- [ ] Bij het wissen na de reünie ook de tabellen `beheerders`, `geblokkeerd`, `verhalen`, `fotos` en `reacties` leegmaken, en de bucket `fotos` legen (Storage → fotos → alles selecteren → Delete).
 - [ ] Opslag van de foto's in de gaten houden (gratis: 1 GB).
 - [ ] GitHub-token vernieuwen vóór ongeveer 30 december 2026.
 - [x] Keep-alive tegen het pauzeren van Supabase (GitHub Action, 20 nov 2026).
@@ -197,3 +198,4 @@ Bij veel aanmeldingen op één dag (aankondiging): na 100 mails krijgen mensen p
 | 22 nov 2026 | Bolletjes voor het comité = "nieuw sinds je laatst keek": tabel `gezien`, functies `mijn_gezien()`, `zet_gezien()`, `nieuw_voor_mij()`, kolom `fotos.bijgewerkt`; privacyverklaring aangevuld. Schema opnieuw gedraaid ✅ |
 | 22 nov 2026 | Oude speltaknamen ("Heette toen"): `takken` kan per speltak een `naam` hebben, max. 30 tekens (functie `takken_namen_ok()`, constraint `takken_namen_kort`). Schema opnieuw gedraaid ✅ |
 | 26 nov 2026 | Verhuisd naar de repo `reunie25` op https://reunie.scoutingbrandevoort.nl: DNS-records bij de scouting (Threvon), domein geverifieerd, Enforce HTTPS, oude links sturen door, keep-alive alleen nog hier, Supabase Site URL aangepast, testrecord bij Webreus weg |
+| 26 nov 2026 | Herinneringen heet nu Kampvuur (`kampvuur.html`, oude adres stuurt door), met Kletsen: tabel `reacties` en functies, `aantal_te_beoordelen()` en `nieuw_voor_mij()` tellen gemelde berichten mee; privacyverklaring aangevuld. Schema nog draaien vóór de push |

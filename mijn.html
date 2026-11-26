@@ -34,7 +34,7 @@
       <div class="card betaal" id="betaal" hidden></div>
       <div class="card" id="weet-je" hidden>
         <h2>Weet je het al?</h2>
-        <p style="margin:0">Geen haast. Kies "Ja!" zodra je het weet, dan zie je hier hoe je de bijdrage betaalt. Tot die tijd ben je van harte welkom bij de <a href="herinneringen.html">herinneringen</a>.</p>
+        <p style="margin:0">Geen haast. Kies "Ja!" zodra je het weet, dan zie je hier hoe je de bijdrage betaalt. Tot die tijd ben je van harte welkom bij het <a href="kampvuur.html">kampvuur</a>, met verhalen, foto's en praatjes van vroeger.</p>
       </div>
       <div class="card">
         <h2>Je gegevens</h2>
@@ -185,7 +185,7 @@
     const n = (await Data.afgewezenFotos().catch(() => [])).length;
     if (!n) return;
     $('afgewezen').innerHTML = `<h2>Jouw foto's</h2><p style="margin:0">${n === 1 ? '1 foto is' : `${n} foto's zijn`} niet geplaatst. `
-      + `<a href="herinneringen.html#fotos">Bekijk ${n === 1 ? 'hem' : 'ze'}</a></p>`;
+      + `<a href="kampvuur.html#fotos">Bekijk ${n === 1 ? 'hem' : 'ze'}</a></p>`;
     $('afgewezen').hidden = false;
   }
 
@@ -199,7 +199,7 @@
     const delen = [nv && `${nv} ${nv === 1 ? 'verhaal' : 'verhalen'}`, nf && `${nf} ${nf === 1 ? 'foto' : "foto's"}`].filter(Boolean);
     const hart = `<b class="rood">♥\uFE0E ${totaal}</b>`;
     $('leuk').innerHTML = `<h2>Jouw herinneringen</h2><p style="margin:0">Je deelde ${delen.join(' en ')}. `
-      + `${nv + nf === 1 ? (nv ? 'Het' : 'Die') + ' kreeg' : 'Samen kregen ze'} ${hart}: leuk! <a href="herinneringen.html${nv ? '' : '#fotos'}">${nv + nf === 1 ? 'Bekijken' : 'Bekijk ze'}</a></p>`;
+      + `${nv + nf === 1 ? (nv ? 'Het' : 'Die') + ' kreeg' : 'Samen kregen ze'} ${hart}: leuk! <a href="kampvuur.html${nv ? '#verhalen' : '#fotos'}">${nv + nf === 1 ? 'Bekijken' : 'Bekijk ze'}</a></p>`;
     $('leuk').hidden = false;
   }
 </script>

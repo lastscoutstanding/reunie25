@@ -5,7 +5,7 @@
     ['index.html', 'Home'],
     ['programma.html', 'Programma'],
     ['deelnemers.html', 'Wie doen er mee?'],
-    ['herinneringen.html', 'Herinneringen'],
+    ['kampvuur.html', 'Kampvuur<span class="vlag" id="vlag-kampvuur" hidden></span>'],
     ['vragen.html', 'Vragen'],
   ];
   const hier = location.pathname.split('/').pop() || 'index.html';
@@ -42,6 +42,19 @@
   nav.addEventListener('scroll', rand, { passive: true });
   addEventListener('resize', rand);
   opDeHuidige();
+
+  // Kampvuur: yellow number for new messages by others since you last opened Kletsen (kept in this
+  // browser by kampvuur.html; on a first visit the last 7 days count). Skipped when Kletsen was opened meanwhile.
+  if (ingelogd) {
+    const lees = () => { try { return localStorage.getItem('reunie25.kampvuur.gezien'); } catch { return null; } };
+    const was = lees(), sinds = was || new Date(Date.now() - 7 * 864e5).toISOString();
+    Data.nieuweReacties(sinds).then(n => {
+      const v = $('vlag-kampvuur');
+      if (!v || !n || lees() !== was || (hier === 'kampvuur.html' && !location.hash)) return;
+      v.textContent = n; v.title = `${n} nieuw bij Kletsen`; v.hidden = false;
+      opDeHuidige();
+    }).catch(() => {});
+  }
 
   // Comité members get a "Beheer" link at the end of the row, with a yellow number for what is new. They also get the
   // overleg buttons (overleg.js), loaded here unless the page loads it itself.

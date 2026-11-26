@@ -44,7 +44,7 @@
   </div>
 
   <div id="tab-beoordelen" hidden>
-    <p style="margin-top:0">Nieuwe foto's en verhalen van Herinneringen, en wat iemand heeft gemeld. Pas na "Plaatsen" zien de deelnemers het. Wie iets instuurt, ziet tot die tijd alleen "binnenkort".</p>
+    <p style="margin-top:0">Nieuwe foto's en verhalen van het Kampvuur, en wat iemand heeft gemeld (ook berichten bij Kletsen). Pas na "Plaatsen" zien de deelnemers het. Wie iets instuurt, ziet tot die tijd alleen "binnenkort".</p>
     <div class="tegels" id="foto-tegels"></div>
     <p class="muted" id="beoordelen-laden">Laden…</p>
     <h2 style="margin:18px 0 6px">Foto's</h2>
@@ -52,6 +52,8 @@
     <div id="profiel-beoordelen" hidden></div>
     <h2 style="margin:22px 0 6px">Verhalen</h2>
     <div class="verhalen" id="beoordelen"></div>
+    <h2 style="margin:22px 0 6px">Kletsen</h2>
+    <div class="verhalen" id="reactie-beoordelen"></div>
   </div>
 
   <div id="tab-overleg" hidden>
@@ -105,7 +107,9 @@
           <tr><td>Eigen inschrijving aanpassen of uitschrijven</td><td class="nee">–</td><td class="ja">✓</td><td class="ja">✓</td><td class="ja">✓</td></tr>
           <tr><td>Alle inschrijvingen met e-mail, CSV, adressen kopiëren</td><td class="nee">–</td><td class="nee">–</td><td class="ja">✓</td><td class="ja">✓</td></tr>
           <tr><td>Inschrijving verwijderen, adres blokkeren of deblokkeren</td><td class="nee">–</td><td class="nee">–</td><td class="ja">✓</td><td class="ja">✓</td></tr>
-          <tr><td>Verhalen bij Herinneringen lezen en delen</td><td class="nee">–</td><td class="ja">✓</td><td class="ja">✓</td><td class="ja">✓</td></tr>
+          <tr><td>Verhalen bij het Kampvuur lezen en delen</td><td class="nee">–</td><td class="ja">✓</td><td class="ja">✓</td><td class="ja">✓</td></tr>
+          <tr><td>Kletsen: berichten en reacties plaatsen, eigen bericht verwijderen, een bericht melden</td><td class="nee">–</td><td class="ja">✓</td><td class="ja">✓</td><td class="ja">✓</td></tr>
+          <tr><td>Kletsen: elk bericht weghalen, of na een melding weer tonen</td><td class="nee">–</td><td class="nee">–</td><td class="ja">✓</td><td class="ja">✓</td></tr>
           <tr><td>Foto's bekijken en delen (max. 30 per persoon)</td><td class="nee">–</td><td class="ja">✓</td><td class="ja">✓</td><td class="ja">✓</td></tr>
           <tr><td>Profielfoto's (toen en nu) zien, eigen foto's kiezen, een foto melden</td><td class="nee">–</td><td class="ja">✓</td><td class="ja">✓</td><td class="ja">✓</td></tr>
           <tr><td>Profielfoto's weghalen of na een melding weer tonen</td><td class="nee">–</td><td class="nee">–</td><td class="ja">✓</td><td class="ja">✓</td></tr>
@@ -383,7 +387,7 @@
 
   // ---- tab Te beoordelen (stories) ----------------------------------------
 
-  let beoordeling = null, fotoBeoordeling = [], profielBeoordeling = [];
+  let beoordeling = null, fotoBeoordeling = [], profielBeoordeling = [], reactieBeoordeling = [];
   const alineas = t => t.split(/\n\s*\n/).map(p => `<p>${E(p.trim()).replace(/\n/g, '<br>')}</p>`).join('');
 
   function verhaalKaart(v) {
@@ -462,8 +466,30 @@
     catch (err) { alert('Dat lukte niet: ' + err.message); b.disabled = false; }
   });
 
+  // Reported messages at Kletsen (on the Kampvuur page): show again, or remove.
+  function toonReactieBeoordelen() {
+    const waar = r => ({ los: 'los bericht', antwoord: `antwoord op “${r.ref_naam || '…'}”`,
+      verhaal: `reactie bij het verhaal “${r.ref_naam || '…'}”`, foto: `reactie bij de foto${r.ref_naam ? ` “${r.ref_naam}”` : ''}` })[r.soort];
+    $('reactie-beoordelen').innerHTML = reactieBeoordeling.map(r => `<article class="verhaal" data-reactie="${E(r.id)}">
+        <div class="meta"><span class="pill wacht">gemeld</span> door ${E(r.gemeld_door || 'iemand')} op ${datum(r.gemeld_op)}${r.melding ? `: “${E(r.melding)}”` : ''}
+          · ${E(waar(r))} · van ${E(r.auteur_naam || 'onbekend')} · nu niet zichtbaar</div>
+        <p>${E(r.tekst).replace(/\n/g, '<br>')}</p>
+        <div class="acties"><button class="btn ghost" type="button" data-ractie="tonen">Weer tonen</button><button class="btn danger" type="button" data-ractie="weghalen">Weghalen…</button></div>
+      </article>`).join('') || '<p class="muted" style="margin:0">Geen gemelde berichten.</p>';
+  }
+  $('reactie-beoordelen').addEventListener('click', async e => {
+    const b = e.target.closest('button[data-ractie]');
+    if (!b) return;
+    const actie = b.dataset.ractie, id = b.closest('[data-reactie]').dataset.reactie;
+    if (actie === 'weghalen' && !confirm('Dit bericht weghalen? Reacties erop gaan mee. Dat kan niet ongedaan worden gemaakt.')) return;
+    b.disabled = true;
+    try { await Data.beoordeelReactie(id, actie); await laadBeoordelen(); }
+    catch (err) { alert('Dat lukte niet: ' + err.message); b.disabled = false; }
+  });
+
   function toonBeoordelen() {
-    nieuw.beoordelen = beoordeling.length + fotoBeoordeling.length + profielBeoordeling.length;
+    nieuw.beoordelen = beoordeling.length + fotoBeoordeling.length + profielBeoordeling.length + reactieBeoordeling.length;
+    toonReactieBeoordelen();
     toonVlaggen();
     $('beoordelen').innerHTML = beoordeling.map(verhaalKaart).join('')
       || '<p class="muted" style="margin:0">Geen verhalen om te beoordelen.</p>';
@@ -472,8 +498,8 @@
   async function laadBeoordelen() {
     await Overleg.klaar;            // the overleg buttons on the cards
     try {
-      [beoordeling, fotoBeoordeling, profielBeoordeling] = await Promise.all([Data.teBeoordelen(), Data.fotosTeBeoordelen(),
-        Data.profielfotosTeBeoordelen().catch(() => [])]);
+      [beoordeling, fotoBeoordeling, profielBeoordeling, reactieBeoordeling] = await Promise.all([Data.teBeoordelen(), Data.fotosTeBeoordelen(),
+        Data.profielfotosTeBeoordelen().catch(() => []), Data.reactiesTeBeoordelen().catch(() => [])]);
       toonBeoordelen();
       const [urls, opslag] = await Promise.all([
         Data.fotoUrls([...fotoBeoordeling.flatMap(f => [f.pad + '-klein.jpg', f.pad + '.jpg']), ...profielBeoordeling.map(f => f.pad + '.jpg')]),
@@ -596,7 +622,7 @@
       return lijst && !lijst.some(r => r.id === g.ref) ? `<span class="ond">${tekst} (verwijderd)</span>`
         : `<button type="button" class="ond" data-naar-deelnemer="${E(g.ref)}">${tekst} →</button>`;
     }
-    const href = { verhaal: `herinneringen.html#verhaal-${g.ref}`, foto: `herinneringen.html#foto-${g.ref}`, pagina: g.ref }[g.soort];
+    const href = { verhaal: `kampvuur.html#verhaal-${g.ref}`, foto: `kampvuur.html#foto-${g.ref}`, pagina: g.ref }[g.soort];
     return href ? `<a class="ond" href="${E(href)}">${tekst} →</a>` : `<span class="ond">${tekst}</span>`;
   }
 

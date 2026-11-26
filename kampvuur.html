@@ -1,0 +1,973 @@
+<!DOCTYPE html>
+<html lang="nl">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<meta name="robots" content="noindex">
+<title>Kampvuur · Reünie 25 jaar Scouting Brandevoort</title>
+<link rel="stylesheet" href="theme.css">
+</head>
+<body>
+<header id="kop"></header>
+<main>
+  <h1>Kampvuur</h1>
+  <p class="onder-h1">Verhalen, foto's en praatjes van scouts van nu en toen. <span class="slot" id="slot" hidden>🔒 Alleen voor wie meedoet</span></p>
+  <p class="muted" id="laden">Laden…</p>
+
+  <!-- Not logged in, or logged in without a registration -->
+  <div class="card lege" id="buiten" hidden>
+    <p style="font-size:18px;margin:0 0 6px"><b id="buiten-kop"></b></p>
+    <p class="muted" style="margin:0 0 16px" id="buiten-tekst"></p>
+    <div id="buiten-knoppen"></div>
+  </div>
+
+  <div id="binnen" hidden>
+    <div class="deuren drie" id="tabs" role="tablist" aria-label="Verhalen, foto's of kletsen">
+      <button type="button" data-tab="verhalen" role="tab" aria-selected="false">
+        <span class="aantal" id="d-verhalen-n">&nbsp;</span><b>Verhalen</b><span class="voor" id="d-verhalen-voor"></span></button>
+      <button type="button" data-tab="fotos" role="tab" aria-selected="false">
+        <span class="aantal" id="d-fotos-n">&nbsp;</span><b>Foto's</b><span class="voor mini3" id="d-fotos-voor"></span></button>
+      <button type="button" data-tab="kletsen" class="on" role="tab" aria-selected="true">
+        <span class="vlag" id="d-kletsen-vlag" hidden></span>
+        <span class="aantal" id="d-kletsen-n">&nbsp;</span><b>Kletsen</b><span class="voor" id="d-kletsen-voor"></span></button>
+    </div>
+
+    <div id="tab-kletsen">
+      <p style="margin-top:0">Schuif aan! Zeg iets tegen de club, zoek oude bekenden of reageer op een verhaal of foto.</p>
+      <form class="card zeg" id="zeg" novalidate>
+        <textarea id="zeg-tekst" maxlength="500" placeholder="Zeg iets tegen de club…" aria-label="Je bericht"></textarea>
+        <button class="btn" type="submit" id="zeg-knop">Plaats</button>
+      </form>
+      <div class="zeg-onder"><small class="muted">🔒 Alleen ingeschreven scouts lezen mee.</small><small class="muted" id="zeg-teller"></small></div>
+      <p class="err" id="zeg-fout" hidden></p>
+      <p class="note ok" id="k-bedankt" hidden></p>
+      <div class="filters">
+        <div class="seg" id="k-filter" role="group" aria-label="Welke berichten">
+          <button type="button" class="on" data-f="alles">Alles</button><button type="button" data-f="los">Losse berichten</button><button type="button" data-f="bij">Bij verhalen en foto's</button>
+        </div>
+      </div>
+      <div class="stroom" id="stroom"></div>
+    </div>
+
+    <div id="tab-fotos" hidden>
+      <p style="margin-top:0">Kampvuren, opkomsten, overvliegen, dat ene natte weekend… Deel je foto's van vroeger met de rest van de club.</p>
+      <p class="note ok" id="f-bedankt" hidden></p>
+      <div class="card" id="f-afgewezen" hidden></div>
+
+      <div class="kop2">
+        <div class="filters" style="margin:0">
+          <select id="ff-speltak" aria-label="Speltak"></select>
+          <select id="ff-jaar" aria-label="Jaar"></select>
+        </div>
+        <button class="btn" type="button" id="f-nieuw">+ Foto's delen</button>
+      </div>
+
+      <form class="card" id="f-form" hidden novalidate style="margin-top:14px">
+        <h2 style="margin:0 0 10px">Foto's delen</h2>
+        <label class="drop" id="f-drop">
+          <input type="file" id="f-bestanden" accept="image/*" multiple hidden>
+          <span><b>Kies foto's</b> of sleep ze hierheen</span>
+          <span class="btn ghost" style="margin:8px auto 0">Foto's kiezen</span>
+          <small class="muted">Meerdere tegelijk mag. We maken ze kleiner, dus grote foto's van je telefoon zijn prima. <span id="f-ruimte"></span></small>
+        </label>
+        <div id="f-keuzes"></div>
+        <div class="rij" style="margin-top:8px">
+          <label><span>Speltak <span class="muted" style="font-weight:400" id="f-voor-alle">(optioneel)</span></span><select id="fu-speltak"></select></label>
+          <label><span>Jaar <span class="muted" style="font-weight:400">(optioneel)</span></span><select id="fu-jaar"></select></label>
+        </div>
+        <label class="check" style="margin-top:10px"><input type="checkbox" id="f-naam" checked> <span>Toon mijn naam bij deze foto's
+          <small class="muted">(uit: "gedeeld door iemand van de club"; het comité weet wel van wie ze zijn)</small></span></label>
+        <p class="note" style="margin-top:12px">Staan er anderen op? Deel alleen foto's waar zij zich prettig bij voelen. Wie erop staat, kan een foto altijd laten weghalen.</p>
+        <p class="err" id="f-fout" hidden></p>
+        <div id="f-voortgang" hidden style="margin-top:10px"><small class="muted" id="f-voortgang-tekst"></small><div class="balk"><div id="f-balk"></div></div></div>
+        <div class="acties">
+          <button class="btn ghost" type="button" id="f-annuleer">Annuleren</button>
+          <button class="btn" type="submit" id="f-insturen" disabled>Foto's insturen</button>
+        </div>
+      </form>
+
+      <p class="summary" id="f-telling"></p>
+      <div class="fotogrid" id="f-grid"></div>
+    </div>
+
+    <div id="tab-verhalen" hidden>
+      <p style="margin-top:0">Weet je nog, de RSW waar het tentdoek binnenstebuiten zat? Maar dan wel consequent bij beide patrouilles :) Deel je leukste, gekste of ontroerendste scoutingherinnering met de rest van de club.</p>
+      <p class="note ok" id="bedankt" hidden></p>
+
+      <div class="kop2">
+        <div class="filters" style="margin:0">
+          <input type="search" id="zoek" placeholder="Zoek in verhalen" aria-label="Zoek in verhalen">
+          <select id="f-speltak" aria-label="Speltak"></select>
+          <select id="f-jaar" aria-label="Jaar"></select>
+        </div>
+        <button class="btn" type="button" id="nieuw">+ Deel een verhaal</button>
+      </div>
+
+      <form class="card" id="form" hidden novalidate style="margin-top:14px">
+        <h2 id="form-kop" style="margin:0 0 10px">Deel een verhaal</h2>
+        <label>Titel<input id="v-titel" maxlength="80" autocomplete="off" required></label>
+        <label style="margin-top:10px">Je verhaal<textarea id="v-tekst" maxlength="3000" required></textarea></label>
+        <div class="teller" id="teller">0 / 3000 tekens</div>
+        <div class="rij" style="margin-top:6px">
+          <label><span>Speltak <span class="muted" style="font-weight:400">(optioneel)</span></span><select id="v-speltak"></select></label>
+          <label><span>Jaar <span class="muted" style="font-weight:400">(optioneel)</span></span><select id="v-jaar"></select></label>
+        </div>
+        <label class="check" style="margin-top:10px"><input type="checkbox" id="v-naam" checked> <span>Toon mijn naam bij dit verhaal
+          <small class="muted">(uit: "gedeeld door iemand van de club"; het comité weet wel van wie het is)</small></span></label>
+        <p class="note" style="margin-top:12px">Noem je anderen bij naam? Houd het vriendelijk: zij lezen het ook.</p>
+        <p class="err" id="form-fout" hidden></p>
+        <div class="acties">
+          <button class="btn ghost" type="button" id="annuleer">Annuleren</button>
+          <button class="btn" type="submit" id="insturen">Verhaal insturen</button>
+        </div>
+      </form>
+
+      <p class="summary" id="telling"></p>
+      <div class="verhalen" id="lijst"></div>
+    </div>
+  </div>
+</main>
+
+<dialog id="lb" class="lightbox" aria-label="Foto">
+  <button class="lb-sluit" type="button" id="lb-sluit" aria-label="Sluiten">×</button>
+  <div class="lb-foto">
+    <img id="lb-img" alt="">
+    <button class="lb-pijl l" type="button" id="lb-vorige" aria-label="Vorige foto">‹</button>
+    <button class="lb-pijl r" type="button" id="lb-volgende" aria-label="Volgende foto">›</button>
+  </div>
+  <div class="lb-info">
+    <div id="lb-tekst"></div>
+    <div style="text-align:right"><span id="lb-nr"></span><br><span id="lb-actie"></span></div>
+  </div>
+  <div class="lb-reacties" id="lb-reacties" hidden></div>
+</dialog>
+
+<dialog id="meld" class="card dialoog">
+  <form method="dialog" id="meld-form">
+    <h3 style="margin:0 0 8px" id="meld-kop">Verhaal melden</h3>
+    <p style="margin:0 0 10px" id="meld-tekst"></p>
+    <label><span>Wat is er aan de hand? <span class="muted" style="font-weight:400">(optioneel)</span></span><textarea id="meld-reden" maxlength="500" style="min-height:90px"></textarea></label>
+    <p class="err" id="meld-fout" hidden></p>
+    <div class="acties">
+      <button class="btn ghost" value="nee" type="submit" formnovalidate>Annuleren</button>
+      <button class="btn danger" value="ja" type="submit" id="meld-ok">Melden</button>
+    </div>
+  </form>
+</dialog>
+
+<footer id="voet"></footer>
+<script src="reunie.js"></script>
+<script src="data.js"></script>
+<script src="nav.js"></script>
+<script src="overleg.js"></script>
+<script>
+  const E = Reunie.esc;
+  let verhalen = [], bewerkId = null, teMelden = null;   // teMelden: { soort: 'verhaal' | 'foto', id }
+  const open = new Set();             // ids of long stories that are unfolded
+  const reOpen = new Set();           // ids of stories with their reactions unfolded
+  const KORT = 450;                   // longer stories get "Lees verder"
+
+  // ---- hearts --------------------------------------------------------------------
+  // One per participant per placed story or photo; you see the count, never who.
+  const HART = new Map();             // 'verhaal:<id>' / 'foto:<id>' -> { aantal, van_mij }
+  const VOL = '♥\uFE0E', LEEG = '♡'; // \uFE0E: text glyph, so the colour follows the CSS
+  async function laadHartjes() {
+    const rijen = await Data.hartjes().catch(() => null);
+    if (!rijen) return;
+    HART.clear();
+    for (const r of rijen) HART.set(r.soort + ':' + r.ref, { aantal: r.aantal, van_mij: r.van_mij });
+  }
+  const leuk = n => n === 1 ? '1 iemand vindt dit leuk' : `${n} mensen vinden dit leuk`;
+  function hart(soort, x) {
+    if (x.status !== 'geplaatst') return '';
+    const { aantal = 0, van_mij = false } = HART.get(soort + ':' + x.id) || {};
+    if (x.eigen) return aantal ? `<span class="hart eigen"><span class="i">${VOL}</span>${leuk(aantal)}</span>` : '';
+    return `<button class="hart${van_mij ? ' aan' : ''}" type="button" data-hart="${soort}" data-ref="${E(x.id)}" aria-pressed="${van_mij}" title="Vind ik leuk" aria-label="Vind ik leuk${aantal ? ` (${aantal})` : ''}"><span class="i">${van_mij ? VOL : LEEG}</span><span class="n">${aantal || ''}</span></button>`;
+  }
+  function hartje(f) {      // small badge on a photo tile
+    const h = f.status === 'geplaatst' && HART.get('foto:' + f.id);
+    return h && h.aantal ? `<span class="hartje${h.van_mij ? ' aan' : ''}" aria-label="${leuk(h.aantal)}">${VOL} ${h.aantal}</span>` : '';
+  }
+  // Optimistic: the heart changes at once, the stored count follows.
+  document.addEventListener('click', async e => {
+    const b = e.target.closest('button[data-hart]');
+    if (!b || b.disabled) return;
+    const soort = b.dataset.hart, ref = b.dataset.ref, k = soort + ':' + ref;
+    const was = HART.get(k) || { aantal: 0, van_mij: false }, aan = !was.van_mij;
+    const zet = h => {
+      HART.set(k, h);
+      b.classList.toggle('aan', h.van_mij); b.setAttribute('aria-pressed', h.van_mij);
+      b.querySelector('.i').textContent = h.van_mij ? VOL : LEEG;
+      b.querySelector('.n').textContent = h.aantal || '';
+      b.setAttribute('aria-label', `Vind ik leuk${h.aantal ? ` (${h.aantal})` : ''}`);
+    };
+    zet({ aantal: Math.max(0, was.aantal + (aan ? 1 : -1)), van_mij: aan });
+    if (aan) { b.classList.add('pof'); setTimeout(() => b.classList.remove('pof'), 160); }
+    b.disabled = true;
+    try { zet({ aantal: await Data.zetHartje(soort, ref, aan), van_mij: aan }); }
+    catch { zet(was); }
+    b.disabled = false;
+    if (soort === 'foto' && fotos) toonFotos();     // badge on the tile
+  });
+
+  // ---- Kampvuur messages: shared by Kletsen, the stories and the big photo view ----
+  // reacties: all visible messages, oldest first (see data.js). Bubbles look the same everywhere.
+  let reacties = [], reactiesKlaar = false;
+  const GEZIEN = 'reunie25.kampvuur.gezien';           // last time Kletsen was opened, in this browser
+  const leesGezien = () => { try { return localStorage.getItem(GEZIEN); } catch { return null; } };
+  // Yellow stripes on this page view: new since you last opened Kletsen (none on a first visit,
+  // then everything would be yellow). The tile and the menu count the last 7 days on a first visit.
+  const vorigeKeer = Date.parse(leesGezien() || '') || Date.now();
+  const bij = (soort, ref) => reacties.filter(r => r.soort === soort && r.ref === ref);
+  const isNieuweR = r => !r.eigen && Date.parse(r.aangemaakt) > vorigeKeer;
+
+  function wanneer(iso) {
+    const d = new Date(iso), nu = new Date(), dag = 864e5;
+    const tijd = d.toLocaleTimeString('nl-NL', { hour: '2-digit', minute: '2-digit' });
+    const dagen = Math.round((new Date(nu.toDateString()) - new Date(d.toDateString())) / dag);
+    if (dagen <= 0) return 'vandaag ' + tijd;
+    if (dagen === 1) return 'gisteren ' + tijd;
+    if (dagen < 7) return d.toLocaleDateString('nl-NL', { weekday: 'short' }) + ' ' + tijd;
+    return d.toLocaleDateString('nl-NL', { day: 'numeric', month: 'short', year: d.getFullYear() === nu.getFullYear() ? undefined : 'numeric' });
+  }
+  // Name as shown on "Wie doen er mee?"; the author of an item shared without a name stays anonymous.
+  const wieR = r => Reunie.naam(r) || (r.schrijver ? (r.soort === 'foto' ? 'wie de foto deelde' : 'de schrijver') : 'iemand van de club');
+  const GEZICHTEN = {};                                 // profile photo path -> signed URL
+  const KLEUR = ['#2c4696', '#c0632b', '#3a8a5b', '#7a4fb0', '#b03a5b', '#3a7ab0', '#8a6d1f', '#4a7d74'];
+  function rondje(r, klein) {
+    const c = klein ? 'av s' : 'av';
+    if (r.gezicht && GEZICHTEN[r.gezicht]) return `<img class="${c}" src="${E(GEZICHTEN[r.gezicht])}" alt="">`;
+    const n = Reunie.naam(r);
+    if (!n) return `<span class="${c} anon" aria-hidden="true">${r.schrijver ? '✎' : '?'}</span>`;
+    const k = KLEUR[[...n].reduce((a, ch) => a + ch.charCodeAt(0), 0) % KLEUR.length];
+    return `<span class="${c}" style="background:${k}" aria-hidden="true">${E([...n][0].toUpperCase())}</span>`;
+  }
+  async function laadGezichten() {
+    const nodig = [...new Set(reacties.map(r => r.gezicht).filter(p => p && !GEZICHTEN[p]))];
+    if (!nodig.length) return;
+    const urls = await Data.fotoUrls(nodig.map(p => p + '.jpg')).catch(() => ({}));
+    for (const p of nodig) if (urls[p + '.jpg']) GEZICHTEN[p] = urls[p + '.jpg'];
+  }
+  const tekstHtml = t => E(t).replace(/\n/g, '<br>');
+  // Under a message: your own can go, someone else's can be reported; the comité can remove any.
+  const rActies = r => r.eigen ? `<button class="linkbtn zacht" type="button" data-r-weg="${E(r.id)}">Verwijderen</button>`
+    : `<button class="linkbtn zacht" type="button" data-r-meld="${E(r.id)}">Meld het</button>`
+      + (comite ? `<button class="linkbtn zacht" type="button" data-r-weg="${E(r.id)}" data-comite="1">Weghalen</button>` : '');
+  function bubbel(r) {
+    const label = r.schrijver && Reunie.naam(r) ? ` <span class="pill">${r.soort === 'foto' ? 'deelde de foto' : 'schrijver'}</span>` : '';
+    return `<div class="re${r.eigen ? ' zelf' : ''}${isNieuweR(r) ? ' nieuw' : ''}" id="r-${E(r.id)}">${rondje(r, true)}<div>
+        <div class="bubbel"><b>${E(r.eigen ? Reunie.naam(r) || 'jij' : wieR(r))}</b>${label}<span class="wanneer">${wanneer(r.aangemaakt)}</span><br>${tekstHtml(r.tekst)}</div>
+        <div class="mini">${rActies(r)}</div></div></div>`;
+  }
+  // Small form to react: data-doel = 'verhaal:<id>', 'foto:<id>' or 'ouder:<id>'.
+  const reageerVeld = (doel, tekst = 'Schrijf een reactie…', hidden = false) =>
+    `<form class="antw" data-doel="${E(doel)}" novalidate${hidden ? ' hidden' : ''}><input maxlength="500" placeholder="${E(tekst)}" aria-label="${E(tekst)}" autocomplete="off"><button class="btn" type="submit">Plaats</button></form>`;
+  const reactiesWoord = n => n === 1 ? '1 reactie' : `${n} reacties`;
+
+  async function laadReacties() {
+    reacties = await Data.reacties();
+    reactiesKlaar = true;
+    await laadGezichten();
+  }
+
+  // Place a message from any form (Kletsen, an answer, under a story or a photo).
+  async function plaats(tekst, doel) {
+    const [soort, id] = doel ? doel.split(':') : [];
+    await Data.plaatsReactie(tekst, soort ? { [soort]: id } : {});
+    await laadReacties();
+    toonAlles();
+  }
+  document.addEventListener('submit', async e => {
+    const f = e.target.closest('form.antw');
+    if (!f) return;
+    e.preventDefault();
+    const veld = f.querySelector('input'), knop = f.querySelector('button'), tekst = veld.value.trim();
+    if (!tekst) return veld.focus();
+    knop.disabled = true; veld.value = '';       // empty first: the list is drawn again with what is typed
+    try { await plaats(tekst, f.dataset.doel); }
+    catch (err) { veld.value = tekst; alert('Plaatsen lukte niet: ' + err.message); knop.disabled = false; }
+  });
+  document.addEventListener('click', async e => {
+    const b = e.target.closest('button[data-r-weg], button[data-r-meld]');
+    if (!b) return;
+    if (b.dataset.rMeld) return meld('reactie', b.dataset.rMeld);
+    const vraag = b.dataset.comite ? 'Dit bericht weghalen? Reacties erop gaan mee. Dat kan niet ongedaan worden gemaakt.'
+      : 'Je bericht verwijderen? Dat kan niet ongedaan worden gemaakt.';
+    if (!confirm(vraag)) return;
+    b.disabled = true;
+    try { await Data.verwijderReactie(b.dataset.rWeg); await laadReacties(); toonAlles(); }
+    catch (err) { alert('Dat lukte niet: ' + err.message); b.disabled = false; }
+  });
+  // After a change: every place that shows messages.
+  function toonAlles() {
+    toonKletsen();
+    if (verhalen.length) toon();
+    if ($('lb').open && zichtbaar[lbIndex]) toonLbReacties(zichtbaar[lbIndex]);
+  }
+
+  // ---- list ------------------------------------------------------------------
+
+  // Blank line = new paragraph, single line break kept.
+  const alineas = t => t.split(/\n\s*\n/).map(p => `<p>${E(p.trim()).replace(/\n/g, '<br>')}</p>`).join('');
+  const door = v => v.eigen ? 'jou' : (Reunie.naam(v) || 'iemand van de club');
+  const LABEL = {
+    nieuw: '<span class="pill wacht">wordt binnenkort geplaatst</span>',
+    afgewezen: '<span class="pill">niet geplaatst</span>',
+    gemeld: '<span class="pill">tijdelijk verborgen</span>',
+  };
+
+  function kaart(v) {
+    const lang = v.tekst.length > KORT && !open.has(v.id);
+    const tekst = lang ? v.tekst.slice(0, KORT - 100).replace(/\s+\S*$/, '') + '…' : v.tekst;
+    const chips = [v.speltak, v.jaar].filter(Boolean).map(c => `<span class="chip">${E(c)}</span>`).join('');
+    const acties = v.eigen
+      ? `<button class="linkbtn" type="button" data-bewerk="${E(v.id)}">Aanpassen</button><button class="linkbtn" type="button" data-weg="${E(v.id)}">Verwijderen</button>`
+      : `<button class="linkbtn zacht" type="button" data-meld="${E(v.id)}">Sta jij hierin en wil je dat niet? Meld het</button>`;
+    // Reactions: only on placed stories, folded in until you open them.
+    const re = v.status === 'geplaatst' && reactiesKlaar ? bij('verhaal', v.id) : null;
+    const reKnop = re ? `<button class="hart re-knop${reOpen.has(v.id) ? ' aan' : ''}" type="button" data-reacties="${E(v.id)}" aria-expanded="${reOpen.has(v.id)}">💬 ${re.length ? reactiesWoord(re.length) : 'Reageer'}</button>` : '';
+    const rePaneel = re && reOpen.has(v.id) ? `<div class="draad onder">${re.map(bubbel).join('')}${reageerVeld('verhaal:' + v.id)}</div>` : '';
+    return `<article class="verhaal${v.eigen ? ' eigen' : ''}" id="verhaal-${E(v.id)}">
+      <h3>${E(v.titel)}</h3>
+      <div class="meta">${chips} gedeeld door ${E(door(v))}${v.eigen && LABEL[v.status] ? ' · ' + LABEL[v.status] : ''}</div>
+      ${v.eigen && v.status === 'afgewezen' ? `<p class="note">${v.toelichting ? `Opmerking: ${E(v.toelichting)}<br>` : ''}Pas je verhaal aan om het opnieuw in te sturen.</p>` : ''}
+      ${alineas(tekst)}
+      <div class="voet">${hart('verhaal', v)}${reKnop}${v.tekst.length > KORT ? `<button class="linkbtn" type="button" data-open="${E(v.id)}">${lang ? 'Lees verder' : 'Minder'}</button>` : ''}${acties}${Overleg.knop('verhaal', v.id, v.titel)}</div>
+      ${rePaneel}
+    </article>`;
+  }
+
+  function toon() {
+    const q = $('zoek').value.trim().toLowerCase(), t = $('f-speltak').value, j = +$('f-jaar').value;
+    const rijen = verhalen.filter(v => (!q || `${v.titel} ${v.tekst} ${door(v)}`.toLowerCase().includes(q))
+      && (!t || v.speltak === t) && (!j || v.jaar === j));
+    const geplaatst = verhalen.filter(v => v.status === 'geplaatst').length;
+    deurVerhalen();
+    $('telling').innerHTML = q || t || j ? `<b>${rijen.length}</b> van de ${verhalen.length} verhalen`
+      : geplaatst ? `Al <b>${geplaatst}</b> ${geplaatst === 1 ? 'verhaal' : 'verhalen'} gedeeld!` : '';
+    $('lijst').innerHTML = rijen.map(kaart).join('')
+      || (verhalen.length ? '<p class="muted">Geen verhalen gevonden.</p>'
+                          : '<div class="card lege"><p style="margin:0"><b>Nog geen verhalen.</b> Deel jij de eerste?</p></div>');
+  }
+
+  async function laad() {
+    [verhalen] = await Promise.all([Data.verhalen(), laadHartjes()]);
+    toon();
+  }
+
+  ['zoek', 'f-speltak', 'f-jaar'].forEach(id => $(id).addEventListener('input', toon));
+  Overleg.klaar.then(ja => { if (ja && verhalen.length) toon(); });
+
+  $('lijst').addEventListener('click', async e => {
+    const b = e.target.closest('button');
+    if (!b) return;
+    if (b.dataset.open) { open.has(b.dataset.open) ? open.delete(b.dataset.open) : open.add(b.dataset.open); toon(); }
+    else if (b.dataset.reacties) {
+      const id = b.dataset.reacties, aan = !reOpen.has(id);
+      aan ? reOpen.add(id) : reOpen.delete(id);
+      toon();
+      if (aan) document.querySelector(`#verhaal-${CSS.escape(id)} .antw input`)?.focus({ preventScroll: true });
+    }
+    else if (b.dataset.bewerk) formulier(verhalen.find(v => v.id === b.dataset.bewerk));
+    else if (b.dataset.weg) {
+      if (!confirm('Dit verhaal verwijderen? Dat kan niet ongedaan worden gemaakt.')) return;
+      b.disabled = true;
+      try { await Data.verwijderVerhaal(b.dataset.weg); $('bedankt').hidden = true; await laad(); }
+      catch (err) { alert('Verwijderen lukte niet: ' + err.message); b.disabled = false; }
+    } else if (b.dataset.meld) meld('verhaal', b.dataset.meld);
+  });
+
+  // Report a story or a photo: hidden at once, the comité gets it.
+  function meld(soort, id) {
+    teMelden = { soort, id };
+    $('meld-kop').textContent = { foto: 'Foto melden', verhaal: 'Verhaal melden', reactie: 'Bericht melden' }[soort];
+    $('meld-tekst').textContent = {
+      foto: 'Sta je op deze foto en wil je dat liever niet, of klopt er iets niet? Na het melden is de foto meteen niet meer te zien.',
+      verhaal: 'Sta je in dit verhaal en wil je dat liever niet, of klopt er iets niet? Na het melden is het verhaal meteen niet meer te zien.',
+      reactie: 'Vind je dit bericht niet oké? Na het melden is het meteen niet meer te zien.',
+    }[soort] + ' Het reüniecomité kijkt ernaar en neemt zo nodig contact met je op.';
+    $('meld-reden').value = ''; $('meld-fout').hidden = true;
+    $('meld').showModal();
+  }
+
+  $('meld-form').addEventListener('submit', async e => {
+    if (e.submitter?.value !== 'ja') return;
+    e.preventDefault();
+    $('meld-ok').disabled = true;
+    const { soort, id } = teMelden, reden = $('meld-reden').value;
+    try {
+      let doel;
+      if (soort === 'foto') { await Data.meldFoto(id, reden); $('lb').close(); await laadFotos(); doel = $('f-bedankt'); }
+      else if (soort === 'verhaal') { await Data.meldVerhaal(id, reden); await laad(); doel = $('bedankt'); }
+      else {
+        await Data.meldReactie(id, reden); await laadReacties(); toonAlles();
+        doel = $('tab-kletsen').hidden ? null : $('k-bedankt');
+      }
+      $('meld').close();
+      const wat = { foto: 'De foto', verhaal: 'Het verhaal', reactie: 'Het bericht' }[soort];
+      if (doel) { doel.textContent = `Dank je wel voor je melding. ${wat} is niet meer te zien.`; doel.hidden = false; }
+    } catch (err) { $('meld-fout').textContent = err.message; $('meld-fout').hidden = false; }
+    $('meld-ok').disabled = false;
+  });
+
+  // ---- form --------------------------------------------------------------------
+
+  function formulier(v) {
+    bewerkId = v?.id || null;
+    $('form-kop').textContent = v ? 'Verhaal aanpassen' : 'Deel een verhaal';
+    $('insturen').textContent = v ? 'Opslaan' : 'Verhaal insturen';
+    $('v-titel').value = v?.titel || ''; $('v-tekst').value = v?.tekst || '';
+    $('v-speltak').value = v?.speltak || ''; $('v-jaar').value = v?.jaar || '';
+    $('v-naam').checked = v ? v.toon_naam !== false : true;
+    $('form-fout').hidden = true; $('bedankt').hidden = true;
+    teller();
+    $('form').hidden = false; $('nieuw').hidden = true;
+    $('form').scrollIntoView({ behavior: 'smooth', block: 'start' });
+    $('v-titel').focus({ preventScroll: true });
+  }
+  const sluit = () => { $('form').hidden = true; $('nieuw').hidden = false; bewerkId = null; };
+  const teller = () => { $('teller').textContent = `${$('v-tekst').value.length} / 3000 tekens`; };
+
+  $('nieuw').addEventListener('click', () => formulier(null));
+  $('annuleer').addEventListener('click', sluit);
+  $('v-tekst').addEventListener('input', teller);
+
+  $('form').addEventListener('submit', async e => {
+    e.preventDefault();
+    const v = { id: bewerkId, titel: $('v-titel').value.trim(), tekst: $('v-tekst').value.trim(),
+      speltak: $('v-speltak').value || null, jaar: +$('v-jaar').value || null, toon_naam: $('v-naam').checked };
+    const f = !v.titel ? 'Geef je verhaal een titel.' : !v.tekst ? 'Je verhaal is nog leeg.' : '';
+    $('form-fout').textContent = f; $('form-fout').hidden = !f;
+    if (f) return;
+    $('insturen').disabled = true;
+    try {
+      await Data.bewaarVerhaal(v);
+      const was = bewerkId;
+      sluit();
+      await laad();
+      $('bedankt').textContent = was ? 'Je aanpassing is opgeslagen. Je verhaal verschijnt zo snel mogelijk weer bij het kampvuur.'
+                                     : 'Bedankt voor je verhaal! Het verschijnt zo snel mogelijk bij het kampvuur. Jij ziet het hier nu al staan.';
+      $('bedankt').hidden = false;
+      $('bedankt').scrollIntoView({ behavior: 'smooth', block: 'center' });
+    } catch (err) { $('form-fout').textContent = err.message; $('form-fout').hidden = false; }
+    $('insturen').disabled = false;
+  });
+
+  // ---- photos ------------------------------------------------------------------
+
+  const MAX = 30;
+  let fotos = null, zichtbaar = [], urls = {}, lbIndex = 0, keuzes = [];
+  let comite = false;      // comité members may change the details of any photo
+  if (Data.ingelogd()) Data.beheerder().then(ja => { comite = ja; }).catch(() => {});
+  const fotoLabel = { nieuw: 'binnenkort', gemeld: 'tijdelijk verborgen' };
+
+  // ---- the two "doors" at the top: count plus a taste of what's behind ----
+  function deurVerhalen() {
+    const g = verhalen.filter(v => v.status === 'geplaatst');
+    const nieuwste = g.reduce((a, v) => !a || v.aangemaakt > a.aangemaakt ? v : a, null);
+    $('d-verhalen-n').textContent = g.length;
+    $('d-verhalen-voor').textContent = nieuwste ? 'Nieuwste: ' + nieuwste.titel : 'Schrijf jij het eerste?';
+  }
+  function deurFotos() {
+    const g = fotos.filter(f => f.status === 'geplaatst');     // newest first
+    $('d-fotos-n').textContent = g.length;
+    $('d-fotos-voor').innerHTML = g.length
+      ? g.slice(0, 3).map(f => `<img src="${E(urls[f.pad + '-klein.jpg'] || '')}" alt="">`).join('')
+      : 'Deel jij de eerste?';
+  }
+
+  function toonFotos() {
+    deurFotos();
+    const t = $('ff-speltak').value, j = +$('ff-jaar').value;
+    zichtbaar = fotos.filter(f => (!t || f.speltak === t) && (!j || f.jaar === j));
+    const geplaatst = fotos.filter(f => f.status === 'geplaatst').length;
+    $('f-telling').innerHTML = t || j ? `<b>${zichtbaar.length}</b> van de ${fotos.length} foto's`
+      : geplaatst ? `Al <b>${geplaatst}</b> ${geplaatst === 1 ? 'foto' : "foto's"} gedeeld!` : '';
+    $('f-grid').innerHTML = zichtbaar.map((f, i) => `<button type="button" class="tegel${f.eigen ? ' eigen' : ''}" data-i="${i}">
+        ${f.eigen && fotoLabel[f.status] ? `<span class="label pill wacht">${fotoLabel[f.status]}</span>` : ''}
+        <img src="${E(urls[f.pad + '-klein.jpg'] || '')}" alt="${E(f.titel)}" loading="lazy">${hartje(f)}
+        <span class="onder"><b>${E(f.titel) || '&nbsp;'}</b><span>${E([f.speltak, f.jaar, f.eigen ? 'door jou' : ''].filter(Boolean).join(' · '))}</span></span>
+      </button>`).join('')
+      || (fotos.length ? '<p class="muted">Geen foto\'s gevonden.</p>'
+                       : '<div class="card lege" style="grid-column:1/-1"><p style="margin:0"><b>Nog geen foto\'s.</b> Deel jij de eerste?</p></div>');
+  }
+
+  async function laadFotos() {
+    let af = [];
+    try {
+      [fotos, af] = await Promise.all([Data.fotos(), Data.afgewezenFotos().catch(() => []), laadHartjes()]);
+      Object.assign(urls, await Data.fotoUrls([...fotos, ...af].map(f => f.pad + '-klein.jpg')));
+    } catch (err) { $('f-telling').textContent = err.message; return; }
+    toonFotos();
+    toonAfgewezen(af);
+    toonKletsen();
+  }
+
+  // Your own rejected photos: thumbnail plus the comité's note, until you click them away.
+  function toonAfgewezen(af) {
+    $('f-afgewezen').hidden = !af.length;
+    $('f-afgewezen').innerHTML = af.length ? `<h2 style="margin:0 0 10px">Niet geplaatst</h2>` + af.map(f => `<div class="afgewezen" data-id="${E(f.id)}">
+        <img src="${E(urls[f.pad + '-klein.jpg'] || '')}" alt="${E(f.titel)}">
+        <div><b>${f.titel ? E(f.titel) : '<span class="muted" style="font-weight:400">(geen titel)</span>'}</b><br>
+          ${f.toelichting ? `<span class="muted">Het comité schreef:</span> “${E(f.toelichting)}”` : '<span class="muted">Deze foto heeft het comité niet geplaatst.</span>'}
+          <div class="acties" style="margin-top:6px"><button class="btn ghost" type="button" data-weg="${E(f.id)}">Oké, weghalen</button></div></div>
+      </div>`).join('') : '';
+  }
+  $('f-afgewezen').addEventListener('click', async e => {
+    const b = e.target.closest('button[data-weg]');
+    if (!b) return;
+    b.disabled = true;
+    try { await Data.verwijderFoto(b.dataset.weg); await laadFotos(); }
+    catch (err) { alert('Weghalen lukte niet: ' + err.message); b.disabled = false; }
+  });
+  ['ff-speltak', 'ff-jaar'].forEach(id => $(id).addEventListener('input', toonFotos));
+
+  // ---- big view (lightbox): arrows, swipe, Esc ----
+  async function toonGroot(i) {
+    lbIndex = (i + zichtbaar.length) % zichtbaar.length;
+    const f = zichtbaar[lbIndex], groot = f.pad + '.jpg';
+    $('lb-img').src = urls[f.pad + '-klein.jpg'] || '';           // sharp version follows
+    $('lb-img').alt = f.titel;
+    const chips = [f.speltak, f.jaar].filter(Boolean).map(c => `<span class="chip">${E(c)}</span>`).join('');
+    $('lb-tekst').innerHTML = `${f.titel ? `<b>${E(f.titel)}</b><br>` : ''}${chips} <span class="zacht">gedeeld door ${E(f.eigen ? 'jou' : Reunie.naam(f) || 'iemand van de club')}</span>`
+      + (hart('foto', f) ? `<div class="lb-hart">${hart('foto', f)}</div>` : '');
+    $('lb-nr').textContent = `${lbIndex + 1} / ${zichtbaar.length}`;
+    const aanpassen = f.eigen || comite ? `<button class="linkbtn" type="button" id="lb-bewerk">Aanpassen</button> ` : '';
+    const ov = Overleg.knop('foto', f.id, f.titel || 'zonder titel');
+    $('lb-actie').innerHTML = aanpassen + (f.eigen ? `<button class="linkbtn" type="button" id="lb-weg">Verwijderen</button>`
+      : `<button class="linkbtn" type="button" id="lb-meld">Sta jij hierop en wil je dat niet? Meld het</button>`) + (ov ? '<br>' + ov : '');
+    $('lb-vorige').hidden = $('lb-volgende').hidden = zichtbaar.length < 2;
+    toonLbReacties(f);
+    if (!$('lb').open) $('lb').showModal();
+    if (!urls[groot]) Object.assign(urls, await Data.fotoUrls([groot]).catch(() => ({})));
+    if (zichtbaar[lbIndex] === f && urls[groot]) $('lb-img').src = urls[groot];
+  }
+  // Reactions beside the photo (below it on a phone); only on placed photos.
+  function toonLbReacties(f) {
+    const p = $('lb-reacties'), re = f.status === 'geplaatst' && reactiesKlaar ? bij('foto', f.id) : null;
+    p.hidden = !re;
+    $('lb').classList.toggle('met-reacties', !!re);
+    if (!re) { p.innerHTML = ''; return; }
+    const was = p.dataset.foto === f.id ? p.querySelector('.antw input')?.value : '';
+    p.dataset.foto = f.id;
+    p.innerHTML = `<b class="re-kop">💬 ${re.length ? reactiesWoord(re.length) : 'Nog geen reacties'}</b>
+      <div class="draad">${re.map(bubbel).join('') || '<p class="zacht" style="margin:0">Weet jij nog wanneer dit was, of wie erop staan? Reageer!</p>'}</div>
+      ${reageerVeld('foto:' + f.id)}`;
+    if (was) p.querySelector('.antw input').value = was;
+  }
+  $('f-grid').addEventListener('click', e => { const b = e.target.closest('button[data-i]'); if (b) toonGroot(+b.dataset.i); });
+  $('lb-vorige').addEventListener('click', () => toonGroot(lbIndex - 1));
+  $('lb-volgende').addEventListener('click', () => toonGroot(lbIndex + 1));
+  $('lb-sluit').addEventListener('click', () => $('lb').close());
+  $('lb').addEventListener('click', e => { if (e.target === $('lb')) $('lb').close(); });   // click beside the photo
+  $('lb').addEventListener('keydown', e => {
+    if (e.target.closest('form')) return;      // typing in the edit form
+    if (e.key === 'ArrowLeft') toonGroot(lbIndex - 1);
+    if (e.key === 'ArrowRight') toonGroot(lbIndex + 1);
+  });
+  let veegX = null;
+  $('lb').addEventListener('touchstart', e => { veegX = e.target.closest('.lb-reacties') ? null : e.touches[0].clientX; }, { passive: true });
+  $('lb').addEventListener('touchend', e => {
+    const dx = veegX == null ? 0 : e.changedTouches[0].clientX - veegX;
+    if (Math.abs(dx) > 50) toonGroot(lbIndex + (dx < 0 ? 1 : -1));
+    veegX = null;
+  });
+  $('lb-actie').addEventListener('click', async e => {
+    const f = zichtbaar[lbIndex];
+    if (e.target.id === 'lb-meld') meld('foto', f.id);
+    if (e.target.id === 'lb-bewerk') bewerkFoto(f);
+    if (e.target.id === 'lb-weg') {
+      if (!confirm('Deze foto verwijderen? Dat kan niet ongedaan worden gemaakt.')) return;
+      e.target.disabled = true;
+      try { await Data.verwijderFoto(f.id); $('lb').close(); $('f-bedankt').hidden = true; await laadFotos(); }
+      catch (err) { alert('Verwijderen lukte niet: ' + err.message); e.target.disabled = false; }
+    }
+  });
+
+  // ---- change title, speltak and year (the photo itself stays, so no new review) ----
+  function bewerkFoto(f) {
+    $('lb-tekst').innerHTML = `<form class="lb-form" id="lb-form" novalidate>
+        <input id="lb-titel" maxlength="80" placeholder="Titel" aria-label="Titel" value="${E(f.titel)}">
+        <select id="lb-speltak" aria-label="Speltak">${$('fu-speltak').innerHTML}</select>
+        <select id="lb-jaar" aria-label="Jaar">${$('fu-jaar').innerHTML}</select>
+        <button class="btn" type="submit">Opslaan</button>
+        <button class="linkbtn" type="button" id="lb-terug">Annuleren</button>
+        <span class="err" id="lb-fout" hidden></span>
+      </form>`;
+    $('lb-speltak').value = f.speltak || ''; $('lb-jaar').value = f.jaar || '';
+    $('lb-actie').innerHTML = '';
+    $('lb-titel').focus();
+    $('lb-terug').addEventListener('click', () => toonGroot(lbIndex));
+    $('lb-form').addEventListener('submit', async e => {
+      e.preventDefault();
+      const nieuw = { titel: $('lb-titel').value.trim(), speltak: $('lb-speltak').value || null, jaar: +$('lb-jaar').value || null };
+      e.submitter.disabled = true;
+      try {
+        await Data.bewerkFoto(f.id, nieuw);
+        Object.assign(f, nieuw);
+        toonFotos();
+        const i = zichtbaar.indexOf(f);    // a filter may hide it now
+        i >= 0 ? toonGroot(i) : $('lb').close();
+      } catch (err) {
+        $('lb-fout').textContent = 'Opslaan lukte niet: ' + err.message; $('lb-fout').hidden = false;
+        e.submitter.disabled = false;
+      }
+    });
+  }
+
+  // ---- sharing: resize in the browser (also drops location and other hidden data) ----
+  async function verklein(bestand, max) {
+    const url = URL.createObjectURL(bestand);
+    try {
+      const img = new Image();
+      img.src = url;
+      await img.decode();
+      const f = Math.min(1, max / Math.max(img.naturalWidth, img.naturalHeight));
+      const w = Math.round(img.naturalWidth * f), h = Math.round(img.naturalHeight * f);
+      const c = document.createElement('canvas');
+      c.width = w; c.height = h;
+      const ctx = c.getContext('2d');
+      ctx.fillStyle = '#fff'; ctx.fillRect(0, 0, w, h);          // transparent PNG: white, not black
+      ctx.drawImage(img, 0, 0, w, h);
+      let q = 0.82, blob;
+      do { blob = await new Promise(ok => c.toBlob(ok, 'image/jpeg', q)); q -= 0.1; } while (blob && blob.size > 950e3 && q > 0.4);
+      if (!blob) throw new Error('jpeg');
+      return { blob, w, h };
+    } finally { URL.revokeObjectURL(url); }
+  }
+
+  const ruimte = () => MAX - (fotos || []).filter(f => f.eigen).length;
+  function toonKeuzes() {
+    $('f-keuzes').innerHTML = keuzes.map((k, i) => `<div class="keuze">
+        ${k.voorbeeld ? `<img class="mini" src="${k.voorbeeld}" alt="">` : '<span class="mini"></span>'}
+        ${k.fout || !k.klein ? `<span class="muted" style="font-size:14px">${E(k.naam)}: ${E(k.fout || 'even geduld…')}</span>`
+                 : `<label style="font-weight:400"><span>Titel <span class="muted">(optioneel)</span></span><input data-titel="${i}" maxlength="80" value="${E(k.titel)}" placeholder="bijv. Hike naar Asten"></label>`}
+        <button class="linkbtn" type="button" data-weg="${i}">Weghalen</button>
+      </div>`).join('');
+    const goed = keuzes.filter(k => k.klein).length;
+    $('f-insturen').disabled = !goed;
+    $('f-insturen').textContent = goed ? `${goed} ${goed === 1 ? 'foto' : "foto's"} insturen` : "Foto's insturen";
+    $('f-voor-alle').textContent = goed > 1 ? `(voor alle ${goed})` : '(optioneel)';
+    const over = ruimte() - goed;
+    $('f-ruimte').textContent = over < 0 ? `Je kunt er nog ${ruimte()} delen; haal er ${-over} weg.` : `Je kunt er nog ${over} delen.`;
+  }
+
+  async function voegToe(bestanden) {
+    for (const b of bestanden) {
+      const k = { naam: b.name, bestand: b, titel: '' };
+      keuzes.push(k);
+      try { const v = await verklein(b, 400); k.klein = v.blob; k.voorbeeld = URL.createObjectURL(v.blob); }
+      catch { k.fout = 'deze foto kunnen we niet openen. Probeer een JPG of PNG.'; }
+      toonKeuzes();
+    }
+  }
+
+  function fotoFormulier(open) {
+    keuzes.forEach(k => k.voorbeeld && URL.revokeObjectURL(k.voorbeeld));
+    keuzes = [];
+    $('f-form').hidden = !open; $('f-nieuw').hidden = open;
+    $('f-fout').hidden = true; $('f-voortgang').hidden = true; $('f-bestanden').value = '';
+    if (open) { $('f-bedankt').hidden = true; toonKeuzes(); $('f-form').scrollIntoView({ behavior: 'smooth', block: 'start' }); }
+  }
+  $('f-nieuw').addEventListener('click', () => fotoFormulier(true));
+  $('f-annuleer').addEventListener('click', () => fotoFormulier(false));
+  $('f-bestanden').addEventListener('change', e => voegToe([...e.target.files]));
+  $('f-drop').addEventListener('dragover', e => { e.preventDefault(); $('f-drop').classList.add('over'); });
+  $('f-drop').addEventListener('dragleave', () => $('f-drop').classList.remove('over'));
+  $('f-drop').addEventListener('drop', e => {
+    e.preventDefault(); $('f-drop').classList.remove('over');
+    voegToe([...e.dataTransfer.files].filter(f => f.type.startsWith('image/')));
+  });
+  $('f-keuzes').addEventListener('input', e => { const i = e.target.dataset.titel; if (i != null) keuzes[i].titel = e.target.value; });
+  $('f-keuzes').addEventListener('click', e => {
+    const i = e.target.dataset.weg;
+    if (i == null) return;
+    const [k] = keuzes.splice(+i, 1);
+    if (k.voorbeeld) URL.revokeObjectURL(k.voorbeeld);
+    toonKeuzes();
+  });
+
+  $('f-form').addEventListener('submit', async e => {
+    e.preventDefault();
+    const goed = keuzes.filter(k => k.klein);
+    if (!goed.length) return;
+    if (goed.length > ruimte()) { $('f-fout').textContent = `Je kunt er nog ${ruimte()} delen. Haal er een paar weg.`; $('f-fout').hidden = false; return; }
+    $('f-fout').hidden = true; $('f-insturen').disabled = true; $('f-voortgang').hidden = false;
+    const stap = (i, tekst) => { $('f-voortgang-tekst').textContent = tekst; $('f-balk').style.width = `${Math.round(100 * i / goed.length)}%`; };
+    try {
+      const items = [];
+      for (const [i, k] of goed.entries()) {
+        stap(i, `Foto ${i + 1} van ${goed.length} verkleinen…`);
+        const g = await verklein(k.bestand, 1600);
+        items.push({ groot: g.blob, klein: k.klein, breedte: g.w, hoogte: g.h, titel: k.titel.trim() });
+      }
+      await Data.stuurFotos(items, { speltak: $('fu-speltak').value || null, jaar: +$('fu-jaar').value || null, toon_naam: $('f-naam').checked },
+        i => stap(i, i < goed.length ? `Foto ${i + 1} van ${goed.length} versturen…` : 'Klaar!'));
+      const n = goed.length;
+      fotoFormulier(false);
+      await laadFotos();
+      $('f-bedankt').textContent = `Bedankt voor je ${n === 1 ? 'foto' : "foto's"}! ${n === 1 ? 'Hij verschijnt' : 'Ze verschijnen'} zo snel mogelijk bij het kampvuur. Jij ziet ${n === 1 ? 'hem' : 'ze'} hier nu al staan.`;
+      $('f-bedankt').hidden = false;
+      $('f-bedankt').scrollIntoView({ behavior: 'smooth', block: 'center' });
+    } catch (err) {
+      $('f-fout').textContent = err.message; $('f-fout').hidden = false;
+      $('f-insturen').disabled = false;
+      await laadFotos();       // some may have been sent already
+      toonKeuzes();
+    }
+  });
+
+  // ---- Kletsen: loose messages and reactions together, latest activity first ----
+  // A thread is a loose message with its answers, or all reactions on one story or photo.
+  let kFilter = 'alles', aantalTonen = 15;
+  const alleAntw = new Set(), antwOpen = new Set();     // threads: all answers shown / reply field open
+  function draden() {
+    const los = new Map(), items = new Map();
+    for (const r of reacties) if (r.soort === 'los') los.set(r.id, { soort: 'los', sleutel: r.id, r, re: [], laatst: r.aangemaakt });
+    for (const r of reacties) {
+      if (r.soort === 'antwoord') {
+        const d = los.get(r.ref);
+        if (d) { d.re.push(r); d.laatst = r.aangemaakt; }
+      } else if (r.soort === 'verhaal' || r.soort === 'foto') {
+        const k = r.soort + ':' + r.ref, d = items.get(k) || { soort: r.soort, sleutel: k, ref: r.ref, re: [] };
+        d.re.push(r); d.laatst = r.aangemaakt;
+        items.set(k, d);
+      }
+    }
+    return [...los.values(), ...items.values()].sort((a, b) => b.laatst.localeCompare(a.laatst));
+  }
+  const roepnaam = r => r.eigen ? 'jij' : r.voornaam || r.bijnaam || wieR(r);
+  // Under a thread: shows the last two answers, "Toon alle N" for the rest, and the reply field.
+  function draadHtml(d, doel, placeholder) {
+    const verborgen = !alleAntw.has(d.sleutel) && d.re.length > 3;
+    const zicht = verborgen ? d.re.slice(-2) : d.re;
+    if (!zicht.length && !antwOpen.has(d.sleutel)) return '';
+    return `<div class="draad">${verborgen ? `<button class="linkbtn meer-re" type="button" data-alle="${E(d.sleutel)}">Toon alle ${d.re.length} reacties</button>` : ''}
+      ${zicht.map(bubbel).join('')}${reageerVeld(doel, placeholder, !antwOpen.has(d.sleutel))}</div>`;
+  }
+  function losKaart(d) {
+    const r = d.r, nieuw = isNieuweR(r) || d.re.some(isNieuweR);
+    return `<article class="post${nieuw ? ' nieuw' : ''}" id="bericht-${E(r.id)}">
+      <div class="kop">${rondje(r)}<div><span class="wie">${E(r.eigen ? Reunie.naam(r) || 'jij' : wieR(r))}</span><br><span class="wanneer">${wanneer(r.aangemaakt)}</span></div></div>
+      <p class="tekst">${tekstHtml(r.tekst)}</p>
+      <div class="voet"><button class="linkbtn" type="button" data-reageer="${E(d.sleutel)}">Reageer</button>${rActies(r)}</div>
+      ${draadHtml(d, 'ouder:' + r.id, `Reageer op ${roepnaam(r) === 'jij' ? 'je bericht' : roepnaam(r)}…`)}
+    </article>`;
+  }
+  function itemKaart(d) {
+    const verhaal = d.soort === 'verhaal';
+    const item = verhaal ? verhalen.find(v => v.id === d.ref) : (fotos || []).find(f => f.id === d.ref);
+    if (!item) return '';
+    const namen = [...new Set(d.re.slice().reverse().map(roepnaam))];
+    const wie = namen.length === 1 ? namen[0] : namen.length === 2 ? namen.join(' en ')
+      : `${namen.slice(0, 2).join(', ')} en ${namen.length - 2 === 1 ? '1 ander' : `${namen.length - 2} anderen`}`;
+    const laatste = d.re.at(-1), nieuw = d.re.some(isNieuweR);
+    const meta = [verhaal ? 'Verhaal' : 'Foto', item.speltak, item.jaar, `gedeeld door ${item.eigen ? 'jou' : Reunie.naam(item) || 'iemand van de club'}`].filter(Boolean).join(' · ');
+    const duim = verhaal ? '<span class="duim boek" aria-hidden="true">📖</span>'
+      : `<img class="duim" src="${E(urls[item.pad + '-klein.jpg'] || '')}" alt="">`;
+    return `<article class="post${nieuw ? ' nieuw' : ''}">
+      <div class="kop">${rondje(laatste)}<div><span class="wie">${E(wie.charAt(0).toUpperCase() + wie.slice(1))}</span>
+        <span class="soort">${namen.length === 1 && namen[0] !== 'jij' ? 'reageerde' : 'reageerden'} op ${verhaal ? 'een verhaal' : 'een foto'}</span><br><span class="wanneer">${wanneer(laatste.aangemaakt)}</span></div></div>
+      <button class="over" type="button" data-naar="${E(d.sleutel)}">${duim}<span><b>${E(item.titel || (verhaal ? 'Verhaal' : 'Foto zonder titel'))}</b><span>${E(meta)}</span></span></button>
+      ${draadHtml(d, d.sleutel, 'Schrijf een reactie…')}
+      <div class="voet"><button class="linkbtn" type="button" data-reageer="${E(d.sleutel)}">Reageer</button>
+        <button class="linkbtn" type="button" data-naar="${E(d.sleutel)}">${verhaal ? 'Naar het verhaal' : 'Bekijk de foto'} →</button></div>
+    </article>`;
+  }
+
+  // The tile: total, a taste of the newest message, and a yellow number for what is new to you.
+  function deurKletsen() {
+    $('d-kletsen-n').textContent = reacties.length;
+    const r = reacties.at(-1);
+    $('d-kletsen-voor').textContent = r ? `${roepnaam(r).replace(/^jij$/, 'Jij')}: “${r.tekst.replace(/\s+/g, ' ')}”` : 'Zeg jij als eerste iets?';
+    const sinds = Date.parse(leesGezien() || '') || Date.now() - 7 * 864e5;
+    const n = reacties.filter(x => !x.eigen && Date.parse(x.aangemaakt) > sinds).length;
+    $('d-kletsen-vlag').textContent = n; $('d-kletsen-vlag').hidden = !n;
+    $('d-kletsen-vlag').title = `${n} nieuw voor jou`;
+  }
+  // Opened Kletsen: everything up to now counts as seen (in this browser), also for the menu.
+  function zetGezien() {
+    try { localStorage.setItem(GEZIEN, new Date().toISOString()); } catch {}
+    $('d-kletsen-vlag').hidden = true;
+    const m = document.getElementById('vlag-kampvuur');
+    if (m) m.hidden = true;
+  }
+
+  function toonKletsen() {
+    if (!reactiesKlaar) return;
+    deurKletsen();
+    // Keep what someone is typing (and where) when the list is drawn again.
+    const bezig = {}, focus = document.activeElement?.closest?.('#stroom form.antw')?.dataset.doel;
+    $('stroom').querySelectorAll('form.antw').forEach(f => { const v = f.querySelector('input').value; if (v) bezig[f.dataset.doel] = v; });
+    const alle = draden().filter(d => kFilter === 'alles' || (kFilter === 'los') === (d.soort === 'los'));
+    const html = alle.slice(0, aantalTonen).map(d => d.soort === 'los' ? losKaart(d) : itemKaart(d)).join('');
+    $('stroom').innerHTML = html + (alle.length > aantalTonen ? '<p class="muted" style="text-align:center;margin:4px 0 0"><button class="linkbtn" type="button" id="k-meer">Toon oudere berichten</button></p>' : '')
+      || (reacties.length ? '<p class="muted">Hier staat nog niets.</p>'
+                          : '<div class="card lege"><p style="margin:0"><b>Het is nog stil rond het kampvuur.</b> Zeg jij als eerste iets?</p></div>');
+    $('stroom').querySelectorAll('form.antw').forEach(f => {
+      const v = bezig[f.dataset.doel];
+      if (v) { f.hidden = false; f.querySelector('input').value = v; }
+      if (f.dataset.doel === focus) f.querySelector('input').focus({ preventScroll: true });
+    });
+  }
+
+  $('k-filter').addEventListener('click', e => {
+    const b = e.target.closest('button[data-f]');
+    if (!b) return;
+    kFilter = b.dataset.f; aantalTonen = 15;
+    $('k-filter').querySelectorAll('button').forEach(x => x.classList.toggle('on', x === b));
+    toonKletsen();
+  });
+  $('stroom').addEventListener('click', async e => {
+    const b = e.target.closest('button');
+    if (!b) return;
+    if (b.id === 'k-meer') { aantalTonen += 15; toonKletsen(); }
+    else if (b.dataset.alle) { alleAntw.add(b.dataset.alle); toonKletsen(); }
+    else if (b.dataset.reageer) {
+      const k = b.dataset.reageer;
+      antwOpen.has(k) ? antwOpen.delete(k) : antwOpen.add(k);
+      toonKletsen();
+      if (antwOpen.has(k)) [...$('stroom').querySelectorAll('form.antw')].find(f => f.dataset.doel.endsWith(k.split(':').pop()))?.querySelector('input').focus();
+    } else if (b.dataset.naar) naarItem(b.dataset.naar);
+  });
+
+  // From Kletsen to the story (its reactions open) or the photo (big view on top of Kletsen).
+  async function naarItem(sleutel) {
+    const [soort, id] = sleutel.split(':');
+    if (soort === 'verhaal') {
+      open.add(id); reOpen.add(id);
+      tab('verhalen');
+      $('zoek').value = ''; $('f-speltak').value = ''; $('f-jaar').value = '';
+      toon();
+      const el = document.getElementById('verhaal-' + id);
+      if (el) { el.scrollIntoView({ block: 'start' }); el.classList.remove('gevonden'); void el.offsetWidth; el.classList.add('gevonden'); }
+    } else {
+      if (!fotos) await laadFotos();
+      $('ff-speltak').value = ''; $('ff-jaar').value = '';
+      toonFotos();
+      const i = zichtbaar.findIndex(f => f.id === id);
+      if (i >= 0) toonGroot(i);
+    }
+  }
+
+  $('zeg').addEventListener('submit', async e => {
+    e.preventDefault();
+    const tekst = $('zeg-tekst').value.trim();
+    if (!tekst) return $('zeg-tekst').focus();
+    $('zeg-knop').disabled = true; $('zeg-fout').hidden = true; $('k-bedankt').hidden = true;
+    try {
+      await plaats(tekst, null);
+      $('zeg-tekst').value = ''; zegTeller();
+      zetGezien();
+      $('stroom').scrollIntoView({ behavior: 'smooth', block: 'start' });
+    } catch (err) { $('zeg-fout').textContent = err.message; $('zeg-fout').hidden = false; }
+    $('zeg-knop').disabled = false;
+  });
+  // Cmd/Ctrl + Enter places the message; a plain Enter is a new line.
+  $('zeg-tekst').addEventListener('keydown', e => { if (e.key === 'Enter' && (e.metaKey || e.ctrlKey)) $('zeg').requestSubmit(); });
+  const zegTeller = () => { const n = $('zeg-tekst').value.length; $('zeg-teller').textContent = n > 400 ? `${n} / 500` : ''; };
+  $('zeg-tekst').addEventListener('input', zegTeller);
+
+  // Not live: fetch again every minute while the page is in view, and when you come back to it.
+  async function ververs() {
+    if (!reactiesKlaar || document.visibilityState !== 'visible') return;
+    const voor = reacties.map(r => r.id).join();
+    try { await laadReacties(); } catch { return; }
+    if (reacties.map(r => r.id).join() === voor) return;
+    toonKletsen();
+    if ($('lb').open && zichtbaar[lbIndex] && !$('lb-reacties').contains(document.activeElement)) toonLbReacties(zichtbaar[lbIndex]);
+    if (!$('tab-kletsen').hidden) zetGezien();
+  }
+  setInterval(ververs, 60e3);
+  document.addEventListener('visibilitychange', ververs);
+
+  // ---- tabs (remembered in the address: kampvuur.html#verhalen, #fotos; Kletsen has none) ----
+
+  function tab(naam) {
+    for (const t of ['verhalen', 'fotos', 'kletsen']) $('tab-' + t).hidden = naam !== t;
+    document.querySelectorAll('#tabs button').forEach(b => {
+      b.classList.toggle('on', b.dataset.tab === naam);
+      b.setAttribute('aria-selected', b.dataset.tab === naam);
+    });
+    history.replaceState(null, '', naam === 'kletsen' ? location.pathname : '#' + naam);
+    if (naam === 'fotos' && !fotos) laadFotos();
+    if (naam === 'kletsen' && reactiesKlaar) zetGezien();
+  }
+  $('tabs').addEventListener('click', e => { const b = e.target.closest('button[data-tab]'); if (b) tab(b.dataset.tab); });
+
+  // ---- start -------------------------------------------------------------------
+
+  function buiten(verhalen, fotos, berichten, ingelogd) {
+    const delen = [verhalen && `${verhalen} ${verhalen === 1 ? 'verhaal' : 'verhalen'}`, fotos && `${fotos} ${fotos === 1 ? 'foto' : "foto's"}`,
+      berichten && `${berichten} ${berichten === 1 ? 'bericht' : 'berichten'}`].filter(Boolean);
+    $('buiten-kop').textContent = delen.length ? `Al ${delen.length > 1 ? delen.slice(0, -1).join(', ') + ' en ' + delen.at(-1) : delen[0]} rond het kampvuur!` : 'Verhalen, foto\'s en praatjes van vroeger';
+    $('buiten-tekst').textContent = ingelogd
+      ? 'Het kampvuur is er voor wie meedoet aan de reünie. Maak je inschrijving af om verhalen en foto\'s te bekijken en mee te kletsen.'
+      : 'Het kampvuur is er voor wie meedoet aan de reünie. Doe mee of log in om verhalen en foto\'s te bekijken en mee te kletsen.';
+    $('buiten-knoppen').innerHTML = ingelogd ? '<a class="btn" href="inschrijven.html">Inschrijving afmaken</a>'
+      : '<a class="btn" href="inschrijven.html">Doe mee</a> <a class="btn ghost" href="inloggen.html">Inloggen</a>';
+    $('buiten').hidden = false;
+  }
+
+  // Link from the home page: #verhaal-<id> opens and shows that story, #foto-<id> that photo,
+  // #bericht-<id> a message at Kletsen. Read before tab() rewrites the address.
+  const DOEL = /^#(verhaal|foto|bericht)-[\w-]+$/.test(location.hash) ? location.hash.slice(1) : '';
+  const niet = wat => $(DOEL.startsWith('foto-') ? 'f-telling' : 'telling').insertAdjacentHTML('beforebegin',
+    `<p class="note">${wat} staat hier (nog) niet: misschien wacht het op beoordeling of is het verwijderd.`
+    + (comite ? ' Kijk bij <a href="beheer.html#beoordelen">Beheer → Te beoordelen</a>.' : '') + '</p>');
+  async function naarDoel() {
+    if (DOEL.startsWith('bericht-')) {
+      const r = reacties.find(x => x.id === DOEL.slice(8));
+      if (r && r.soort !== 'los' && r.soort !== 'antwoord') return naarItem(r.soort + ':' + r.ref);
+      const los = r?.soort === 'antwoord' ? r.ref : r?.id;
+      const i = draden().findIndex(d => d.sleutel === los);
+      if (i >= aantalTonen) { aantalTonen = i + 1; toonKletsen(); }
+      const el = los && document.getElementById('bericht-' + los);
+      if (el) { el.scrollIntoView({ block: 'center' }); el.classList.add('gevonden'); }
+      else $('stroom').insertAdjacentHTML('beforebegin', '<p class="note">Dit bericht staat hier niet meer: misschien is het verwijderd.</p>');
+    } else if (DOEL.startsWith('verhaal-')) {
+      open.add(DOEL.slice(8)); reOpen.add(DOEL.slice(8)); toon();
+      const el = document.getElementById(DOEL);
+      if (el) { el.scrollIntoView({ block: 'center' }); el.classList.add('gevonden'); }
+      else niet('Dit verhaal');
+    } else if (DOEL.startsWith('foto-')) {
+      await laadFotos();
+      tab('fotos');
+      const i = zichtbaar.findIndex(f => f.id === DOEL.slice(5));
+      if (i >= 0) toonGroot(i); else niet('Deze foto');
+    }
+  }
+
+  (async () => {
+    await Reunie.laadSpeltakken();
+    const takken = Reunie.takken().map(t => `<option>${E(t.naam)}</option>`).join('');
+    let jaren = '';
+    for (let j = Reunie.NU; j >= Reunie.opgericht(); j--) jaren += `<option>${j}</option>`;
+    $('f-speltak').innerHTML = '<option value="">Alle speltakken</option>' + takken;
+    $('f-jaar').innerHTML = '<option value="">Alle jaren</option>' + jaren;
+    $('v-speltak').innerHTML = '<option value="">–</option>' + takken;
+    $('v-jaar').innerHTML = '<option value="">–</option>' + jaren;
+    $('ff-speltak').innerHTML = '<option value="">Alle speltakken</option>' + takken;
+    $('ff-jaar').innerHTML = '<option value="">Alle jaren</option>' + jaren;
+    $('fu-speltak').innerHTML = '<option value="">–</option>' + takken;
+    $('fu-jaar').innerHTML = '<option value="">–</option>' + jaren;
+
+    try {
+      if (!Data.ingelogd() || !await Data.magVerhalen()) {
+        const [v, f, r] = await Promise.all([Data.aantalVerhalen().catch(() => 0), Data.aantalFotos().catch(() => 0), Data.aantalReacties().catch(() => 0)]);
+        buiten(v, f, r, Data.ingelogd());
+      } else {
+        await Promise.all([laad(), laadReacties()]);
+        $('binnen').hidden = false; $('slot').hidden = false;
+        toon();
+        tab(location.hash === '#fotos' ? 'fotos' : location.hash === '#verhalen' || DOEL.startsWith('verhaal-') ? 'verhalen' : 'kletsen');
+        toonKletsen();
+        if (!DOEL.startsWith('foto-') && $('tab-fotos').hidden) laadFotos();     // count and thumbnails on the Foto's tile and in Kletsen
+      }
+    } catch (err) { $('laden').textContent = err.message; return; }
+    $('laden').hidden = true;
+    if (DOEL && !$('binnen').hidden) naarDoel();
+  })();
+</script>
+</body>
+</html>

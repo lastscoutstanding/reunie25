@@ -3,7 +3,7 @@
 Site voor de reünie van 25 jaar Scouting Brandevoort (Helmond), beheerd door Bas. De site staat in de root van deze repo.
 Repo: github.com/lastscoutstanding/reunie25, gehost op GitHub Pages op https://reunie.scoutingbrandevoort.nl (via `CNAME`).
 Afgesplitst uit `lastscoutstanding.com/reunie25/` met de geschiedenis erbij (22 november 2026).
-Stand: 26 november 2026 (na de verhuizing).
+Stand: 26 november 2026 (na de verhuizing; Kampvuur met Kletsen gebouwd).
 
 ## Verhuisd (26 november 2026)
 
@@ -25,15 +25,16 @@ Vanilla HTML/CSS/JS, geen build-stap. Alleen relatieve paden, zodat de site op e
 
 | Pad | Rol |
 | --- | --- |
-| `index.html` | Home: datum en tijd, agendalink, aftelling, tellers (doen mee / komen / misschien), namen (10 op telefoon, 20 breder; zijn er meer, dan een willekeurige selectie per bezoek, jijzelf altijd vooraan), "Nieuw bij Herinneringen" (nieuwste geplaatste verhaal en foto voor deelnemers, links naar `herinneringen.html#verhaal-<id>` / `#foto-<id>`; anderen een teaser met aantallen) |
+| `index.html` | Home: datum en tijd, agendalink, aftelling, tellers (doen mee / komen / misschien), namen (10 op telefoon, 20 breder; zijn er meer, dan een willekeurige selectie per bezoek, jijzelf altijd vooraan), "Nieuw bij het kampvuur 🔥" (nieuwste geplaatste verhaal en foto plus de laatste drie berichten bij Kletsen voor deelnemers, links naar `kampvuur.html#verhaal-<id>` / `#foto-<id>` / `#bericht-<id>`; anderen een teaser met aantallen) |
 | `inschrijven.html` | "Doe mee" (inschrijven), eerste vraag "Ben je erbij?"; ingelogd = gegevens aanpassen |
 | `inloggen.html` | Inloggen met e-mail + code van 6 cijfers (stap `#code`) |
 | `mijn.html` | Eigen inschrijving: "Ben je erbij?" met één klik aanpassen, kaartje, links "wie was er tegelijk met jou", betaalblok (alleen bij ja), "Weet je het al?" (misschien), agendablok (niet bij nee), aanpassen, uitschrijven, uitloggen |
 | `deelnemers.html` | "Wie doen er mee?": zoeken, filter speltak + jaar (`?speltak=&jaar=`), tabblad "Per jaar" |
-| `herinneringen.html` | Herinneringen (menu na "Wie doen er mee?"): bovenaan twee grote tegels Verhalen / Foto's met aantal en voorproefje (titel nieuwste verhaal, drie nieuwste foto's; 23 november 2026, na mockup, omdat je over de kleine tabs heen keek). Tabblad Verhalen (lezen, zoeken/filteren, delen, eigen verhaal aanpassen/verwijderen, "Meld het") en Foto's (`#fotos`: grid, groot bekijken met pijltjes/vegen, meerdere tegelijk delen, eigen foto verwijderen, "Meld het"), met hartjes bij beide. Alleen voor deelnemers en comité; anderen zien een teaser met het aantal |
+| `kampvuur.html` | Kampvuur (menu na "Wie doen er mee?", tot 26 november 2026 "Herinneringen"): kop "Kampvuur" met regel "Verhalen, foto's en praatjes van scouts van nu en toen. 🔒 Alleen voor wie meedoet". Drie tegels Verhalen / Foto's / Kletsen met aantal en voorproefje (op telefoon één compacte rij met alleen aantal en naam). Standaard opent Kletsen; `#verhalen`, `#fotos`, `#verhaal-<id>`, `#foto-<id>`, `#bericht-<id>`. Zie "Kampvuur en Kletsen". Tabblad Verhalen (lezen, zoeken/filteren, delen, eigen verhaal aanpassen/verwijderen, "Meld het", reacties) en Foto's (grid, groot bekijken met pijltjes/vegen en reacties ernaast, meerdere tegelijk delen, eigen foto verwijderen, "Meld het"), met hartjes bij beide. Alleen voor deelnemers en comité; anderen zien een teaser met aantallen |
+| `herinneringen.html` | Doorstuurpagina naar `kampvuur.html` (met `#…`), voor oude links |
 | `programma.html` + `programma.txt` | Programma (`tijd | omschrijving`, andere regels = alinea) |
 | `vragen.html` + `vragen.txt` | FAQ (`V:` / `A:`); `{bedrag}` = bedrag uit `betalen.txt`, e-mailadressen worden links |
-| `beheer.html` | Comité. Tabblad Inschrijvingen: tegels, zoeken, filters te combineren (erbij / betaald / nieuw deze week), kolom "Erbij?" met keuzelijst + "sinds", details, verwijderen (+ blokkeren, `<dialog>`), CSV, adressen kopiëren, betaald afvinken. Tabblad Te beoordelen (`#beoordelen`): foto's per inzending (plaatsen / afwijzen met toelichting, "Alle N plaatsen"), opslaggebruik, en nieuwe/aangepaste en gemelde verhalen plaatsen, afwijzen (met opmerking), aanpassen, verwijderen. Tabblad Overleg (`#overleg`, `#overleg-<id>`): comité-chat, zie "Overleg". Tabblad Comité (`#comite`): lijst, hoofdbeheerder voegt beheerders toe/haalt weg, geblokkeerde adressen (deblokkeren), tabel "Wie mag wat?". Link "Beheer" alleen voor beheerders (`Data.beheerder()`, rol via `Data.rol()`) |
+| `beheer.html` | Comité. Tabblad Inschrijvingen: tegels, zoeken, filters te combineren (erbij / betaald / nieuw deze week), kolom "Erbij?" met keuzelijst + "sinds", details, verwijderen (+ blokkeren, `<dialog>`), CSV, adressen kopiëren, betaald afvinken. Tabblad Te beoordelen (`#beoordelen`): gemelde berichten bij Kletsen (weer tonen / weghalen), foto's per inzending (plaatsen / afwijzen met toelichting, "Alle N plaatsen"), opslaggebruik, en nieuwe/aangepaste en gemelde verhalen plaatsen, afwijzen (met opmerking), aanpassen, verwijderen. Tabblad Overleg (`#overleg`, `#overleg-<id>`): comité-chat, zie "Overleg". Tabblad Comité (`#comite`): lijst, hoofdbeheerder voegt beheerders toe/haalt weg, geblokkeerde adressen (deblokkeren), tabel "Wie mag wat?". Link "Beheer" alleen voor beheerders (`Data.beheerder()`, rol via `Data.rol()`) |
 | `reunie.ics` | Agendabestand (14:00–19:00, Europe/Amsterdam); `Reunie.agenda()` maakt de links "Zet in je agenda" + Google Agenda (home, programma, mijn). Bevat het volledige adres van de site |
 | `betalen.txt` | Bedrag, betaallink, IBAN voor het betaalblok op `mijn.html`; leeg = geen blok |
 | `over.html` | "Over deze site" (link in de footer): gemaakt door Peter (“Peter Limonade”) en Claude samen; tijdens gebruik kijkt geen AI mee |
@@ -45,9 +46,9 @@ Vanilla HTML/CSS/JS, geen build-stap. Alleen relatieve paden, zodat de site op e
 | `_docs/beheer.md` | Beheerhandleiding: alle instellingen bij GitHub, Webreus (DNS), Resend en Supabase. Bijwerken bij elke wijziging daar |
 | `_docs/verhuizing.md` | Verloop van de verhuizing (afgerond 26 november 2026), draaiboek en afbouw in 2027 |
 | `_supabase/schema.sql` | Tabellen, row level security en functies voor Supabase; één keer draaien in de SQL-editor. Map met `_`, dus niet gepubliceerd |
-| `nav.js` | Kop (blauwe band met logo, titel en datum) + lichte menubalk eronder (sticky, actieve pagina geel onderstreept, "Mijn inschrijving →" / "Inloggen →" vast rechts; onder 760 px één veegbare regel met vervaagde randen en "Mijn →"), footer, testversie-balk bij DEMO |
+| `nav.js` | Kop (blauwe band met logo, titel en datum) + lichte menubalk eronder (geel getal bij Kampvuur = nieuwe berichten bij Kletsen) (sticky, actieve pagina geel onderstreept, "Mijn inschrijving →" / "Inloggen →" vast rechts; onder 760 px één veegbare regel met vervaagde randen en "Mijn →"), footer, testversie-balk bij DEMO |
 | `logo.svg`, `logo-wit.svg` | Logo als vector, zie "Reünie" |
-| `overleg.js` | Overleg-knopjes (💬) voor het comité bij deelnemers, verhalen, foto's en onderaan elke pagina, en de dialoog "Nieuw overleg". Herinneringen en Beheer laden het zelf; op andere pagina's laadt `nav.js` het voor comitéleden |
+| `overleg.js` | Overleg-knopjes (💬) voor het comité bij deelnemers, verhalen, foto's en onderaan elke pagina, en de dialoog "Nieuw overleg". Kampvuur en Beheer laden het zelf; op andere pagina's laadt `nav.js` het voor comitéleden |
 | `uitsnijden.js` | `Uitsnijden.kies(titel)`: bestandskiezer + `<dialog>` om jezelf in een rondje uit te snijden (slepen, zoomen met schuif/wiel/twee vingers); geeft een JPEG van 200 × 200 px. "Kies een andere foto" opent de kiezer opnieuw vanuit de dialoog (annuleren daarvan houdt de huidige foto). Eén vaste, verborgen file-input in de pagina: een losse werd op iOS Safari soms opgeruimd, waarna de gekozen foto nooit aankwam (23 november 2026; door Bas getest op iPhone, werkt). Grote foto's worden bij het inlezen verkleind tot 2000 px. Gebruikt op `inschrijven.html` |
 | `theme.css` | Stijl; kleuren van scoutingbrandevoort.nl (#2c4696) en het logo (geel). Licht/donker volgt het systeem |
 
@@ -103,6 +104,19 @@ Vanilla HTML/CSS/JS, geen build-stap. Alleen relatieve paden, zodat de site op e
 - DEMO: `reunie25.demo.overleg` met twee voorbeeldgesprekken.
 - Wordt met de rest gewist (uiterlijk 23 augustus 2027), met de hand; staat in de privacyverklaring.
 
+## Kampvuur en Kletsen (gebouwd 26 november 2026, na mockup)
+
+- Herinneringen heet nu Kampvuur (nieuwsgierig makend, idee van Bas). Derde tegel "Kletsen": losse berichten (met één niveau antwoorden) en reacties bij geplaatste verhalen en foto's, samen in één stroom, gesorteerd op laatste activiteit. Een draad = een los bericht met antwoorden, of alle reacties bij één verhaal/foto ("Lotte en Tim reageerden op een verhaal", kaartje van het item, laatste twee reacties, "Toon alle N", inline reageren, "Naar het verhaal →" / "Bekijk de foto →" opent de grote weergave boven Kletsen). Filter Alles / Losse berichten / Bij verhalen en foto's; 15 draden, dan "Toon oudere berichten".
+- Onder een verhaal knop "💬 N reacties" / "💬 Reageer" naast het hartje, klapt open. In de grote fotoweergave staan reacties naast de foto (vanaf 900 px), anders eronder.
+- Geen controle vooraf. "Meld het" verbergt meteen (antwoorden op een gemeld los bericht ook); het comité ziet het bij Beheer → Te beoordelen → Kletsen ("Weer tonen" / "Weghalen…") en telt mee in de bolletjes. Eigen bericht verwijderen mag, aanpassen niet (zoals Overleg). Comité mag elk bericht weghalen. Geen 💬 Bespreek bij berichten.
+- Naam zoals op "Wie doen er mee?", met profielfoto (nu, anders toen) of een gekleurd rondje met de eerste letter. Wie een verhaal/foto zonder naam deelde en zelf reageert, blijft anoniem: "de schrijver" / "wie de foto deelde"; met naam krijgt die een label "schrijver" / "deelde de foto".
+- Max. 500 tekens per bericht, 30 per uur per persoon. Niet live: elke minuut verversen zolang de pagina in beeld is, en bij terugkomen.
+- Gezien: in de browser (`reunie25.kampvuur.gezien`, gezet bij het openen van Kletsen). Gele streep bij draden met iets nieuws van anderen sinds je laatste bezoek (niet bij een allereerste bezoek), geel getal op de tegel en bij "Kampvuur" in het menu (`nieuwe_reacties(sinds)`; eerste bezoek = afgelopen 7 dagen). Telt alleen Kletsen, niet nieuwe verhalen/foto's (die hebben geen plaatsingsdatum).
+- Bevestiging "alleen voor wie meedoet": slotje onder de kop en "🔒 Alleen ingeschreven scouts lezen mee." onder het invoerveld. Bewust niet noemen dat het comité meeleest (Bas: drempel, en het comité zijn ook gewoon scouts).
+- Bewust anders dan Overleg (lijst + gesprek met status): Kletsen zijn blokken met de hele draad erin, zodat je ziet in welke chat je zit.
+- Tabel `reacties` (`verhaal` / `foto` / `ouder` of geen = los bericht, `status` zichtbaar/gemeld), geen directe toegang; functies zie `_docs/beheer.md`. Gaat mee weg met het verhaal, de foto of de login.
+- DEMO: `reunie25.demo.reacties` met voorbeeldberichten (tijden relatief aan het eerste bezoek).
+
 ## Hartjes (gebouwd 21 november 2026, na mockup)
 
 - Hartje bij geplaatste verhalen (voetregel) en foto's (geven in de grote weergave; bolletje met aantal op de miniatuur). Eén per deelnemer per item, nog een keer tikken haalt het weg. Niet bij je eigen item: daar staat "N mensen vinden dit leuk" (bij 0 niets). Woord "leuk", niet "mooi".
@@ -125,7 +139,7 @@ Vanilla HTML/CSS/JS, geen build-stap. Alleen relatieve paden, zodat de site op e
 ## Foto's (gebouwd 19 november 2026)
 
 Besloten op 18 en 19 november 2026, na mockups:
-- Tabblad Foto's op `herinneringen.html`. Alleen ingelogde deelnemers zien en uploaden foto's; bezoekers krijgen uitleg met inloggen/inschrijven.
+- Tabblad Foto's op `kampvuur.html`. Alleen ingelogde deelnemers zien en uploaden foto's; bezoekers krijgen uitleg met inloggen/inschrijven.
 - Nieuwe foto's zijn pas zichtbaar na goedkeuring door het comité (tab "Te beoordelen"); de uploader ziet ze zelf met "wacht op goedkeuring".
 - Per foto: titel, jaar, speltak (filter zoals op "Wie doen er mee?"), "gedeeld door". Knop "Sta jij hierop…?" verbergt een foto en meldt het aan het comité.
 - Verkleinen in de browser vóór upload: 1600 px (~200–350 KB) + miniatuur 400 px (~50 KB); opnieuw opslaan haalt ook GPS/EXIF weg. Supabase Free: 1 GB opslag, 5 GB verkeer per maand. Max. 30 foto's per persoon (trigger `fotos_stempel`).
@@ -152,7 +166,7 @@ Besloten op 18 en 19 november 2026, na mockups:
 - [x] Menu op telefoon: één veegbare regel in plaats van drie regels (20 november 2026, na mockup).
 - [x] Privacyverklaring af (18 november 2026): contact Reüniecomité, Blokhut de Brandnetel, Brandevoort 13-A, 5706 KA Helmond, reunie@scoutingbrandevoort.nl; alles gewist uiterlijk 23 augustus 2027. Bij de foto's de verklaring aanvullen.
 - [x] Schema opnieuw gedraaid (verwijderen/blokkeren), 19 november 2026.
-- [ ] Gegevens wissen uiterlijk 23 augustus 2027, met de hand (tabellen `deelnemers`, `beheerders`, `geblokkeerd`, `verhalen`, `fotos`, `profielfotos`, `hartjes`, `gesprekken`, `berichten`, `gezien`, de bucket `fotos` en de logins in Supabase). Er wordt niets automatisch gewist.
+- [ ] Gegevens wissen uiterlijk 23 augustus 2027, met de hand (tabellen `deelnemers`, `beheerders`, `geblokkeerd`, `verhalen`, `fotos`, `profielfotos`, `reacties`, `hartjes`, `gesprekken`, `berichten`, `gezien`, de bucket `fotos` en de logins in Supabase). Er wordt niets automatisch gewist.
 - [x] Schema opnieuw gedraaid (overleg + `aantal_te_beoordelen`), 20 november 2026.
 - [x] Schema opnieuw gedraaid (gesprek verwijderen), 21 november 2026.
 - [x] Schema opnieuw gedraaid (hartjes), 21 november 2026.
@@ -170,4 +184,5 @@ Besloten op 18 en 19 november 2026, na mockups:
 - [x] Jaarvelden-pijltjes werken in Safari (getest door Bas, 20 november 2026). Keuzelijsten hebben een eigen stijl (`appearance: none`), in Safari nog nakijken.
 - [x] `README.md` toegevoegd (26 november 2026).
 - [x] Verhuisd naar reunie.scoutingbrandevoort.nl (26 november 2026): eigen repo, DNS bij de scouting, oude links sturen door, Supabase Site URL aangepast, testrecord bij Webreus weg.
+- [ ] Schema opnieuw draaien (Kampvuur/Kletsen: tabel `reacties` en functies) vóór de push; het SQL is niet lokaal getest (geen Postgres hier). Daarna Kletsen live testen: bericht, antwoord, reactie bij verhaal en foto, melden, verwijderen, Beheer → Kletsen, geel getal in het menu.
 - [ ] Na de reünie: de scouting vragen de twee DNS-records weg te halen (zie `_docs/verhuizing.md`, afbouw).

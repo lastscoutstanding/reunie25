@@ -939,15 +939,19 @@ grant execute on function public.beoordeel_profielfoto(text, text) to authentica
 
 -- ---------------------------------------------------------------- comité: to review, and overleg
 
--- Comité: number of stories, photos and profile photos waiting for a decision (new or reported); 0 for others.
+-- Comité: number of stories, photos, profile photos and Kampvuur messages waiting for a decision
+-- (new or reported); 0 for others. plpgsql, so it may refer to public.reacties, created further down.
 create or replace function public.aantal_te_beoordelen()
 returns int
-language sql stable security definer set search_path = public
+language plpgsql stable security definer set search_path = public
 as $$
-  select case when not is_beheerder() then 0 else
-    (select count(*)::int from verhalen where status in ('nieuw', 'gemeld'))
-    + (select count(*)::int from fotos where status in ('nieuw', 'gemeld'))
-    + (select count(*)::int from profielfotos where status = 'gemeld') end;
+begin
+  if not is_beheerder() then return 0; end if;
+  return (select count(*)::int from verhalen where status in ('nieuw', 'gemeld'))
+       + (select count(*)::int from fotos where status in ('nieuw', 'gemeld'))
+       + (select count(*)::int from profielfotos where status = 'gemeld')
+       + (select count(*)::int from reacties where status = 'gemeld');
+end;
 $$;
 
 -- Overleg: conversations of the comité, optionally about a participant, story, photo or page.
@@ -1130,7 +1134,7 @@ $$;
 -- Badges for the menu and the tabs on Beheer:
 --   overleg: conversations with something new by someone else (a new conversation or a message,
 --            status lines not counted) since you last opened it;
---   beoordelen_nieuw: stories and photos waiting that arrived (or were reported) since you
+--   beoordelen_nieuw: stories, photos and Kampvuur messages waiting that arrived (or were reported) since you
 --            last opened Te beoordelen; beoordelen: all that wait.
 create or replace function public.nieuw_voor_mij()
 returns jsonb
@@ -1151,7 +1155,8 @@ begin
                               and m.auteur is distinct from ik and m.aangemaakt > coalesce(z.tijd, grens))),
     'beoordelen_nieuw', (select count(*)::int from verhalen where status in ('nieuw', 'gemeld') and bijgewerkt > b)
                       + (select count(*)::int from fotos where status in ('nieuw', 'gemeld') and bijgewerkt > b)
-                      + (select count(*)::int from profielfotos where status = 'gemeld' and bijgewerkt > b),
+                      + (select count(*)::int from profielfotos where status = 'gemeld' and bijgewerkt > b)
+                      + (select count(*)::int from reacties where status = 'gemeld' and bijgewerkt > b),
     'beoordelen', aantal_te_beoordelen());
 end;
 $$;
@@ -1229,6 +1234,210 @@ revoke all on function public.hartjes() from public, anon, authenticated;
 revoke all on function public.zet_hartje(text, uuid, boolean) from public, anon, authenticated;
 grant execute on function public.hartjes() to authenticated;
 grant execute on function public.zet_hartje(text, uuid, boolean) to authenticated;
+
+-- ---------------------------------------------------------------- Kampvuur: kletsen and reactions
+
+-- Messages on the Kampvuur page (tab Kletsen) and reactions under placed stories and photos.
+-- One table: verhaal or foto set = reaction on that item; ouder set = answer to a loose
+-- message; none set = loose message. No review beforehand: visible at once. "Meld het" hides a
+-- message (status gemeld) until the comité shows it again or removes it.
+-- Nobody reads the table directly: reacties_lijst() gives what participants may see, with the
+-- author's name as shown on "Wie doen er mee?". Goes with the story, photo or login.
+-- Wiped with everything else (see the privacy statement).
+create table if not exists public.reacties (
+  id          uuid primary key default gen_random_uuid(),
+  auteur      uuid not null default auth.uid() references auth.users (id) on delete cascade,
+  verhaal     uuid references public.verhalen (id) on delete cascade,
+  foto        uuid references public.fotos (id) on delete cascade,
+  ouder       uuid references public.reacties (id) on delete cascade,
+  tekst       text not null check (char_length(tekst) between 1 and 500),
+  status      text not null default 'zichtbaar' check (status in ('zichtbaar', 'gemeld')),
+  melding     text check (char_length(melding) <= 500),
+  gemeld_door text,
+  gemeld_op   date,
+  aangemaakt  timestamptz not null default now(),
+  bijgewerkt  timestamptz not null default now(),
+  check (num_nonnulls(verhaal, foto, ouder) <= 1)
+);
+create index if not exists reacties_aangemaakt on public.reacties (aangemaakt);
+alter table public.reacties enable row level security;
+revoke all on table public.reacties from anon, authenticated;
+
+-- Visible messages for participants and the comité, oldest first:
+--   soort 'los' (loose message), 'antwoord' (ref = the loose message), 'verhaal' or 'foto'
+--   (ref = that item, placed only). Answers to a hidden loose message are left out too.
+--   schrijver: the author of the story or photo reacts. If that item was shared without a name,
+--   the name stays hidden there too (the page shows "schrijver").
+--   gezicht: newest visible profile photo (nu, else toen), only when a name is shown.
+create or replace function public.reacties_lijst()
+returns table (id uuid, soort text, ref uuid, tekst text, eigen boolean, schrijver boolean,
+               voornaam text, bijnaam text, achternaam text, gezicht text, aangemaakt timestamptz)
+language plpgsql stable security definer set search_path = public
+as $$
+#variable_conflict use_column
+begin
+  if not mag_verhalen() then raise exception 'alleen voor deelnemers' using errcode = '42501'; end if;
+  return query
+    with r as (
+      select r.*,
+             case when r.verhaal is not null then 'verhaal' when r.foto is not null then 'foto'
+                  when r.ouder is not null then 'antwoord' else 'los' end as soort,
+             coalesce(r.verhaal, r.foto, r.ouder) as ref,
+             coalesce(v.auteur, f.auteur) = r.auteur as schrijver,
+             coalesce(coalesce(v.auteur, f.auteur) = r.auteur and not coalesce(v.toon_naam, f.toon_naam), false) as anoniem
+      from reacties r
+      left join verhalen v on v.id = r.verhaal
+      left join fotos f on f.id = r.foto
+      left join reacties o on o.id = r.ouder
+      where r.status = 'zichtbaar'
+        and (r.verhaal is null or v.status = 'geplaatst')
+        and (r.foto is null or f.status = 'geplaatst')
+        and (r.ouder is null or o.status = 'zichtbaar')
+    ), n as (
+      select r.*,
+             case when not r.anoniem and d.toon_voornaam then d.voornaam end as vn,
+             case when not r.anoniem and d.toon_bijnaam and d.bijnaam <> '' then d.bijnaam end as bn,
+             case when not r.anoniem and d.toon_achternaam and d.achternaam <> '' then d.achternaam end as an
+      from r left join deelnemers d on d.id = r.auteur
+    )
+    select n.id, n.soort, n.ref, n.tekst, n.auteur = auth.uid(), coalesce(n.schrijver, false),
+           n.vn, n.bn, n.an,
+           case when coalesce(n.vn, n.bn, n.an) is not null then
+             (select p.pad from profielfotos p where p.auteur = n.auteur and p.status = 'zichtbaar'
+              order by p.soort = 'nu' desc, p.aangemaakt desc limit 1) end,
+           n.aangemaakt
+    from n
+    order by n.aangemaakt, n.id;
+end;
+$$;
+
+-- Visitors: how many visible messages there are (for the teaser).
+create or replace function public.aantal_reacties()
+returns int
+language sql stable security definer set search_path = public
+as $$ select count(*)::int from reacties where status = 'zichtbaar'; $$;
+
+-- New messages by others since a moment (the menu badge; "seen" is kept in the browser).
+create or replace function public.nieuwe_reacties(sinds timestamptz)
+returns int
+language plpgsql stable security definer set search_path = public
+as $$
+begin
+  if not mag_verhalen() then return 0; end if;
+  return (select count(*)::int from reacties_lijst() r where not r.eigen and r.aangemaakt > sinds);
+end;
+$$;
+
+-- Place a message: loose (all null), an answer to a loose message, or a reaction on a placed
+-- story or photo. At most 30 per hour per person. Returns the new id.
+create or replace function public.plaats_reactie(tekst text, verhaal uuid default null, foto uuid default null, ouder uuid default null)
+returns uuid
+language plpgsql security definer set search_path = public
+as $$
+#variable_conflict use_variable
+declare
+  t text := trim(tekst);
+  nieuw uuid;
+begin
+  if not mag_verhalen() then raise exception 'alleen voor deelnemers' using errcode = '42501'; end if;
+  if t = '' or char_length(t) > 500 then raise exception 'lengte' using errcode = '22023'; end if;
+  if num_nonnulls(verhaal, foto, ouder) > 1 then raise exception 'onbekend doel' using errcode = '22023'; end if;
+  if verhaal is not null and not exists (select 1 from verhalen v where v.id = verhaal and v.status = 'geplaatst')
+     or foto is not null and not exists (select 1 from fotos f where f.id = foto and f.status = 'geplaatst')
+     or ouder is not null and not exists (select 1 from reacties o where o.id = ouder and o.status = 'zichtbaar'
+                                          and o.verhaal is null and o.foto is null and o.ouder is null) then
+    raise exception 'weg' using errcode = 'P0002';
+  end if;
+  if (select count(*) from reacties r where r.auteur = auth.uid() and r.aangemaakt > now() - interval '1 hour') >= 30 then
+    raise exception 'te_snel' using errcode = '54000';
+  end if;
+  insert into reacties (auteur, verhaal, foto, ouder, tekst) values (auth.uid(), verhaal, foto, ouder, t)
+    returning id into nieuw;
+  return nieuw;
+end;
+$$;
+
+-- Remove a message: your own, or any as comité. Answers to a loose message go with it.
+create or replace function public.verwijder_reactie(reactie uuid)
+returns void
+language plpgsql security definer set search_path = public
+as $$
+begin
+  delete from reacties r where r.id = reactie and (r.auteur = auth.uid() or is_beheerder());
+end;
+$$;
+
+-- Participants: report a message. It is hidden at once, until the comité decides.
+create or replace function public.meld_reactie(reactie uuid, reden text default null)
+returns void
+language plpgsql security definer set search_path = public
+as $$
+begin
+  if not mag_verhalen() then raise exception 'alleen voor deelnemers' using errcode = '42501'; end if;
+  update reacties set status = 'gemeld', melding = left(nullif(trim(reden), ''), 500),
+                      gemeld_door = mijn_naam(), gemeld_op = current_date, bijgewerkt = now()
+    where id = reactie and status = 'zichtbaar';
+end;
+$$;
+
+-- Comité: reported messages, oldest report first, with the full author name and where it was.
+create or replace function public.reacties_te_beoordelen()
+returns table (id uuid, soort text, ref uuid, ref_naam text, tekst text, melding text, gemeld_door text,
+               gemeld_op date, auteur_naam text, aangemaakt timestamptz, bijgewerkt timestamptz)
+language plpgsql stable security definer set search_path = public
+as $$
+#variable_conflict use_column
+begin
+  if not is_beheerder() then raise exception 'alleen voor het comite' using errcode = '42501'; end if;
+  return query
+    select r.id,
+           case when r.verhaal is not null then 'verhaal' when r.foto is not null then 'foto'
+                when r.ouder is not null then 'antwoord' else 'los' end,
+           coalesce(r.verhaal, r.foto, r.ouder),
+           coalesce(v.titel, nullif(f.titel, ''), left(o.tekst, 60)),
+           r.tekst, r.melding, r.gemeld_door, r.gemeld_op,
+           coalesce(nullif(trim(d.voornaam || ' ' || d.achternaam), ''), u.email::text), r.aangemaakt, r.bijgewerkt
+    from reacties r
+    left join verhalen v on v.id = r.verhaal left join fotos f on f.id = r.foto left join reacties o on o.id = r.ouder
+    left join deelnemers d on d.id = r.auteur left join auth.users u on u.id = r.auteur
+    where r.status = 'gemeld'
+    order by r.bijgewerkt, r.id;
+end;
+$$;
+
+-- Comité: actie 'tonen' (visible again) or 'weghalen'.
+create or replace function public.beoordeel_reactie(reactie uuid, actie text)
+returns void
+language plpgsql security definer set search_path = public
+as $$
+begin
+  if not is_beheerder() then raise exception 'alleen voor het comite' using errcode = '42501'; end if;
+  if actie = 'tonen' then
+    update reacties set status = 'zichtbaar', melding = null, gemeld_door = null, gemeld_op = null, bijgewerkt = now() where id = reactie;
+  elsif actie = 'weghalen' then
+    delete from reacties where id = reactie;
+  else
+    raise exception 'onbekende actie' using errcode = '22023';
+  end if;
+end;
+$$;
+
+revoke all on function public.reacties_lijst() from public, anon, authenticated;
+revoke all on function public.aantal_reacties() from public, anon, authenticated;
+revoke all on function public.nieuwe_reacties(timestamptz) from public, anon, authenticated;
+revoke all on function public.plaats_reactie(text, uuid, uuid, uuid) from public, anon, authenticated;
+revoke all on function public.verwijder_reactie(uuid) from public, anon, authenticated;
+revoke all on function public.meld_reactie(uuid, text) from public, anon, authenticated;
+revoke all on function public.reacties_te_beoordelen() from public, anon, authenticated;
+revoke all on function public.beoordeel_reactie(uuid, text) from public, anon, authenticated;
+grant execute on function public.reacties_lijst() to authenticated;
+grant execute on function public.aantal_reacties() to anon, authenticated;
+grant execute on function public.nieuwe_reacties(timestamptz) to authenticated;
+grant execute on function public.plaats_reactie(text, uuid, uuid, uuid) to authenticated;
+grant execute on function public.verwijder_reactie(uuid) to authenticated;
+grant execute on function public.meld_reactie(uuid, text) to authenticated;
+grant execute on function public.reacties_te_beoordelen() to authenticated;
+grant execute on function public.beoordeel_reactie(uuid, text) to authenticated;
 
 -- Comité members: hoofdbeheerders add ordinary beheerders on the site (Beheer > Comité).
 -- Hoofdbeheerders are set here only:

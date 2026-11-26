@@ -74,8 +74,19 @@
       // this address already had a registration (then keep that one, nothing is overwritten).
       const nieuw = ss.get('reunie25.nieuw');
       let bestond = false;
-      if (nieuw) { bestond = !!(await Data.ik()); if (!bestond) await Data.bewaar(JSON.parse(nieuw)); }
-      ss.set('reunie25.nieuw', null); ss.set('reunie25.email', null);
+      if (nieuw) {
+        bestond = !!(await Data.ik());
+        if (!bestond) {
+          await Data.bewaar(JSON.parse(nieuw));
+          // Profile photos cut out on the form wait here as data URLs; a failure is not fatal
+          // (they can be added later on Gegevens aanpassen).
+          const pf = JSON.parse(ss.get('reunie25.profiel') || '{}');
+          for (const soort of ['toen', 'nu']) if (pf[soort]) {
+            try { await Data.zetProfielfoto(soort, await (await fetch(pf[soort])).blob()); } catch {}
+          }
+        }
+      }
+      ss.set('reunie25.nieuw', null); ss.set('reunie25.email', null); ss.set('reunie25.profiel', null);
       // Comité member without a registration: straight to Beheer.
       if (!nieuw && !(await Data.ik()) && await Data.beheerder()) { location.href = 'beheer.html'; return; }
       location.href = bestond ? 'mijn.html#bestond' : nieuw ? 'mijn.html#welkom' : 'mijn.html';

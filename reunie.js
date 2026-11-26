@@ -136,7 +136,21 @@ const Reunie = (() => {
   // Person card from a public row {voornaam, achternaam, bijnaam, geboortejaar, takken}:
   // fields the person chose to hide are null. jij = your own card, with an accent and a
   // link to your registration. id = anchor, so the home page can link to this card.
-  function kaart(p, hit, jij = false, id = '') {
+  // Round profile photos above the name: g = { toen: url, nu: url }, either may be missing,
+  // side by side with "toen" / "nu" under them. As a button (knop) it opens the big view on
+  // "Wie doen er mee?".
+  function gezicht(g, knop = false) {
+    const soorten = ['toen', 'nu'].filter(s => g?.[s]);
+    if (!soorten.length) return '';
+    const binnen = soorten.map(s => `<span class="g"><img src="${esc(g[s])}" alt=""><small>${s}</small></span>`).join('');
+    const wat = soorten.length === 2 ? 'Foto van toen en nu' : `Foto van ${soorten[0]}`;
+    return knop ? `<button type="button" class="gezicht" data-gezicht aria-label="${wat}, groot bekijken">${binnen}</button>`
+      : `<span class="gezicht" role="img" aria-label="${wat}">${binnen}</span>`;
+  }
+
+  // p.gezicht (optional): { toen, nu } URLs of the profile photos, see gezicht(); klik = the
+  // photos are a button that opens the big view (on "Wie doen er mee?").
+  function kaart(p, hit, jij = false, id = '', klik = false) {
     const naamTekst = esc(naam(p));
     const age = leeftijdTekst(p.geboortejaar);
     const rows = p.takken ? [...p.takken.filter(r => r.rol === 'lid'), ...p.takken.filter(r => r.rol !== 'lid')] : [];
@@ -150,8 +164,10 @@ const Reunie = (() => {
       return '<div class="person anon"><div class="name">Je bent niet zichtbaar in “Wie doen er mee?”</div><div class="meta">Je telt wel mee in het aantal.</div></div>';
     }
     const [tag, extra] = jij ? ['a', ' href="mijn.html" title="Naar je inschrijving"'] : ['div', ''];
-    return `<${tag} class="person${jij ? ' zelf' : ''}"${id ? ` id="${id}"` : ''}${extra}><div class="name">${naamTekst || '<span class="muted">Anoniem</span>'}${jij ? ' <span class="pill jij">jij</span>' : ''}</div>
-      <div class="meta">${age || '&nbsp;'}</div>${chips ? `<div class="tk">${chips}</div>` : ''}${jij ? '<div class="naar">Mijn inschrijving →</div>' : ''}</${tag}>`;
+    const kop = `<div class="name">${naamTekst || '<span class="muted">Anoniem</span>'}${jij ? ' <span class="pill jij">jij</span>' : ''}</div>
+      <div class="meta">${age || '&nbsp;'}</div>`;
+    const g = gezicht(p.gezicht, klik && !jij);
+    return `<${tag} class="person${jij ? ' zelf' : ''}"${id ? ` id="${id}"` : ''}${extra}>${g}${kop}${chips ? `<div class="tk">${chips}</div>` : ''}${jij ? '<div class="naar">Mijn inschrijving →</div>' : ''}</${tag}>`;
   }
 
   // Year fields (class "yr" with min/max): arrow up from empty starts at min (opgericht),
@@ -177,7 +193,7 @@ const Reunie = (() => {
     stapJaar(el, e.clientY < r.top + r.height / 2 ? 1 : -1);
   });
 
-  return { DATUM, TIJD, agenda, erbijTekst, NU, laadSpeltakken, laadBetalen, euro, takken, opgericht, isRol, oudeNamen, takNaam, takPast, berekenJaren, jubileum, leeftijd, leeftijdTekst, knipoog, periode, esc, matcher, naam, kaart, zelf };
+  return { DATUM, TIJD, agenda, erbijTekst, NU, laadSpeltakken, laadBetalen, euro, takken, opgericht, isRol, oudeNamen, takNaam, takPast, berekenJaren, jubileum, leeftijd, leeftijdTekst, knipoog, periode, esc, matcher, naam, kaart, zelf, gezicht };
 })();
 
 const $ = id => document.getElementById(id);

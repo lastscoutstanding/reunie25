@@ -45,6 +45,13 @@
         <div class="takken" id="takken-leiding"></div>
       </fieldset>
 
+      <fieldset id="fotos">
+        <legend>Foto's <span class="muted" style="font-weight:400">(optioneel)</span></legend>
+        <small class="muted">Een foto van toen en een van nu. Snijd jezelf gewoon uit een groepsfoto: alleen het rondje wordt verstuurd, de rest van de foto blijft op je telefoon of computer. Alleen ingelogde deelnemers zien je foto's.</small>
+        <div class="fotoslot" id="fotoslot"></div>
+        <p class="err" id="foto-fout" hidden></p>
+      </fieldset>
+
       <fieldset>
         <legend>Wat mag op "Wie doen er mee?"</legend>
         <label class="check"><input type="checkbox" id="s-voor" checked> Voornaam</label>
@@ -74,6 +81,7 @@
 <script src="reunie.js"></script>
 <script src="data.js"></script>
 <script src="nav.js"></script>
+<script src="uitsnijden.js"></script>
 <script>
   const NU = Reunie.NU;
   $('f-jaar').max = NU - 4;
@@ -170,8 +178,64 @@
   function preview() {
     const r = leesForm();
     r.takken = r.takken.filter(x => x.van);
-    $('pv').innerHTML = Reunie.kaart(Data.publiek(r));
+    const p = Data.publiek(r);
+    p.gezicht = { toen: pf.toen.url, nu: pf.nu.url };
+    $('pv').innerHTML = Reunie.kaart(p);
   }
+
+  // ---- profile photos (toen en nu) ----
+  // Per soort: url (shown), blob (newly cut out, still to send), pad + status (already saved),
+  // weg (remove the saved one on Opslaan).
+  const pf = { toen: { url: null }, nu: { url: null } };
+  function toonFotoslots() {
+    $('fotoslot').innerHTML = ['toen', 'nu'].map(soort => {
+      const f = pf[soort], Naam = soort === 'toen' ? 'Toen' : 'Nu';
+      return `<div>
+        <button type="button" class="rond${f.url ? ' vol' : ''}" data-kies="${soort}" aria-label="${f.url ? 'Andere foto' : 'Kies een foto'} van ${soort}">${f.url ? `<img src="${Reunie.esc(f.url)}" alt="">` : '+ ' + soort}</button>
+        <div><b>${Naam}</b></div>
+        ${f.url ? `<button type="button" class="linkbtn" data-kies="${soort}">Andere</button> · <button type="button" class="linkbtn" data-weg="${soort}">Weghalen</button>`
+                : `<button type="button" class="linkbtn" data-kies="${soort}">Kies een foto</button>`}
+        ${f.status === 'gemeld' && !f.blob ? '<br><small class="muted">gemeld, nu verborgen</small>' : ''}
+      </div>`;
+    }).join('');
+  }
+  $('fotoslot').addEventListener('click', async e => {
+    const kies = e.target.closest('[data-kies]')?.dataset.kies, weg = e.target.closest('[data-weg]')?.dataset.weg;
+    $('foto-fout').hidden = true;
+    if (kies) {
+      try {
+        const blob = await Uitsnijden.kies(`Jouw foto van ${kies}`);
+        if (!blob) return;
+        if (pf[kies].blob) URL.revokeObjectURL(pf[kies].url);
+        Object.assign(pf[kies], { url: URL.createObjectURL(blob), blob, weg: false });
+      } catch (err) { $('foto-fout').textContent = err.message; $('foto-fout').hidden = false; return; }
+    }
+    if (weg) Object.assign(pf[weg], { url: null, blob: null, weg: true });
+    toonFotoslots(); preview();
+  });
+  // After Opslaan (logged in): send new photos, remove the ones taken away.
+  async function bewaarFotos() {
+    for (const soort of ['toen', 'nu']) {
+      const f = pf[soort];
+      if (f.blob) await Data.zetProfielfoto(soort, f.blob);
+      else if (f.weg && f.pad) await Data.wisProfielfoto(soort);
+    }
+  }
+  // New registration: keep the cut-out photos until the code is confirmed (see inloggen.html).
+  async function onthoudFotos() {
+    const naarUrl = blob => new Promise(ok => { const r = new FileReader(); r.onload = () => ok(r.result); r.readAsDataURL(blob); });
+    const uit = {};
+    for (const soort of ['toen', 'nu']) if (pf[soort].blob) uit[soort] = await naarUrl(pf[soort].blob);
+    try { sessionStorage.setItem('reunie25.profiel', JSON.stringify(uit)); } catch {}
+  }
+  async function laadFotos() {
+    const mijn = await Data.mijnProfielfotos().catch(() => ({}));
+    const paden = ['toen', 'nu'].filter(s => mijn[s]).map(s => mijn[s].pad + '.jpg');
+    const urls = paden.length ? await Data.fotoUrls(paden).catch(() => ({})) : {};
+    for (const soort of ['toen', 'nu']) if (mijn[soort]) Object.assign(pf[soort], { ...mijn[soort], url: urls[mijn[soort].pad + '.jpg'] || null });
+    toonFotoslots(); preview();
+  }
+  toonFotoslots();
 
   function controleer(r) {
     if (!r.voornaam) return 'Vul je voornaam in.';
@@ -198,9 +262,16 @@
     try {
       if (bewerken) {
         await Data.bewaar(r);
+        try { await bewaarFotos(); }
+        catch (err) {
+          $('foto-fout').textContent = 'Je gegevens zijn opgeslagen, maar je foto niet: ' + err.message;
+          $('foto-fout').hidden = false; $('knop').disabled = false;
+          return;
+        }
         location.href = 'mijn.html';
       } else {
         await Data.vraagCode(r.email, { nieuw: true });
+        await onthoudFotos();
         // Keep the form until the address is confirmed (sessionStorage: this tab only)
         try { sessionStorage.setItem('reunie25.nieuw', JSON.stringify(r)); sessionStorage.setItem('reunie25.email', r.email); } catch {}
         location.href = 'inloggen.html#code';
@@ -253,6 +324,7 @@
       vul(ik);
     }
     renderTakken(); preview();
+    if (bewerken) laadFotos();
   })();
   $('comite-uit').addEventListener('click', async () => { await Data.uitloggen(); location.href = 'index.html'; });
 </script>

@@ -32,6 +32,18 @@
     <div class="scroll"><table class="ov" id="ov"></table></div>
   </div>
 </main>
+<dialog id="gz" class="card dialoog" aria-label="Foto's">
+  <div class="gezichten" id="gz-fotos"></div>
+  <p id="gz-naam" style="text-align:center;font-weight:700;margin:12px 0 4px"></p>
+  <p id="gz-meld" style="text-align:center;margin:0;font-size:14px"></p>
+  <form id="gz-form" hidden novalidate style="margin-top:10px">
+    <label><span>Wat klopt er niet? <span class="muted" style="font-weight:400">(optioneel, alleen het comité ziet dit)</span></span>
+      <textarea id="gz-reden" maxlength="500" style="min-height:70px"></textarea></label>
+    <p class="muted" style="font-size:14px;margin:6px 0 0">Na het melden is de foto meteen niet meer te zien. Het comité kijkt ernaar.</p>
+    <div class="acties"><button class="btn ghost" type="button" id="gz-terug">Annuleren</button><button class="btn danger" type="submit">Melden</button></div>
+  </form>
+  <div class="acties" id="gz-acties"><button class="btn ghost" type="button" id="gz-sluit">Sluiten</button></div>
+</dialog>
 <footer id="voet"></footer>
 <script src="reunie.js"></script>
 <script src="data.js"></script>
@@ -42,7 +54,7 @@
   const DOEL = /^#p-\d+$/.test(location.hash) ? location.hash : '';  // read before render() rewrites the URL
 
   // Anchor = position in the list; the home page gets the same list in the same order.
-  const kaart = (p, hit) => Reunie.kaart(p, hit, isZelf(p), 'p-' + PERSONEN.indexOf(p));
+  const kaart = (p, hit) => Reunie.kaart(p, hit, isZelf(p), 'p-' + PERSONEN.indexOf(p), true);
   const grid = (titel, lijst, hit) => lijst.length
     ? `${titel ? `<h3 class="sub">${titel}</h3>` : ''}<div class="people">${lijst.map(p => kaart(p, hit)).join('')}</div>` : '';
   const naamVan = p => [p.voornaam, p.bijnaam, p.achternaam].filter(Boolean).join(' ').toLowerCase();
@@ -125,6 +137,73 @@
   });
   ['q', 'speltak', 'jaar'].forEach(id => $(id).addEventListener('input', render));
 
+  // ---- profile photos (toen en nu): only logged-in participants get the paths ----
+  let comite = false;
+  async function gezichten() {
+    const paden = PERSONEN.flatMap(p => [p.foto_toen, p.foto_nu]).filter(Boolean).map(x => x + '.jpg');
+    if (!paden.length) return;
+    const urls = await Data.fotoUrls(paden).catch(() => ({}));
+    for (const p of PERSONEN) zetGezicht(p, urls);
+    comite = await Data.beheerder().catch(() => false);
+  }
+  function zetGezicht(p, urls) {
+    const g = { toen: p.foto_toen && urls[p.foto_toen + '.jpg'], nu: p.foto_nu && urls[p.foto_nu + '.jpg'] };
+    p.gezicht = g.toen || g.nu ? g : null;
+  }
+  let groot = null;     // the person in the big view
+  function toonGezicht(p) {
+    groot = p;
+    $('gz-fotos').innerHTML = ['toen', 'nu'].filter(s => p.gezicht?.[s]).map(s => `<figure>
+        <img src="${Reunie.esc(p.gezicht[s])}" alt="Foto van ${s}"><figcaption>${s}${comite
+          ? ` · <button type="button" class="linkbtn" data-weg="${s}">Weghalen</button>` : ''}</figcaption></figure>`).join('');
+    $('gz-naam').textContent = Reunie.naam(p) || 'Anoniem';
+    $('gz-meld').innerHTML = comite ? '' : '<button type="button" class="linkbtn zacht" id="gz-meldknop">Klopt er iets niet met deze foto? Meld het</button>';
+    $('gz-form').hidden = true; $('gz-acties').hidden = false; $('gz-reden').value = '';
+    if (!$('gz').open) $('gz').showModal();
+  }
+  ['people', 'people2'].forEach(id => $(id).addEventListener('click', e => {
+    const b = e.target.closest('button[data-gezicht]');
+    const n = b && +b.closest('.person')?.id.slice(2);
+    if (b && PERSONEN[n]) toonGezicht(PERSONEN[n]);
+  }));
+  $('gz-sluit').addEventListener('click', () => $('gz').close());
+  $('gz').addEventListener('click', e => { if (e.target === $('gz')) $('gz').close(); });
+  $('gz-meld').addEventListener('click', e => {
+    if (e.target.id !== 'gz-meldknop') return;
+    $('gz-form').hidden = false; $('gz-acties').hidden = true; $('gz-meld').innerHTML = '';
+    $('gz-reden').focus();
+  });
+  $('gz-terug').addEventListener('click', () => toonGezicht(groot));
+  // Hide the photo(s) on this page at once; the comité decides afterwards.
+  function haalWeg(p, soorten) {
+    for (const s of soorten) p['foto_' + s] = null;
+    if (p.gezicht) { for (const s of soorten) p.gezicht[s] = null; if (!p.gezicht.toen && !p.gezicht.nu) p.gezicht = null; }
+    render();
+  }
+  $('gz-form').addEventListener('submit', async e => {
+    e.preventDefault();
+    const p = groot, soorten = ['toen', 'nu'].filter(s => p['foto_' + s]);
+    const knop = e.submitter; if (knop) knop.disabled = true;
+    try {
+      for (const s of soorten) await Data.meldProfielfoto(p['foto_' + s], $('gz-reden').value);
+      $('gz').close();
+      haalWeg(p, soorten);
+      $('summary').insertAdjacentHTML('afterend', '<p class="note ok" id="gz-bedankt">Dank je wel voor je melding. De foto is niet meer te zien.</p>');
+      setTimeout(() => $('gz-bedankt')?.remove(), 8000);
+    } catch (err) { alert('Melden lukte niet: ' + err.message); }
+    if (knop) knop.disabled = false;
+  });
+  $('gz-fotos').addEventListener('click', async e => {
+    const s = e.target.dataset.weg;
+    if (!s || !confirm(`Deze foto van ${s} weghalen? Hij wordt meteen gewist.`)) return;
+    e.target.disabled = true;
+    try {
+      await Data.beoordeelProfielfoto(groot['foto_' + s], 'weghalen');
+      haalWeg(groot, [s]);
+      groot.gezicht ? toonGezicht(groot) : $('gz').close();
+    } catch (err) { alert('Weghalen lukte niet: ' + err.message); e.target.disabled = false; }
+  });
+
   (async () => {
     await Reunie.laadSpeltakken();
     $('speltak').innerHTML = '<option value="">Alle speltakken</option>' +
@@ -141,6 +220,7 @@
     const [d, ik] = await Promise.all([Data.deelnemers(), Data.ingelogd() ? Data.ik().catch(() => null) : null]);
     isZelf = Reunie.zelf(ik);
     PERSONEN = d.personen;
+    await gezichten();
     $('totaal').innerHTML = `<b>${d.totaal}</b> ${d.totaal === 1 ? "doet" : "doen"} mee · ${Reunie.erbijTekst(d.erbij)} · <b>${PERSONEN.length}</b> zichtbaar`;
     render(); renderPerJaar();
 

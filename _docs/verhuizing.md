@@ -2,6 +2,8 @@
 
 20 november 2026 · Bas · herschreven op 22 november 2026 naar een parallelle aanpak met een testadres.
 
+**Afgerond op 26 november 2026.** De site draait op https://reunie.scoutingbrandevoort.nl; oude links op lastscoutstanding.com sturen door. Wat nog rest, staat onder "Afbouw na de reünie".
+
 De reüniesite verhuist van `lastscoutstanding.com/reunie25/` naar deze repo `lastscoutstanding/reunie25`, en wordt uiteindelijk bereikbaar als https://reunie.scoutingbrandevoort.nl. De nieuwe site draait eerst naast de oude op het testadres `reunie.lastscoutstanding.com` (DNS in eigen beheer, bij Webreus). Zo is alles getest voordat de scouting iets hoeft te doen.
 
 ## Belangrijk om te weten
@@ -59,7 +61,7 @@ Tot de overstap geeft `reunie.scoutingbrandevoort.nl` een 404 van GitHub. Dat is
 
 ## Fase 3: voorbereiden (klaar, 26 november 2026)
 
-Klaargezet op een tak `overstap` in beide repo's, lokaal (niet gepusht). Niets daarvan staat live.
+Klaargezet op een tak `overstap` in beide repo's; in fase 4 samengevoegd met `main` en gepusht, daarna de takken verwijderd.
 
 - `reunie25`, tak `overstap`: `reunie.ics` wijst naar `https://reunie.scoutingbrandevoort.nl/` (`DESCRIPTION`, `URL`, nieuwe `DTSTAMP`; de `UID` blijft gelijk, zodat agenda's het als dezelfde afspraak herkennen).
 - `lastscoutstanding.com`, tak `overstap`, vier commits:
@@ -71,7 +73,7 @@ Klaargezet op een tak `overstap` in beide repo's, lokaal (niet gepusht). Niets d
 
 Wordt er vóór de overstap nog iets aan de site veranderd in `lastscoutstanding.com`, dan moeten beide takken bij: zie stap 1 hieronder.
 
-## Fase 4: de overstap (een uur, in één keer)
+## Fase 4: de overstap (gedaan op 26 november 2026)
 
 Voorwaarde: fase 2 en 3 klaar, het liefst vóór de aankondiging. Kies een rustig moment; tussen stap 3 en 5 kan het nieuwe adres een kwartier tot een uur een certificaatfout geven, terwijl de oude site gewoon blijft werken.
 
@@ -91,17 +93,17 @@ Resend en de afzender noreply@lastscoutstanding.com blijven zoals ze zijn. Een a
 
 ## Testlijst
 
-Eerst op het testadres (fase 1), daarna nog eens op het echte adres (fase 4).
+Eerst op het testadres (fase 1), daarna nog eens op het echte adres (fase 4). Afgevinkt = gecontroleerd op het echte adres op 26 november 2026.
 
-- [ ] Opent met slotje, zonder certificaatwaarschuwing; `http://` gaat naar `https://`
-- [ ] Logo, favicon en stijl laden; programma, vragen en betaalblok tonen de tekst uit de txt-bestanden
+- [x] Opent met slotje (certificaat van Let's Encrypt, geldig tot 24 februari 2027, GitHub vernieuwt het), `http://` gaat naar `https://`
+- [x] Logo, stijl en txt-bestanden laden; gegevens uit Supabase verschijnen, geen fouten in de console
 - [ ] Inschrijven met een testadres, code ontvangen, gegevens aanpassen, uitschrijven
-- [ ] Inloggen als comitélid, Beheer opent, betaald afvinken werkt
+- [x] Inloggen op het nieuwe adres (Bas, na de overstap)
 - [ ] Herinneringen: verhalen en foto's laden (foto's via ondertekende links van Supabase)
-- [ ] "Zet in je agenda" opent het agendabestand met het juiste adres (pas na fase 4)
+- [x] Agendabestand bevat het nieuwe adres (`text/calendar`); nog openen in Apple Agenda en Google Agenda
 - [ ] Op een telefoon: menu veegbaar, inloggen werkt
-- [ ] Na fase 4: `lastscoutstanding.com/reunie25/`, `…/deelnemers.html?speltak=Welpen` en `…/inloggen.html#code` komen op de juiste pagina uit
-- [ ] Keep-alive groen in `reunie25`, weg in `lastscoutstanding.com`
+- [x] `lastscoutstanding.com/`, `/reunie25/`, `…/deelnemers.html?speltak=Welpen`, `…/inloggen.html#code` en `…/herinneringen.html#fotos` komen op de juiste pagina uit (getest in de browser); oude bestanden geven 404
+- [x] Keep-alive groen in `reunie25` (25 november 2026), weg in `lastscoutstanding.com`
 
 ## Terugdraaien en afbouw in 2027
 

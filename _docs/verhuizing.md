@@ -32,6 +32,8 @@ De reüniesite verhuist van `lastscoutstanding.com/reunie25/` naar deze repo `la
 
 ## Fase 2: DNS bij de scouting (kan ruim van tevoren)
 
+**Status 26 november 2026:** beide records staan bij Threvon (gecontroleerd met `dig`, ook rechtstreeks bij `ns01.threvon.nl`). Nog nagaan: staat het domein onder je profiel → Settings → Pages op *Verified*?
+
 Zoek uit wie de DNS van scoutingbrandevoort.nl beheert. De DNS staat bij **Threvon** (nameservers `ns01`–`ns03.threvon.nl`, `ns04.threvon.eu`), waarschijnlijk de hostingpartij van de WordPress-site; wie daar een account heeft, kan de records zetten.
 
 Nagekeken met `dig` (23 november 2026):

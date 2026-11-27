@@ -192,6 +192,20 @@ table.lijst { border-collapse: collapse; font-size: 14px; width: 100%; }
   .lijst .kol-sinds { display: none; }
   .lijst .klein-sinds { display: block; }
 }
+/* Beheer → Inschrijvingen on phones: each row becomes a block (name, e-mail · date, then Erbij? and Betaald side by side) */
+.inschr .kort { display: none; }
+@media (max-width: 600px) {
+  .inschr .lang { display: none; }
+  .inschr .kort { display: inline; }
+  .inschr thead { display: none; }
+  .inschr, .inschr tbody { display: block; }
+  .inschr tr { display: grid; grid-template-columns: minmax(0, 1fr) auto; align-items: center; column-gap: 10px; padding: 10px 12px; border-bottom: 1px solid var(--line); }
+  .inschr td { border: 0; padding: 0; }
+  .inschr td:first-child { grid-column: 1 / -1; margin-bottom: 8px; }
+  .inschr .mail, .inschr .klein-sinds { display: inline; }
+  .inschr tr.meer { display: block; padding: 0; }
+  .inschr tr.meer td { display: block; padding: 10px 12px; }
+}
 
 /* text pages (programma, vragen, privacy) */
 .prog { display: grid; grid-template-columns: auto 1fr; gap: 6px 18px; margin: 0; }

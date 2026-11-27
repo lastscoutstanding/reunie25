@@ -19,15 +19,10 @@
     <p style="margin:0">Deze pagina is voor het reüniecomité. Hoor je daarbij en zie je dit toch? Vraag dan of je e-mailadres als beheerder is toegevoegd.</p>
   </div>
   <div id="inhoud" hidden>
-    <div class="tegels" id="tegels"></div>
+    <div class="tegels filtertegels" id="tegels"></div>
+    <p class="subfilter" id="subfilter" hidden></p>
     <div class="filters">
       <input type="search" id="zoek" placeholder="Zoek op naam of e-mail" aria-label="Zoek op naam of e-mail">
-      <select id="f-erbij" aria-label="Erbij?">
-        <option value="">Erbij: iedereen</option><option value="ja">Erbij: ja</option><option value="misschien">Erbij: misschien</option><option value="nee">Erbij: helaas niet</option>
-      </select>
-      <select id="f-betaald" aria-label="Betaald">
-        <option value="">Betaald of niet</option><option value="ja">Betaald</option><option value="nee">Nog niet betaald</option>
-      </select>
       <label class="check"><input type="checkbox" id="f-nieuw"> Nieuw deze week</label>
       <button class="btn ghost" id="kopieer" type="button">Kopieer e-mailadressen</button>
       <button class="btn ghost" id="csv" type="button">Download CSV</button>
@@ -39,7 +34,7 @@
         <tbody id="rijen"></tbody>
       </table>
     </div>
-    <p class="muted" style="font-size:14px">Klik op een naam voor alle gegevens, ook wat iemand niet op "Wie doen er mee?" laat zien, en om iemand te verwijderen. E-mailadressen zijn alleen voor berichten van het comité. "Nieuw" = ingeschreven in de afgelopen 7 dagen. De filters zijn te combineren: zoeken, kopiëren en de CSV gebruiken de rijen die je ziet.<br>
+    <p class="muted" style="font-size:14px">Klik op een naam voor alle gegevens, ook wat iemand niet op "Wie doen er mee?" laat zien, en om iemand te verwijderen. E-mailadressen zijn alleen voor berichten van het comité. "Nieuw" = ingeschreven in de afgelopen 7 dagen. Klik op een tegel om de lijst daarop te filteren (nog een keer klikken toont iedereen); zoeken en "Nieuw deze week" werken daar bovenop. Kopiëren en de CSV gebruiken de rijen die je ziet. "Al langer dan een week ja" telt vanaf wanneer iemand "ja" koos: handig voor een betaalherinnering.<br>
       Een andere keuze bij "Erbij?" en een vinkje bij "Betaald" worden meteen opgeslagen. "Sinds" = wanneer de keuze voor het laatst veranderde. Het betaalvinkje staat alleen bij "ja" (en bij wie al betaald heeft). De deelnemer ziet beide op Mijn inschrijving; anderen zien alleen de aantallen.</p>
   </div>
 
@@ -187,22 +182,33 @@
     return d >= 0 && d < 7 * 864e5;
   };
 
-  // Rows matching the search box and all filters together.
+  // Tiles double as filters: one tile at a time, combined with the search box and "Nieuw deze week".
   const ERBIJ = { ja: 'Ja', misschien: 'Misschien', nee: 'Helaas niet' };
-  const filters = () => ({ q: $('zoek').value.trim().toLowerCase(), erbij: $('f-erbij').value, betaald: $('f-betaald').value, nieuw: $('f-nieuw').checked });
+  // "Ja" for more than 7 days (erbij_sinds is set at sign-up and on every change): ready for a payment reminder.
+  const langerJa = r => r.erbij === 'ja' && r.erbij_sinds && Date.now() - new Date(r.erbij_sinds + 'T00:00') >= 7 * 864e5;
+  const TEGELS = [
+    ['alle', 'Doen mee', () => true],
+    ['ja', 'Erbij: ja', r => r.erbij === 'ja'],
+    ['misschien', 'Misschien', r => r.erbij === 'misschien'],
+    ['nee', 'Helaas niet', r => r.erbij === 'nee'],
+    ['betaald', 'Betaald', r => !!r.betaald],
+    ['open', 'Ja, nog niet betaald', r => r.erbij === 'ja' && !r.betaald],
+    ['terug', 'Betaald, niet (meer) ja', r => !!r.betaald && r.erbij !== 'ja'],
+  ];
+  let tegel = 'alle', alleenLanger = false;
+  const filters = () => ({ q: $('zoek').value.trim().toLowerCase(), tegel, langer: tegel === 'open' && alleenLanger, nieuw: $('f-nieuw').checked });
   function gefilterd() {
-    const f = filters();
+    const f = filters(), past = TEGELS.find(t => t[0] === f.tegel)[2];
     return lijst.filter(r => (!f.q || `${volNaam(r)} ${r.email}`.toLowerCase().includes(f.q))
-      && (!f.erbij || r.erbij === f.erbij)
-      && (!f.betaald || (f.betaald === 'ja') === !!r.betaald)
+      && past(r) && (!f.langer || langerJa(r))
       && (!f.nieuw || isNieuw(r)));
   }
-  function zetFiltersTerug() { $('zoek').value = ''; $('f-erbij').value = ''; $('f-betaald').value = ''; $('f-nieuw').checked = false; }
+  function zetFiltersTerug() { $('zoek').value = ''; tegel = 'alle'; alleenLanger = false; $('f-nieuw').checked = false; tegels(); }
 
   function toon() {
     const f = filters();
     const rijen = gefilterd();
-    $('telling').innerHTML = f.q || f.erbij || f.betaald || f.nieuw ? `<b>${rijen.length}</b> van de ${lijst.length} gevonden` : '';
+    $('telling').innerHTML = f.q || f.tegel !== 'alle' || f.nieuw ? `<b>${rijen.length}</b> van de ${lijst.length} gevonden` : '';
     $('rijen').innerHTML = rijen.map(r => `<tr>
         <td><button class="linkbtn" data-id="${E(r.id)}" aria-expanded="${open.has(r.id)}">${E(volNaam(r))}</button>${isNieuw(r) ? ' <span class="pill nieuw">nieuw</span>' : ''}<br><small class="muted mail">${E(r.email).replace('@', '@<wbr>')}</small><small class="muted klein-sinds">ingeschreven ${datum(r.sinds)}</small></td>
         <td class="kol-sinds">${datum(r.sinds)}</td>
@@ -216,19 +222,31 @@
   }
 
   function tegels() {
-    const betaald = lijst.filter(r => r.betaald).length;
-    const n = k => lijst.filter(r => r.erbij === k).length;
-    $('tegels').innerHTML = `<div><span>Doen mee</span><strong>${lijst.length}</strong></div>
-      <div><span>Erbij: ja</span><strong>${n('ja')}</strong></div>
-      <div><span>Misschien</span><strong>${n('misschien')}</strong></div>
-      <div><span>Helaas niet</span><strong>${n('nee')}</strong></div>
-      <div><span>Betaald</span><strong>${betaald}</strong></div>
-      <div><span>Ja, nog niet betaald</span><strong>${lijst.filter(r => r.erbij === 'ja' && !r.betaald).length}</strong></div>
-      ${betalen ? `<div><span>Ontvangen (± ${Reunie.euro(betalen.bedrag)} p.p.)</span><strong>${Reunie.euro(betaald * betalen.bedrag)}</strong></div>` : ''}`;
+    const aantal = t => lijst.filter(t[2]).length;
+    // The refund tile only shows up when it has someone in it (or is still selected).
+    if (tegel === 'terug' && !aantal(TEGELS[6])) tegel = 'alle';
+    const knop = (t, label, waarde, extra = '') => `<button type="button" data-tegel="${t[0]}" class="${extra}${tegel === t[0] ? ' on' : ''}" aria-pressed="${tegel === t[0]}"><span>${label}</span><strong>${waarde}</strong></button>`;
+    const betaald = aantal(TEGELS[4]);
+    $('tegels').innerHTML = TEGELS.filter(t => t[0] !== 'terug' || aantal(t)).map(t => knop(t, t[1], aantal(t), t[0] === 'terug' ? 'let-op' : '')).join('')
+      + (betalen ? knop(TEGELS[4], `Ontvangen (± ${Reunie.euro(betalen.bedrag)} p.p.)`, Reunie.euro(betaald * betalen.bedrag)) : '');
+    const open = lijst.filter(TEGELS[5][2]), langer = open.filter(langerJa).length;
+    $('subfilter').hidden = tegel !== 'open';
+    $('subfilter').innerHTML = `Ja, nog niet betaald: <span class="seg">
+      <button type="button" data-langer="0" class="${alleenLanger ? '' : 'on'}">alle ${open.length}</button><button type="button" data-langer="1" class="${alleenLanger ? 'on' : ''}">al langer dan een week ja (${langer})</button></span>`;
   }
+  $('tegels').addEventListener('click', e => {
+    const b = e.target.closest('[data-tegel]');
+    if (!b) return;
+    tegel = tegel === b.dataset.tegel ? 'alle' : b.dataset.tegel;
+    tegels(); toon();
+  });
+  $('subfilter').addEventListener('click', e => {
+    const b = e.target.closest('[data-langer]');
+    if (b) { alleenLanger = b.dataset.langer === '1'; tegels(); toon(); }
+  });
 
   $('zoek').addEventListener('input', toon);
-  ['f-erbij', 'f-betaald', 'f-nieuw'].forEach(id => $(id).addEventListener('change', toon));
+  $('f-nieuw').addEventListener('change', toon);
   $('rijen').addEventListener('change', async e => {
     const id = e.target.dataset.erbij;
     if (!id) return;

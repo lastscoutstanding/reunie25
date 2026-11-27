@@ -357,6 +357,12 @@ a.person:hover { background: color-mix(in srgb, var(--accent) 18%, var(--card));
 .nieuwst .laatst .t { flex: 1; min-width: 0; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
 .nieuwst .laatst .wanneer { flex: none; color: var(--muted); font-size: 12.5px; }
 .nieuwst div.card .verder { text-decoration: none; }
+/* Kletsen card: each line links to its message, the rest of the card to Kletsen (links cannot
+   be nested, so the "Praat mee" link stretches over the card and the lines sit above it) */
+.nieuwst div.card.kletsen { position: relative; }
+.nieuwst div.card.kletsen:hover { border-color: var(--brand); }
+.nieuwst .verder.heel::after { content: ""; position: absolute; inset: 0; border-radius: inherit; }
+.nieuwst .kletsen .laatst a { position: relative; z-index: 1; }
 .nieuwst .foto { display: grid; grid-template-columns: 160px 1fr; gap: 14px; align-items: start; }
 .nieuwst .foto img { width: 100%; aspect-ratio: 4 / 3; object-fit: cover; border-radius: 8px; background: var(--chip); }
 @media (max-width: 480px) { .nieuwst .foto { grid-template-columns: 1fr; } }

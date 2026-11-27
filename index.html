@@ -135,7 +135,7 @@
       };
       const regels = reacties.slice(-3).reverse().map(r => `<a href="kampvuur.html#bericht-${E(r.id)}"><span class="t"><b>${E(wie(r))}</b>${waar[r.soort]}: ${E(r.tekst.replace(/\s+/g, ' '))}</span>
         <span class="wanneer">${E(wanneer(r.aangemaakt))}</span></a>`).join('');
-      kaarten.push(`<div class="card kletsen"><p class="soort">Kletsen</p><div class="laatst">${regels}</div><a class="verder" href="kampvuur.html">Praat mee →</a></div>`);
+      kaarten.push(`<div class="card kletsen"><p class="soort">Kletsen</p><div class="laatst">${regels}</div><a class="verder heel" href="kampvuur.html">Praat mee →</a></div>`);
     }
     if (kaarten.length) blok(`<div class="${kaarten.length > 1 ? 'kaarten' : ''}">${kaarten.join('')}</div>`);
   })();
